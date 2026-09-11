@@ -54,9 +54,10 @@ function loadFromBlob(blob) {
 /**
  * Returns a blob URL + natural dimensions for the map image.
  * Tries IndexedDB first, then the network (also writing through to the cache).
- * Throws if the image is unavailable.
+ * If `url` fails, falls back to `fallbackUrl` (if provided).
+ * Throws if the image is unavailable from every source.
  */
-export async function loadImageCached(url) {
+export async function loadImageCached(url, fallbackUrl) {
   let db = null;
   try {
     db = await openDb();
@@ -77,18 +78,25 @@ export async function loadImageCached(url) {
     }
   }
 
-  const resp = await fetch(url, { cache: "no-store" });
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  const blob = await resp.blob();
-  if (db) {
+  for (const src of [url, fallbackUrl].filter(Boolean)) {
     try {
-      await txPut(db, key, blob);
+      const resp = await fetch(src, { cache: "no-store" });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const blob = await resp.blob();
+      if (db) {
+        try {
+          await txPut(db, key, blob);
+        } catch {
+          /* non-fatal */
+        }
+      }
+      const hit = await loadFromBlob(blob);
+      return { ...hit, fromCache: false };
     } catch {
-      /* non-fatal */
+      /* try next source */
     }
   }
-  const hit = await loadFromBlob(blob);
-  return { ...hit, fromCache: false };
+  throw new Error("image unavailable");
 }
 
 // Fallback placeholder grid used when the live map cannot be fetched.

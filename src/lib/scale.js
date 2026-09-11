@@ -2,7 +2,10 @@ export const WIKI_URL = "https://tep.wiki";
 
 // Base map layers from urth-rp/urthmaps (maps/export). All share the same
 // full-resolution dimensions (11232x7525) so they swap cleanly on the atlas.
-export const MAP_BASE =
+// jsDelivr is the primary mirror (global CDN, reliable CORS); the GitHub raw
+// URL is kept as a fallback if the CDN is unreachable.
+export const MAP_BASE = "https://cdn.jsdelivr.net/gh/urth-rp/urthmaps@main/maps/export";
+export const MAP_BASE_RAW =
   "https://raw.githubusercontent.com/urth-rp/urthmaps/main/maps/export";
 
 export const BASE_LAYERS = [
@@ -11,6 +14,7 @@ export const BASE_LAYERS = [
     label: "Standard",
     sub: "Political map",
     url: `${MAP_BASE}/urth.png`,
+    fallbackUrl: `${MAP_BASE_RAW}/urth.png`,
     chip: "bg-gradient-to-br from-sky-300 via-sky-600 to-cyan-800",
   },
   {
@@ -18,6 +22,7 @@ export const BASE_LAYERS = [
     label: "Topographic",
     sub: "Elevation & relief",
     url: `${MAP_BASE}/topo.png`,
+    fallbackUrl: `${MAP_BASE_RAW}/topo.png`,
     chip: "bg-gradient-to-br from-emerald-200 via-lime-400 to-amber-700",
   },
   {
@@ -25,6 +30,7 @@ export const BASE_LAYERS = [
     label: "Climate",
     sub: "Climate zones",
     url: `${MAP_BASE}/climate.png`,
+    fallbackUrl: `${MAP_BASE_RAW}/climate.png`,
     chip: "bg-gradient-to-br from-yellow-200 via-orange-400 to-rose-600",
   },
   {
@@ -32,6 +38,7 @@ export const BASE_LAYERS = [
     label: "Ocean Currents",
     sub: "Surface circulation",
     url: `${MAP_BASE}/currents.png`,
+    fallbackUrl: `${MAP_BASE_RAW}/currents.png`,
     chip: "bg-gradient-to-br from-blue-400 via-cyan-300 to-indigo-500",
   },
   {
@@ -39,6 +46,7 @@ export const BASE_LAYERS = [
     label: "Hydrology",
     sub: "Rivers & basins",
     url: `${MAP_BASE}/hydro.png`,
+    fallbackUrl: `${MAP_BASE_RAW}/hydro.png`,
     chip: "bg-gradient-to-br from-sky-400 to-blue-600",
   },
   {
@@ -46,6 +54,7 @@ export const BASE_LAYERS = [
     label: "Blank",
     sub: "Coastlines only",
     url: `${MAP_BASE}/blank.png`,
+    fallbackUrl: `${MAP_BASE_RAW}/blank.png`,
     chip: "bg-gradient-to-br from-zinc-100 to-zinc-300",
   },
 ];

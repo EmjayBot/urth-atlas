@@ -3,11 +3,11 @@ import { BASE_LAYERS, getLayer } from "../lib/scale";
 import { loadImageCached } from "../lib/imageCache";
 import { IconLayers, IconCheck } from "./icons";
 
-function Thumb({ url, chip }) {
+function Thumb({ url, fallbackUrl, chip }) {
   const [src, setSrc] = useState(null);
   useEffect(() => {
     let alive = true;
-    loadImageCached(url)
+    loadImageCached(url, fallbackUrl)
       .then(({ url: blob }) => {
         if (alive) setSrc(blob);
       })
@@ -15,7 +15,7 @@ function Thumb({ url, chip }) {
     return () => {
       alive = false;
     };
-  }, [url]);
+  }, [url, fallbackUrl]);
   return (
     <div className={`relative w-12 h-12 rounded-lg overflow-hidden shrink-0 border ${chip}`}>
       {src ? (
@@ -70,7 +70,7 @@ export default function LayerSwitcher({ layer, setLayer }) {
                     isActive ? "bg-[#f0f9fa]" : "hover:bg-zinc-50"
                   }`}
                 >
-                  <Thumb url={l.url} chip={l.chip} />
+                  <Thumb url={l.url} fallbackUrl={l.fallbackUrl} chip={l.chip} />
                   <span className="min-w-0 flex-1">
                     <span className="block text-[13px] font-semibold text-zinc-800 truncate">
                       {l.label}

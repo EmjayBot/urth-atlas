@@ -116,7 +116,8 @@ export default function MapView({
       onMapReadyRef.current(map);
     };
 
-    loadImageCached(getLayer(layerRef.current).url)
+    const def = getLayer(layerRef.current);
+    loadImageCached(def.url, def.fallbackUrl)
       .then(({ url, w, h }) => finishLoad(url, w, h, "ok"))
       .catch(() => {
         if (canceled) return;
@@ -214,7 +215,7 @@ export default function MapView({
     const def = getLayer(layer);
     let canceled = false;
     setStatus("loading");
-    loadImageCached(def.url)
+    loadImageCached(def.url, def.fallbackUrl)
       .then(({ url, w, h }) => {
         if (canceled) return;
         if (w !== mapSize.W || h !== mapSize.H) {
