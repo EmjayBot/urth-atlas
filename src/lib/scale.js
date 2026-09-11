@@ -1,4 +1,4 @@
-export const MAP_URL = "https://urthmaps.com/maps/export/urth.png";
+export const MAP_URL = "https://raw.githubusercontent.com/urth-rp/urthmaps/main/maps/export/urth.png";
 export const WIKI_URL = "https://tep.wiki";
 
 // World constants (calibrated to the full-resolution urth.png export).
