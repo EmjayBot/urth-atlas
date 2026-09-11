@@ -130,3 +130,11 @@ export const IconExternal = (p) => (
     <path d="M10 14 21 3" />
   </svg>
 );
+
+export const IconLayers = (p) => (
+  <svg {...base} {...p}>
+    <path d="m12 2 10 5.5-10 5.5L2 7.5 12 2Z" />
+    <path d="m2 12.5 10 5.5 10-5.5" />
+    <path d="m2 17.5 10 5.5 10-5.5" />
+  </svg>
+);

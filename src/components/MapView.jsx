@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import {
-  MAP_URL,
   FALLBACK_W,
   FALLBACK_H,
   KM_PER_PX,
   MI_PER_KM,
+  getLayer,
 } from "../lib/scale";
 import { wrapX, latFromPixel } from "../lib/geo";
 import { loadImageCached, makeFallbackGrid } from "../lib/imageCache";
@@ -33,7 +33,7 @@ export default function MapView({
   setMapSize,
   status,
   setStatus,
-  mapMode,
+  layer,
   showNations,
   initialView,
   focus,
@@ -44,11 +44,13 @@ export default function MapView({
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const imagesRef = useRef([]);
+  const loadedLayerRef = useRef(null);
   const [scaleBar, setScaleBar] = useState(null);
 
   const modeRef = useRefLatest(mode);
   const pointsRef = useRefLatest(points);
   const hoverRef = useRefLatest(hover);
+  const layerRef = useRefLatest(layer);
   const onCursorRef = useRefLatest(onCursor);
   const onViewChangeRef = useRefLatest(onViewChange);
   const onFocusHandledRef = useRefLatest(onFocusHandled);
@@ -101,6 +103,7 @@ export default function MapView({
       if (canceled) return;
       W = w;
       H = h;
+      loadedLayerRef.current = layerRef.current;
       setMapSize({ W, H });
       installOverlays(url);
       const init = initialViewRef.current;
@@ -113,7 +116,7 @@ export default function MapView({
       onMapReadyRef.current(map);
     };
 
-    loadImageCached(MAP_URL)
+    loadImageCached(getLayer(layerRef.current).url)
       .then(({ url, w, h }) => finishLoad(url, w, h, "ok"))
       .catch(() => {
         if (canceled) return;
@@ -202,6 +205,37 @@ export default function MapView({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ---- Base layer swapping -------------------------------------------------
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapSize?.W) return;
+    if (loadedLayerRef.current === layer) return;
+    const def = getLayer(layer);
+    let canceled = false;
+    setStatus("loading");
+    loadImageCached(def.url)
+      .then(({ url, w, h }) => {
+        if (canceled) return;
+        if (w !== mapSize.W || h !== mapSize.H) {
+          setMapSize({ W: w, H: h });
+        }
+        imagesRef.current.forEach((ov) => ov.setUrl(url));
+        loadedLayerRef.current = layer;
+        setStatus("ok");
+      })
+      .catch(() => {
+        if (canceled) return;
+        const url = makeFallbackGrid(FALLBACK_W, FALLBACK_H);
+        imagesRef.current.forEach((ov) => ov.setUrl(url));
+        loadedLayerRef.current = layer;
+        setStatus("blocked");
+      });
+    return () => {
+      canceled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layer, mapSize?.W]);
 
   // ---- Focus handling (search / deep link) --------------------------------
   useEffect(() => {
@@ -358,29 +392,22 @@ export default function MapView({
     };
   }, [showNations, mapSize]);
 
-  // ---- Initial view when map becomes ready (deep links) --------------------
-
   // ---- Render --------------------------------------------------------------
-  const filter =
-    mapMode === "terrain"
-      ? "grayscale(0.6) contrast(1.05)"
-      : mapMode === "satellite"
-        ? "contrast(1.15) saturate(1.25) brightness(1.02)"
-        : "none";
+  const activeLayer = getLayer(layer);
 
   return (
     <div className="absolute inset-0">
       <div
         ref={containerRef}
         className="absolute inset-0"
-        style={{ background: "#e5e3df", filter }}
+        style={{ background: "#e5e3df" }}
       />
       {status === "loading" && (
         <div className="absolute inset-0 z-[900] flex items-center justify-center pointer-events-none">
           <div className="bg-white/95 rounded-2xl shadow-xl border border-zinc-200 px-6 py-4 text-center">
             <div className="w-7 h-7 border-[3px] border-[#0e7490] border-t-transparent rounded-full animate-spin mx-auto mb-2.5" />
             <div className="text-[12px] font-semibold tracking-wide uppercase text-zinc-600">
-              Loading Urth.png
+              Loading {activeLayer.label}
             </div>
             <div className="text-[11px] text-zinc-400 font-mono mt-1">
               Fetching full-resolution world map

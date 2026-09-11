@@ -1,5 +1,7 @@
 // Deep-linkable URL state: view center, zoom, active tool, measurement points,
-// and layer visibility. Everything is in image-pixel coordinates.
+// layer visibility, and base layer. Everything is in image-pixel coordinates.
+
+import { getLayer } from "./scale";
 
 export function parseUrl() {
   const q = new URLSearchParams(window.location.search);
@@ -31,6 +33,9 @@ export function parseUrl() {
 
   if (q.get("nations") === "1") out.nations = true;
 
+  const layer = q.get("layer");
+  if (layer && getLayer(layer).id === layer) out.layer = layer;
+
   return out;
 }
 
@@ -45,6 +50,7 @@ export function writeUrl(state, { replace = true } = {}) {
       state.pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join("|")
     );
   if (state.nations) q.set("nations", "1");
+  if (state.layer && state.layer !== "map") q.set("layer", state.layer);
   const qs = q.toString();
   const url = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
   if (replace) window.history.replaceState(null, "", url);

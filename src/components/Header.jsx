@@ -8,8 +8,6 @@ function Header({
   setQuery,
   onNation,
   onCoord,
-  mapMode,
-  setMapMode,
   showNations,
   setShowNations,
 }) {
@@ -38,18 +36,6 @@ function Header({
       </div>
 
       <SearchBar query={query} setQuery={setQuery} onNation={onNation} onCoord={onCoord} />
-
-      <div className="hidden lg:flex items-center gap-1 rounded-full bg-zinc-100 p-1 border border-zinc-200 shrink-0">
-        {["map", "terrain", "satellite"].map((m) => (
-          <button
-            key={m}
-            onClick={() => setMapMode(m)}
-            className={`px-3.5 py-1.5 rounded-full text-[11px] font-semibold tracking-wide uppercase transition-all ${mapMode === m ? "bg-white shadow-sm text-zinc-900 border border-zinc-200" : "text-zinc-500 hover:text-zinc-800"}`}
-          >
-            {m}
-          </button>
-        ))}
-      </div>
 
       <button
         onClick={() => setShowNations((v) => !v)}

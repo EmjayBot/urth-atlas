@@ -1,5 +1,6 @@
 import { IconPlus, IconMinus, IconReset, IconTrash } from "./icons";
 import { num, intNum } from "../lib/format";
+import LayerSwitcher from "./LayerSwitcher";
 
 const TOOL_LABELS = [
   { id: "measure", label: "Measure" },
@@ -17,6 +18,8 @@ export default function MapControls({
   cursor,
   mapSize,
   result,
+  layer,
+  setLayer,
   onZoomIn,
   onZoomOut,
   onReset,
@@ -109,6 +112,30 @@ export default function MapControls({
             {u === "metric" ? "km" : u === "imperial" ? "mi" : "both"}
           </button>
         ))}
+      </div>
+
+      <LayerSwitcher layer={layer} setLayer={setLayer} />
+
+      <div className="absolute bottom-3 right-[56px] z-[900] pointer-events-none select-none hidden sm:block">
+        <div className="bg-white/90 backdrop-blur rounded-md shadow-sm border border-zinc-200 px-2 py-0.5 text-[9px] font-medium text-zinc-500">
+          <a
+            href="https://github.com/urth-rp/urthmaps"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-zinc-800"
+          >
+            urth-rp/urthmaps
+          </a>
+          {" · "}
+          <a
+            href="https://tep.wiki"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-zinc-800"
+          >
+            TEPwiki
+          </a>
+        </div>
       </div>
 
       {/* Live readout pill */}

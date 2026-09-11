@@ -7,6 +7,7 @@ import Footer from "./components/Footer";
 import Toast from "./components/Toast";
 import { measureDistance, measurePath, measureArea } from "./lib/measure";
 import { parseUrl, writeUrl, shareLink } from "./lib/url";
+import { getLayer, BASE_LAYERS } from "./lib/scale";
 
 const initial = parseUrl();
 
@@ -18,7 +19,7 @@ export default function App() {
   const [cursor, setCursor] = useState(null);
   const [mapSize, setMapSize] = useState(null);
   const [status, setStatus] = useState("loading");
-  const [mapMode, setMapMode] = useState("map");
+  const [layer, setLayer] = useState(initial.layer ?? "map");
   const [showNations, setShowNations] = useState(initial.nations ?? true);
   const [query, setQuery] = useState("");
   const [focus, setFocus] = useState(null);
@@ -29,10 +30,10 @@ export default function App() {
   const toastTimer = useRef(0);
   const persistTimer = useRef(0);
 
-  const stateRef = useRef({ mode, points, showNations, view });
+  const stateRef = useRef({ mode, points, showNations, view, layer });
   useEffect(() => {
-    stateRef.current = { mode, points, showNations, view };
-  }, [mode, points, showNations, view]);
+    stateRef.current = { mode, points, showNations, view, layer };
+  }, [mode, points, showNations, view, layer]);
 
   // Persist deep-link state (debounced for view/pan events).
   useEffect(() => {
@@ -45,10 +46,11 @@ export default function App() {
         mode: s.mode === "none" ? undefined : s.mode,
         pts: s.mode !== "none" ? s.points : undefined,
         nations: s.showNations,
+        layer: s.layer,
       });
     }, 250);
     return () => clearTimeout(persistTimer.current);
-  }, [view, mode, points, showNations]);
+  }, [view, mode, points, showNations, layer]);
 
   const showToast = (message) => {
     clearTimeout(toastTimer.current);
@@ -92,6 +94,7 @@ export default function App() {
       mode: overrides.mode,
       pts: overrides.pts,
       nations: s.showNations,
+      layer: s.layer,
     });
     navigator.clipboard?.writeText(link).then(
       () => showToast("Share link copied"),
@@ -126,8 +129,6 @@ export default function App() {
           setFocus({ type: "nation", name: n.name });
         }}
         onCoord={(a, b) => setFocus({ type: "coord", a, b })}
-        mapMode={mapMode}
-        setMapMode={setMapMode}
         showNations={showNations}
         setShowNations={setShowNations}
       />
@@ -145,6 +146,7 @@ export default function App() {
             cursor={cursor}
             status={status}
             result={result}
+            layer={layer}
             onCopy={onCopy}
             onShare={onShare}
           />
@@ -162,7 +164,7 @@ export default function App() {
             setMapSize={setMapSize}
             status={status}
             setStatus={setStatus}
-            mapMode={mapMode}
+            layer={layer}
             showNations={showNations}
             initialView={initial.at ? { at: initial.at, z: initial.z } : null}
             focus={focus}
@@ -182,6 +184,8 @@ export default function App() {
             cursor={cursor}
             mapSize={mapSize}
             result={result}
+            layer={layer}
+            setLayer={setLayer}
             onZoomIn={() => mapRef.current?.zoomIn()}
             onZoomOut={() => mapRef.current?.zoomOut()}
             onReset={() => {

@@ -1,4 +1,4 @@
-import { KM_PER_PX, MI_PER_PX, KM2_PER_PX2, MI2_PER_PX2 } from "../lib/scale";
+import { KM_PER_PX, MI_PER_PX, KM2_PER_PX2, MI2_PER_PX2, getLayer } from "../lib/scale";
 import { num, intNum } from "../lib/format";
 import {
   IconRuler,
@@ -239,6 +239,7 @@ export default function MeasurementPanel({
   cursor,
   status,
   result,
+  layer,
   onCopy,
   onShare,
 }) {
@@ -371,8 +372,8 @@ export default function MeasurementPanel({
           </div>
           <div className="text-[11px] leading-4 text-zinc-600 space-y-1">
             <div>
-              • Source:{" "}
-              <span className="font-mono text-[10px]">urth.png</span>{" "}
+              • Layer:{" "}
+              <span className="font-mono text-[10px]">{getLayer(layer).label}</span>{" "}
               {status === "blocked"
                 ? "(fallback grid shown)"
                 : status === "ok"

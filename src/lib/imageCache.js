@@ -3,7 +3,11 @@
 
 const DB_NAME = "urth-atlas";
 const STORE = "images";
-const KEY = "urth.png.v1";
+
+function keyFor(url) {
+  const name = url.split("/").pop() || "map";
+  return `${name}.v1`;
+}
 
 function openDb() {
   return new Promise((resolve, reject) => {
@@ -59,10 +63,11 @@ export async function loadImageCached(url) {
   } catch {
     /* cache unavailable */
   }
+  const key = keyFor(url);
 
   if (db) {
     try {
-      const blob = await txGet(db, KEY);
+      const blob = await txGet(db, key);
       if (blob) {
         const hit = await loadFromBlob(blob);
         return { ...hit, fromCache: true };
@@ -77,7 +82,7 @@ export async function loadImageCached(url) {
   const blob = await resp.blob();
   if (db) {
     try {
-      await txPut(db, KEY, blob);
+      await txPut(db, key, blob);
     } catch {
       /* non-fatal */
     }
