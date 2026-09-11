@@ -77,7 +77,7 @@ export async function loadImageCached(url) {
     }
   }
 
-  const resp = await fetch(url, { cache: "force-cache" });
+  const resp = await fetch(url, { cache: "no-store" });
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
   const blob = await resp.blob();
   if (db) {
