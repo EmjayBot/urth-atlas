@@ -1,0 +1,89 @@
+name: Auto-apply map updates
+
+on:
+  issues:
+    types: [opened, reopened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  apply:
+    # Only process issues created by the "Submit to map" flow (title prefix).
+    if: startsWith(github.event.issue.title, 'Map update:')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract and merge JSON from issue body
+        id: merge
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
+            const body = context.payload.issue.body || "";
+
+            // Parse the ```json ... ``` block from the issue body.
+            const m = body.match(/```json\s*([\s\S]*?)```/);
+            if (!m) {
+              core.setFailed("No JSON block found in issue body");
+              return;
+            }
+            const patch = JSON.parse(m[1]);
+
+            // Validate shape: { "Name": { kind, href, x, y } }
+            const clean = {};
+            for (const [name, v] of Object.entries(patch)) {
+              if (name.startsWith("_")) continue;
+              if (
+                v && typeof v === "object" &&
+                (v.kind === "nation" || v.kind === "city") &&
+                typeof v.href === "string" &&
+                Number.isFinite(v.x) && Number.isFinite(v.y)
+              ) {
+                clean[name] = { kind: v.kind, href: v.href, x: Math.round(v.x), y: Math.round(v.y) };
+              }
+            }
+            if (!Object.keys(clean).length) {
+              core.setFailed("No valid place entries in issue body");
+              return;
+            }
+
+            // Merge into public/positions.json (keeping metadata keys).
+            const file = "public/positions.json";
+            const cur = JSON.parse(fs.readFileSync(file, "utf8"));
+            const next = { ...cur };
+            for (const [name, v] of Object.entries(clean)) next[name] = v;
+            fs.writeFileSync(file, JSON.stringify(next, null, 2) + "\n");
+            core.setOutput("applied", Object.keys(clean).join(", "));
+            core.setOutput("file_changed", "true");
+
+      - name: Commit and push
+        if: steps.merge.outputs.file_changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/positions.json
+          git commit -m "Apply map update: ${{ steps.merge.outputs.applied }}"
+          git push
+
+      - name: Comment and close issue
+        if: steps.merge.outputs.file_changed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+              body: "Merged into positions.json. Thanks for contributing! 🗺️",
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+              state: "closed",
+            });

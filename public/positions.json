@@ -1,7 +1,10 @@
 {
-  "_comment": "Community place registry. Each key is a place name; value is { kind: 'nation'|'city', href: '/wiki/...', x, y } where x/y are map pixels (CRS.Simple). Anyone can add/reposition via the Calibrate panel, then Submit to map opens a PR that merges into this file.",
-  "_version": 2,
-  "_example": {
-    "Christie Island": { "kind": "nation", "href": "/wiki/Christie_Island", "x": 5616, "y": 4558 }
+  "_comment": "Community place registry. Each key is a place name; value is { kind: 'nation'|'city', href: '/wiki/...', x, y } where x/y are map pixels (CRS.Simple). Merged automatically from GitHub issues titled 'Map update: ...' by .github/workflows/map-update.yml.",
+  "_version": 3,
+  "Free Pax States": {
+    "kind": "nation",
+    "href": "/wiki/Free_Pax_States",
+    "x": 11019.9,
+    "y": 6704
   }
 }

@@ -182,7 +182,8 @@ export default function App() {
     showToast(`Removed ${name}`);
   };
 
-  // Build PR-ready diff of local changes vs shared, open a GitHub issue.
+  // Build a PR-ready diff of local changes vs shared, open a GitHub issue.
+  // The map-update workflow auto-merges these into positions.json on deploy.
   const submitChanges = () => {
     const diff = {};
     for (const [name, v] of Object.entries(local)) {
@@ -195,14 +196,14 @@ export default function App() {
     const body =
       "Community map update from Urth Atlas:\n\n```json\n" +
       JSON.stringify(diff, null, 2) +
-      "\n```\n\nMerge to make these visible to everyone.";
+      "\n```\n\nThis issue is auto-merged into positions.json by the map-update workflow.";
     const url =
       "https://github.com/EmjayBot/urth-atlas/issues/new?title=" +
       encodeURIComponent("Map update: " + Object.keys(diff).slice(0, 5).join(", ")) +
       "&body=" +
       encodeURIComponent(body);
     window.open(url, "_blank", "noopener");
-    showToast("Opening GitHub issue…");
+    showToast("Opened issue — auto-merges on publish");
   };
 
   const clearLocal = () => {
