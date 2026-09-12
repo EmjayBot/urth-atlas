@@ -5,11 +5,22 @@ import MapControls from "./components/MapControls";
 import MeasurementPanel from "./components/MeasurementPanel";
 import Footer from "./components/Footer";
 import Toast from "./components/Toast";
+import CalibrationPanel from "./components/CalibrationPanel";
 import { measureDistance, measurePath, measureArea } from "./lib/measure";
 import { parseUrl, writeUrl, shareLink } from "./lib/url";
 import { getLayer, BASE_LAYERS } from "./lib/scale";
 
 const initial = parseUrl();
+
+const OVERRIDE_KEY = "urth-atlas.overrides.v1";
+
+function loadOverrides() {
+  try {
+    return JSON.parse(localStorage.getItem(OVERRIDE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
 
 export default function App() {
   const [mode, setMode] = useState(initial.mode ?? "none");
@@ -25,6 +36,15 @@ export default function App() {
   const [focus, setFocus] = useState(null);
   const [view, setView] = useState(null);
   const [toast, setToast] = useState(null);
+  const [calibOpen, setCalibOpen] = useState(false);
+  const [calibTarget, setCalibTarget] = useState(null);
+  const [overrides, setOverrides] = useState(loadOverrides);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(OVERRIDE_KEY, JSON.stringify(overrides));
+    } catch {}
+  }, [overrides]);
 
   const mapRef = useRef(null);
   const toastTimer = useRef(0);
@@ -79,6 +99,28 @@ export default function App() {
     setMode("none");
   };
 
+  // ---- Calibration --------------------------------------------------------
+  const onCalibrateClick = (x, y) => {
+    if (!calibTarget) return;
+    setOverrides((o) => ({ ...o, [calibTarget]: { x, y } }));
+    showToast(`Placed ${calibTarget}`);
+    setCalibTarget(null);
+  };
+
+  const exportOverrides = () => {
+    const out = {};
+    for (const [name, { x, y }] of Object.entries(overrides)) {
+      out[name] = { x: +x.toFixed(1), y: +y.toFixed(1) };
+    }
+    onCopy(JSON.stringify(out));
+  };
+
+  const clearOverrides = () => {
+    setOverrides({});
+    setCalibTarget(null);
+    showToast("Cleared all calibrations");
+  };
+
   const onCopy = (text) => {
     navigator.clipboard?.writeText(text).then(
       () => showToast("Copied to clipboard"),
@@ -111,7 +153,10 @@ export default function App() {
       if (k === "m") selectTool("measure");
       else if (k === "a") selectTool("area");
       else if (k === "p") selectTool("path");
-      else if (k === "escape") clearAll();
+      else if (k === "escape") {
+        if (calibTarget) setCalibTarget(null);
+        else clearAll();
+      }
       else if (k === "+" || k === "=") mapRef.current?.zoomIn();
       else if (k === "-") mapRef.current?.zoomOut();
     };
@@ -173,6 +218,19 @@ export default function App() {
             onMapReady={(map) => {
               mapRef.current = map;
             }}
+            calibTarget={calibTarget}
+            overrides={overrides}
+            onCalibrateClick={onCalibrateClick}
+          />
+          <CalibrationPanel
+            open={calibOpen}
+            setOpen={setCalibOpen}
+            target={calibTarget}
+            setTarget={setCalibTarget}
+            overrides={overrides}
+            onClearAll={clearOverrides}
+            onExport={exportOverrides}
+            mapSize={mapSize}
           />
           <MapControls
             mode={mode}

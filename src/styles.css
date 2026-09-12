@@ -24,6 +24,10 @@ body {
   outline: none;
 }
 
+.leaflet-container.calibrating {
+  cursor: crosshair !important;
+}
+
 /* Point number labels */
 .atlas-pt-label {
   background: transparent;

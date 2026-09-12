@@ -40,6 +40,9 @@ export default function MapView({
   onFocusHandled,
   onViewChange,
   onMapReady,
+  calibTarget,
+  overrides,
+  onCalibrateClick,
 }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
@@ -51,6 +54,9 @@ export default function MapView({
   const pointsRef = useRefLatest(points);
   const hoverRef = useRefLatest(hover);
   const layerRef = useRefLatest(layer);
+  const calibTargetRef = useRefLatest(calibTarget);
+  const overridesRef = useRefLatest(overrides);
+  const onCalibrateClickRef = useRefLatest(onCalibrateClick);
   const onCursorRef = useRefLatest(onCursor);
   const onViewChangeRef = useRefLatest(onViewChange);
   const onFocusHandledRef = useRefLatest(onFocusHandled);
@@ -148,9 +154,14 @@ export default function MapView({
     };
 
     const onMapClick = (e) => {
+      const pt = { x: wrapX(e.latlng.lng, W), y: e.latlng.lat };
+      const t = calibTargetRef.current;
+      if (t) {
+        onCalibrateClickRef.current(pt.x, pt.y);
+        return;
+      }
       const m = modeRef.current;
       if (!m || m === "none") return;
-      const pt = { x: wrapX(e.latlng.lng, W), y: e.latlng.lat };
       const pts = pointsRef.current;
       if (m === "measure") {
         setPoints(pts.length >= 2 ? [pt] : [...pts, pt]);
@@ -361,13 +372,15 @@ export default function MapView({
     const grp = L.layerGroup();
     nationMarkersRef.current = {};
     const { W, H } = mapSize;
+    const ovr = overridesRef.current;
     nations.forEach((n) => {
-      const latlng = [n.ny * H, n.nx * W];
+      const pos = ovr[n.name];
+      const latlng = pos ? [pos.y, pos.x] : [n.ny * H, n.nx * W];
       const mk = L.circleMarker(latlng, {
         radius: 4,
         color: "#ffffff",
         weight: 1.5,
-        fillColor: n.missing ? "#a1a1aa" : "#0e7490",
+        fillColor: pos ? "#059669" : n.missing ? "#a1a1aa" : "#0e7490",
         fillOpacity: 0.95,
       }).addTo(grp);
       mk.bindTooltip(n.name, {
@@ -391,7 +404,20 @@ export default function MapView({
       grp.remove();
       nationMarkersRef.current = {};
     };
-  }, [showNations, mapSize]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showNations, mapSize, overrides]);
+
+  // ---- Calibration cursor hint ---------------------------------------------
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.getContainer().classList.toggle("calibrating", !!calibTargetRef.current);
+    if (calibTargetRef.current) {
+      map.getContainer().title = `Place ${calibTargetRef.current}`;
+    } else {
+      map.getContainer().removeAttribute("title");
+    }
+  }, [calibTarget]);
 
   // ---- Render --------------------------------------------------------------
   const activeLayer = getLayer(layer);
