@@ -6,5 +6,11 @@
     "href": "/wiki/Free_Pax_States",
     "x": 11019.9,
     "y": 6704
+  },
+  "Test Place": {
+    "kind": "city",
+    "href": "/wiki/Test_Place",
+    "x": 5000,
+    "y": 4000
   }
 }
