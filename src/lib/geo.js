@@ -14,6 +14,10 @@ export function wrapX(x, W) {
   return ((x % W) + W) % W;
 }
 
+export function wrapY(y, H) {
+  return ((y % H) + H) % H;
+}
+
 export function latLngToPixel(lat, lng, H) {
   return { x: wrapX(lng, 2 * H), y: pixelFromLat(lat, H) };
 }

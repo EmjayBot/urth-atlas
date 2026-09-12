@@ -7,7 +7,7 @@ import {
   MI_PER_KM,
   getLayer,
 } from "../lib/scale";
-import { wrapX, latFromPixel } from "../lib/geo";
+import { wrapX, wrapY, latFromPixel } from "../lib/geo";
 import { loadLayer, makeFallbackGrid } from "../lib/imageCache";
 import { fullWikiUrl } from "../lib/wiki";
 
@@ -91,16 +91,19 @@ export default function MapView({
     let W = 0;
 
     const installOverlays = (url) => {
-      for (let i = -2; i <= 2; i++) {
-        const ov = L.imageOverlay(
-          url,
-          [
-            [0, i * W],
-            [H, (i + 1) * W],
-          ],
-          { interactive: true }
-        ).addTo(map);
-        imagesRef.current.push(ov);
+      // 2D tile grid so the map wraps infinitely in every direction.
+      for (let j = -2; j <= 2; j++) {
+        for (let i = -2; i <= 2; i++) {
+          const ov = L.imageOverlay(
+            url,
+            [
+              [j * H, i * W],
+              [(j + 1) * H, (i + 1) * W],
+            ],
+            { interactive: true }
+          ).addTo(map);
+          imagesRef.current.push(ov);
+        }
       }
     };
 
@@ -135,15 +138,16 @@ export default function MapView({
       const x = e.latlng.lng;
       const y = e.latlng.lat;
       const wx = wrapX(x, W);
-      const pt = { x: wx, y };
+      const wy = wrapY(y, H);
+      const pt = { x: wx, y: wy };
       const payload = {
         x: wx,
-        y,
-        lat: latFromPixel(y, H),
+        y: wy,
+        lat: latFromPixel(wy, H),
         kmX: wx * KM_PER_PX,
-        kmY: y * KM_PER_PX,
+        kmY: wy * KM_PER_PX,
         miX: wx * KM_PER_PX * MI_PER_KM,
-        miY: y * KM_PER_PX * MI_PER_KM,
+        miY: wy * KM_PER_PX * MI_PER_KM,
       };
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = requestAnimationFrame(() => {
@@ -153,7 +157,7 @@ export default function MapView({
     };
 
     const onMapClick = (e) => {
-      const pt = { x: wrapX(e.latlng.lng, W), y: e.latlng.lat };
+      const pt = { x: wrapX(e.latlng.lng, W), y: wrapY(e.latlng.lat, H) };
       const t = calibTargetRef.current;
       if (t) {
         onCalibrateClickRef.current(pt.x, pt.y);
@@ -187,8 +191,18 @@ export default function MapView({
           return;
         }
       }
+      if (H > 0) {
+        if (c.lat < -H * 0.5) {
+          map.setView([c.lat + H * 3, c.lng], map.getZoom(), { animate: false });
+          return;
+        }
+        if (c.lat > H * 1.5) {
+          map.setView([c.lat - H * 3, c.lng], map.getZoom(), { animate: false });
+          return;
+        }
+      }
       updateScale();
-      onViewChangeRef.current({ x: wrapX(c.lng, W || 1), y: c.lat, z: map.getZoom() });
+      onViewChangeRef.current({ x: wrapX(c.lng, W || 1), y: wrapY(c.lat, H || 1), z: map.getZoom() });
     };
 
     const updateScale = () => {
