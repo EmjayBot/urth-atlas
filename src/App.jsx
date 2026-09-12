@@ -39,6 +39,34 @@ export default function App() {
   const [calibOpen, setCalibOpen] = useState(false);
   const [calibTarget, setCalibTarget] = useState(null);
   const [overrides, setOverrides] = useState(loadOverrides);
+  const [community, setCommunity] = useState({});
+  const [communityStatus, setCommunityStatus] = useState("loading");
+
+  // Load shared community positions (the 'save for everyone' store).
+  useEffect(() => {
+    let alive = true;
+    fetch(`${import.meta.env.BASE_URL}positions.json`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data) => {
+        if (!alive) return;
+        const pos = {};
+        for (const [k, v] of Object.entries(data)) {
+          if (k.startsWith("_")) continue;
+          if (v && Number.isFinite(v.x) && Number.isFinite(v.y)) pos[k] = v;
+        }
+        setCommunity(pos);
+        setCommunityStatus(Object.keys(pos).length ? "ok" : "empty");
+      })
+      .catch(() => {
+        if (alive) setCommunityStatus("error");
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -119,11 +147,37 @@ export default function App() {
     onCopy(JSON.stringify(out));
   };
 
+  // Build a PR-ready patch for public/positions.json and open it on GitHub.
+  const submitOverrides = () => {
+    if (!mapSize) return;
+    const patch = {};
+    for (const [name, { x, y }] of Object.entries(overrides)) {
+      patch[name] = { x: +x.toFixed(1), y: +y.toFixed(1) };
+    }
+    const body =
+      "I placed these positions on Urth Atlas:\n\n```json\n" +
+      JSON.stringify(patch, null, 2) +
+      "\n```\n\nMerge to make them visible to everyone.";
+    const url =
+      "https://github.com/EmjayBot/urth-atlas/issues/new?title=" +
+      encodeURIComponent("Position update: " + Object.keys(patch).join(", ")) +
+      "&body=" +
+      encodeURIComponent(body);
+    window.open(url, "_blank", "noopener");
+    showToast("Opening GitHub issue…");
+  };
+
   const clearOverrides = () => {
     setOverrides({});
     setCalibTarget(null);
     showToast("Cleared all calibrations");
   };
+
+  // Local overrides win over the shared community file.
+  const mergedOverrides = useMemo(
+    () => ({ ...community, ...overrides }),
+    [community, overrides]
+  );
 
   const onCopy = (text) => {
     navigator.clipboard?.writeText(text).then(
@@ -173,11 +227,15 @@ export default function App() {
       <Header
         query={query}
         setQuery={setQuery}
-        onNation={(n) => {
-          setQuery(n.name);
-          setFocus({ type: "nation", name: n.name });
+        onPlace={(p) => {
+          setQuery(p.name ?? `${p.a}, ${p.b}`);
+          if (p.kind === "coord") {
+            setFocus({ type: "coord", a: p.a, b: p.b });
+          } else {
+            setFocus({ type: p.kind, name: p.name });
+          }
+          if (calibOpen && p.kind !== "coord") setCalibTarget(p.name);
         }}
-        onCoord={(a, b) => setFocus({ type: "coord", a, b })}
         showNations={showNations}
         setShowNations={setShowNations}
       />
@@ -223,7 +281,7 @@ export default function App() {
               mapRef.current = map;
             }}
             calibTarget={calibTarget}
-            overrides={overrides}
+            overrides={mergedOverrides}
             onCalibrateClick={onCalibrateClick}
           />
           <CalibrationPanel
@@ -234,7 +292,10 @@ export default function App() {
             overrides={overrides}
             onClearAll={clearOverrides}
             onExport={exportOverrides}
+            onSubmit={submitOverrides}
             mapSize={mapSize}
+            communityCount={Object.keys(community).length}
+            communityStatus={communityStatus}
           />
           <MapControls
             mode={mode}

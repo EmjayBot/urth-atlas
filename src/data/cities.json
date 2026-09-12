@@ -1,0 +1,611 @@
+[
+  {
+    "name": "Alva",
+    "href": "/wiki/Alva",
+    "nx": 0.59167,
+    "ny": 0.24667,
+    "source": "v1"
+  },
+  {
+    "name": "Atlae",
+    "href": "/wiki/Atlae",
+    "nx": 0.425,
+    "ny": 0.25333,
+    "source": "v1"
+  },
+  {
+    "name": "Dragonia",
+    "href": "/wiki/Dragonia",
+    "nx": 0.85278,
+    "ny": 0.8,
+    "source": "v1"
+  },
+  {
+    "name": "Duominzu",
+    "href": "/wiki/Duominzu",
+    "nx": 0.27778,
+    "ny": 0.44,
+    "source": "v1"
+  },
+  {
+    "name": "Durentrus",
+    "href": "/wiki/Durentrus",
+    "nx": 0.75556,
+    "ny": 0.72,
+    "source": "v1"
+  },
+  {
+    "name": "Fortuna",
+    "href": "/wiki/Fortuna",
+    "nx": 0.80278,
+    "ny": 0.32,
+    "source": "v1"
+  },
+  {
+    "name": "Gransrik",
+    "href": "/wiki/Gransrik",
+    "nx": 0.125,
+    "ny": 0.16,
+    "source": "v1"
+  },
+  {
+    "name": "Harma",
+    "href": "/wiki/Harma",
+    "nx": 0.46389,
+    "ny": 0.49333,
+    "source": "v1"
+  },
+  {
+    "name": "Heppenheim",
+    "href": "/wiki/Heppenheim",
+    "nx": 0.86389,
+    "ny": 0.17333,
+    "source": "v1"
+  },
+  {
+    "name": "Iphelklori",
+    "href": "/wiki/Iphelklori",
+    "nx": 0.55,
+    "ny": 0.6,
+    "source": "v1"
+  },
+  {
+    "name": "Kaera'zna",
+    "href": "/wiki/Kaera'zna",
+    "nx": 0.57778,
+    "ny": 0.06,
+    "source": "v1"
+  },
+  {
+    "name": "Kalatya",
+    "href": "/wiki/Kalatya",
+    "nx": 0.69444,
+    "ny": 0.16667,
+    "source": "v1"
+  },
+  {
+    "name": "Karishkanov",
+    "href": "/wiki/Karishkanov",
+    "nx": 0.52778,
+    "ny": 0.58,
+    "source": "v1"
+  },
+  {
+    "name": "Kothalria",
+    "href": "/wiki/Kothalria",
+    "nx": 0.81389,
+    "ny": 0.71667,
+    "source": "v1"
+  },
+  {
+    "name": "Kurikia",
+    "href": "/wiki/Kurikia",
+    "nx": 0.70833,
+    "ny": 0.12667,
+    "source": "v1"
+  },
+  {
+    "name": "Lactoska",
+    "href": "/wiki/Lactoska",
+    "nx": 0.86389,
+    "ny": 0.55333,
+    "source": "v1"
+  },
+  {
+    "name": "Lapimuhyo",
+    "href": "/wiki/Lapimuhyo",
+    "nx": 0.94444,
+    "ny": 0.58667,
+    "source": "v1"
+  },
+  {
+    "name": "Lasówkrania",
+    "href": "/wiki/Lasówkrania",
+    "nx": 0.25,
+    "ny": 0.80667,
+    "source": "v1"
+  },
+  {
+    "name": "Latianburg",
+    "href": "/wiki/Latianburg",
+    "nx": 0.39444,
+    "ny": 0.37333,
+    "source": "v1"
+  },
+  {
+    "name": "Letollia",
+    "href": "/wiki/Letollia",
+    "nx": 0.54167,
+    "ny": 0.24667,
+    "source": "v1"
+  },
+  {
+    "name": "Libertanny",
+    "href": "/wiki/Libertanny",
+    "nx": 0.03889,
+    "ny": 0.52,
+    "source": "v1"
+  },
+  {
+    "name": "Listonia",
+    "href": "/wiki/Listonia",
+    "nx": 0.76111,
+    "ny": 0.16,
+    "source": "v1"
+  },
+  {
+    "name": "Lokania",
+    "href": "/wiki/Lokania",
+    "nx": 0.53611,
+    "ny": 0.76667,
+    "source": "v1"
+  },
+  {
+    "name": "Luthaiya",
+    "href": "/wiki/Luthaiya",
+    "nx": 0.83333,
+    "ny": 0.14667,
+    "source": "v1"
+  },
+  {
+    "name": "Lyon",
+    "href": "/wiki/Lyon",
+    "nx": 0.72222,
+    "ny": 0.34,
+    "source": "v1"
+  },
+  {
+    "name": "Miðrland",
+    "href": "/wiki/Miðrland",
+    "nx": 0.4,
+    "ny": 0.28,
+    "source": "v1"
+  },
+  {
+    "name": "N. Ni-Rao",
+    "href": "/wiki/N._Ni-Rao",
+    "nx": 0.18056,
+    "ny": 0.51333,
+    "source": "v1"
+  },
+  {
+    "name": "New Calthia",
+    "href": "/wiki/New_Calthia",
+    "nx": 0.57778,
+    "ny": 0.74333,
+    "source": "v1"
+  },
+  {
+    "name": "New Puntalia",
+    "href": "/wiki/New_Puntalia",
+    "nx": 0.55833,
+    "ny": 0.72667,
+    "source": "v1"
+  },
+  {
+    "name": "Nolova",
+    "href": "/wiki/Nolova",
+    "nx": 0.8375,
+    "ny": 0.72333,
+    "source": "v1"
+  },
+  {
+    "name": "North Crencello",
+    "href": "/wiki/North_Crencello",
+    "nx": 0.76389,
+    "ny": 0.28667,
+    "source": "v1"
+  },
+  {
+    "name": "Osterlicsh",
+    "href": "/wiki/Osterlicsh",
+    "nx": 0.54722,
+    "ny": 0.70667,
+    "source": "v1"
+  },
+  {
+    "name": "Peragen",
+    "href": "/wiki/Peragen",
+    "nx": 0.49722,
+    "ny": 0.74667,
+    "source": "v1"
+  },
+  {
+    "name": "Puntalia",
+    "href": "/wiki/Puntalia",
+    "nx": 0.56667,
+    "ny": 0.73667,
+    "source": "v1"
+  },
+  {
+    "name": "Quariin",
+    "href": "/wiki/Quariin",
+    "nx": 0.53611,
+    "ny": 0.78667,
+    "source": "v1"
+  },
+  {
+    "name": "Rodenia",
+    "href": "/wiki/Rodenia",
+    "nx": 0.53333,
+    "ny": 0.74,
+    "source": "v1"
+  },
+  {
+    "name": "Ryza",
+    "href": "/wiki/Ryza",
+    "nx": 0.18056,
+    "ny": 0.81667,
+    "source": "v1"
+  },
+  {
+    "name": "S. Ni-Rao",
+    "href": "/wiki/S._Ni-Rao",
+    "nx": 0.17778,
+    "ny": 0.54,
+    "source": "v1"
+  },
+  {
+    "name": "Shango",
+    "href": "/wiki/Shango",
+    "nx": 0.47222,
+    "ny": 0.44667,
+    "source": "v1"
+  },
+  {
+    "name": "Sokala",
+    "href": "/wiki/Sokala",
+    "nx": 0.58333,
+    "ny": 0.62667,
+    "source": "v1"
+  },
+  {
+    "name": "Spiridoneva",
+    "href": "/wiki/Spiridoneva",
+    "nx": 0.73333,
+    "ny": 0.05333,
+    "source": "v1"
+  },
+  {
+    "name": "Staynes",
+    "href": "/wiki/Staynes",
+    "nx": 0.71389,
+    "ny": 0.7,
+    "source": "v1"
+  },
+  {
+    "name": "Stražská",
+    "href": "/wiki/Stražská",
+    "nx": 0.26667,
+    "ny": 0.84,
+    "source": "v1"
+  },
+  {
+    "name": "Tano",
+    "href": "/wiki/Tano",
+    "nx": 0.725,
+    "ny": 0.10667,
+    "source": "v1"
+  },
+  {
+    "name": "Thalria",
+    "href": "/wiki/Thalria",
+    "nx": 0.81389,
+    "ny": 0.72667,
+    "source": "v1"
+  },
+  {
+    "name": "The Oan Isles",
+    "href": "/wiki/The_Oan_Isles",
+    "nx": 0.88333,
+    "ny": 0.56,
+    "source": "v1"
+  },
+  {
+    "name": "The Yor Isles",
+    "href": "/wiki/The_Yor_Isles",
+    "nx": 0.77222,
+    "ny": 0.79,
+    "source": "v1"
+  },
+  {
+    "name": "Tortuga",
+    "href": "/wiki/Tortuga",
+    "nx": 0.72222,
+    "ny": 0.53333,
+    "source": "v1"
+  },
+  {
+    "name": "Vaha Antanti",
+    "href": "/wiki/Vaha_Antanti",
+    "nx": 0.49167,
+    "ny": 0.62667,
+    "source": "v1"
+  },
+  {
+    "name": "Valeria",
+    "href": "/wiki/Valeria",
+    "nx": 0.71111,
+    "ny": 0.75333,
+    "source": "v1"
+  },
+  {
+    "name": "Valokchia",
+    "href": "/wiki/Valokchia",
+    "nx": 0.82778,
+    "ny": 0.1,
+    "source": "v1"
+  },
+  {
+    "name": "Vistaraland",
+    "href": "/wiki/Vistaraland",
+    "nx": 0.49167,
+    "ny": 0.25333,
+    "source": "v1"
+  },
+  {
+    "name": "Vivancantadia",
+    "href": "/wiki/Vivancantadia",
+    "nx": 0.49722,
+    "ny": 0.81333,
+    "source": "v1"
+  },
+  {
+    "name": "Volkia",
+    "href": "/wiki/Volkia",
+    "nx": 0.68611,
+    "ny": 0.10667,
+    "source": "v1"
+  },
+  {
+    "name": "Vothetria",
+    "href": "/wiki/Vothetria",
+    "nx": 0.79444,
+    "ny": 0.69333,
+    "source": "v1"
+  },
+  {
+    "name": "Wed Shams",
+    "href": "/wiki/Wed_Shams",
+    "nx": 0.50556,
+    "ny": 0.72,
+    "source": "v1"
+  },
+  {
+    "name": "Wessæria",
+    "href": "/wiki/Wessæria",
+    "nx": 0.11111,
+    "ny": 0.78667,
+    "source": "v1"
+  },
+  {
+    "name": "Zukchiva",
+    "href": "/wiki/Zukchiva",
+    "nx": 0.08611,
+    "ny": 0.52,
+    "source": "v1"
+  },
+  {
+    "name": "Absolution",
+    "href": "/wiki/Absolution",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Adrien",
+    "href": "/wiki/Adrien",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Akas Akil",
+    "href": "/wiki/Akas_Akil",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Bingol",
+    "href": "/wiki/Bingol",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Bluckingham",
+    "href": "/wiki/Bluckingham",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "City of Corinești",
+    "href": "/wiki/City_of_Corinești",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Corova",
+    "href": "/wiki/Corova",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Derrim",
+    "href": "/wiki/Derrim",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Fort Ejard",
+    "href": "/wiki/Fort_Ejard",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Fort Jubrayn",
+    "href": "/wiki/Fort_Jubrayn",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Giroruña",
+    "href": "/wiki/Giroruña",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Grandys",
+    "href": "/wiki/Grandys",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Greater Asluagh",
+    "href": "/wiki/Greater_Asluagh",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Hasa",
+    "href": "/wiki/Hasa",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Herera",
+    "href": "/wiki/Herera",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Kemer",
+    "href": "/wiki/Kemer",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Khisib",
+    "href": "/wiki/Khisib",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Marnacia",
+    "href": "/wiki/Marnacia",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Matrolinsk",
+    "href": "/wiki/Matrolinsk",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Mukarras",
+    "href": "/wiki/Mukarras",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Murad",
+    "href": "/wiki/Murad",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Nafaq",
+    "href": "/wiki/Nafaq",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Nagyfelvárad",
+    "href": "/wiki/Nagyfelvárad",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Provinsk",
+    "href": "/wiki/Provinsk",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Rouanezkador",
+    "href": "/wiki/Rouanezkador",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Sahla",
+    "href": "/wiki/Sahla",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Sayaduun",
+    "href": "/wiki/Sayaduun",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Thaddea",
+    "href": "/wiki/Thaddea",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  },
+  {
+    "name": "Zukaril",
+    "href": "/wiki/Zukaril",
+    "nx": null,
+    "ny": null,
+    "source": "wiki"
+  }
+]

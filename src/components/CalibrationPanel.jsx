@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState, useEffect } from "react";
-import nations from "../data/nations.json";
-import { searchNations } from "../lib/wiki";
+import { searchPlaces } from "../lib/places";
 import { IconPin, IconClose, IconCopy, IconTrash } from "./icons";
 
 export default function CalibrationPanel({
@@ -11,11 +10,14 @@ export default function CalibrationPanel({
   overrides,
   onClearAll,
   onExport,
+  onSubmit,
   mapSize,
+  communityCount,
+  communityStatus,
 }) {
   const [q, setQ] = useState("");
   const boxRef = useRef(null);
-  const matches = useMemo(() => searchNations(nations, q, 8), [q]);
+  const matches = useMemo(() => searchPlaces(q, 8), [q]);
 
   useEffect(() => {
     const onDown = (e) => {
@@ -95,25 +97,28 @@ export default function CalibrationPanel({
                   {matches.length === 0 && (
                     <div className="px-3 py-2 text-[12px] text-zinc-500">No match</div>
                   )}
-                  {matches.map((n) => {
-                    const done = overrides[n.name];
+                  {matches.map((p) => {
+                    const done = overrides[p.name];
                     return (
                       <button
-                        key={n.name}
+                        key={`${p.kind}-${p.name}`}
                         onClick={() => {
-                          setTarget(n.name);
+                          setTarget(p.name);
                           setQ("");
                         }}
                         className="w-full flex items-center gap-2 px-3 py-2 hover:bg-[#f0f9fa] text-left transition-colors"
                       >
                         <span
-                          className={`w-2 h-2 rounded-full shrink-0 ${done ? "bg-emerald-500" : "bg-zinc-300"}`}
+                          className={`w-2 h-2 rounded-full shrink-0 ${p.kind === "city" ? "bg-amber-500" : done ? "bg-emerald-500" : "bg-zinc-300"}`}
                         />
                         <span className="text-[13px] font-medium text-zinc-800 truncate">
-                          {n.name}
+                          {p.name}
+                        </span>
+                        <span className="ml-auto text-[9px] uppercase tracking-wide text-zinc-400 font-semibold shrink-0">
+                          {p.kind}
                         </span>
                         {done && (
-                          <span className="ml-auto text-[9px] uppercase tracking-wide text-emerald-600 font-semibold">
+                          <span className="ml-auto text-[9px] uppercase tracking-wide text-emerald-600 font-semibold shrink-0">
                             done
                           </span>
                         )}
@@ -127,25 +132,45 @@ export default function CalibrationPanel({
             {mapSize && (
               <div className="text-[10px] text-zinc-400 font-mono">
                 Map: {mapSize.W}×{mapSize.H} px
+                {communityStatus !== "empty" && communityCount > 0
+                  ? ` · ${communityCount} shared`
+                  : ""}
               </div>
             )}
 
             <div className="flex gap-1.5 pt-1">
               <button
+                onClick={onSubmit}
+                disabled={Object.keys(overrides).length === 0}
+                className="flex-1 h-8 rounded-lg bg-emerald-600 text-white text-[11px] font-semibold flex items-center justify-center gap-1.5 disabled:opacity-40 hover:bg-emerald-700 transition-colors"
+              >
+                <IconPin width={13} height={13} /> Submit to map
+              </button>
+              <button
                 onClick={onExport}
                 disabled={Object.keys(overrides).length === 0}
-                className="flex-1 h-8 rounded-lg bg-[#0e7490] text-white text-[11px] font-semibold flex items-center justify-center gap-1.5 disabled:opacity-40 hover:bg-[#0c6580] transition-colors"
+                className="h-8 px-3 rounded-lg bg-white border border-zinc-200 text-zinc-600 text-[11px] font-semibold flex items-center justify-center gap-1.5 disabled:opacity-40 hover:bg-zinc-50 transition-colors"
               >
-                <IconCopy width={13} height={13} /> Copy JSON
+                <IconCopy width={13} height={13} /> JSON
               </button>
               <button
                 onClick={onClearAll}
                 disabled={Object.keys(overrides).length === 0}
                 className="h-8 px-3 rounded-lg bg-white border border-zinc-200 text-zinc-600 text-[11px] font-semibold flex items-center justify-center gap-1.5 disabled:opacity-40 hover:bg-zinc-50 transition-colors"
               >
-                <IconTrash width={13} height={13} /> Clear
+                <IconTrash width={13} height={13} />
               </button>
             </div>
+            {communityStatus === "ok" && (
+              <div className="text-[10px] text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-1">
+                Loaded {communityCount} shared positions from the community file.
+              </div>
+            )}
+            {communityStatus === "error" && (
+              <div className="text-[10px] text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1">
+                Couldn't load shared positions — showing only your local ones.
+              </div>
+            )}
           </div>
         </div>
       )}

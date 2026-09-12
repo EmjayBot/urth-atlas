@@ -6,8 +6,7 @@ import { IconGlobe } from "./icons";
 function Header({
   query,
   setQuery,
-  onNation,
-  onCoord,
+  onPlace,
   showNations,
   setShowNations,
 }) {
@@ -35,7 +34,7 @@ function Header({
         </div>
       </div>
 
-      <SearchBar query={query} setQuery={setQuery} onNation={onNation} onCoord={onCoord} />
+      <SearchBar query={query} setQuery={setQuery} onPlace={onPlace} />
 
       <button
         onClick={() => setShowNations((v) => !v)}

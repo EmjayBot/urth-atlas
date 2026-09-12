@@ -9,7 +9,7 @@ import {
 } from "../lib/scale";
 import { wrapX, latFromPixel } from "../lib/geo";
 import { loadImageCached, makeFallbackGrid } from "../lib/imageCache";
-import nations from "../data/nations.json";
+import { PLACES } from "../lib/places";
 import { fullWikiUrl } from "../lib/wiki";
 
 const PICK_COLOR = "#0e7490";
@@ -253,8 +253,8 @@ export default function MapView({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !focus || !mapSize?.W) return;
-    if (focus.type === "nation") {
-      const mk = nationMarkersRef.current?.[focus.name];
+    if (focus.type === "nation" || focus.type === "city") {
+      const mk = placeMarkersRef.current?.[focus.name];
       if (mk) {
         map.setView(mk.getLatLng(), Math.max(map.getZoom(), 4));
         mk.openPopup();
@@ -365,44 +365,53 @@ export default function MapView({
   }, [points, hover, mode, mapSize]);
 
   // ---- Wiki nations layer ---------------------------------------------------
-  const nationMarkersRef = useRef({});
+  const placeMarkersRef = useRef({});
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapSize?.W || !showNations) return;
     const grp = L.layerGroup();
-    nationMarkersRef.current = {};
+    placeMarkersRef.current = {};
     const { W, H } = mapSize;
     const ovr = overridesRef.current;
-    nations.forEach((n) => {
-      const pos = ovr[n.name];
-      const latlng = pos ? [pos.y, pos.x] : [n.ny * H, n.nx * W];
+    PLACES.forEach((p) => {
+      const pos = ovr[p.name];
+      const hasBase = p.nx != null && p.ny != null;
+      const latlng = pos ? [pos.y, pos.x] : hasBase ? [p.ny * H, p.nx * W] : null;
+      if (!latlng) return;
+      const isCity = p.kind === "city";
       const mk = L.circleMarker(latlng, {
-        radius: 4,
+        radius: isCity ? 3 : 4,
         color: "#ffffff",
         weight: 1.5,
-        fillColor: pos ? "#059669" : n.missing ? "#a1a1aa" : "#0e7490",
+        fillColor: pos
+          ? "#059669"
+          : isCity
+            ? "#f59e0b"
+            : p.missing
+              ? "#a1a1aa"
+              : "#0e7490",
         fillOpacity: 0.95,
       }).addTo(grp);
-      mk.bindTooltip(n.name, {
+      mk.bindTooltip(p.name, {
         direction: "top",
         offset: [0, -5],
         className: "atlas-tooltip",
       });
-      const href = fullWikiUrl(n.href);
+      const href = fullWikiUrl(p.href);
       mk.bindPopup(
-        `<div class="atlas-popup"><div class="atlas-popup-title">${n.name}</div>` +
-          `<div class="atlas-popup-coords">${latlng[0].toFixed(0)}, ${latlng[1].toFixed(0)} px</div>` +
-          (n.missing
+        `<div class="atlas-popup"><div class="atlas-popup-title">${p.name}</div>` +
+          `<div class="atlas-popup-coords">${latlng[0].toFixed(0)}, ${latlng[1].toFixed(0)} px · ${isCity ? "city" : "nation"}</div>` +
+          (p.missing
             ? `<div class="atlas-popup-missing">No wiki page yet</div>`
             : `<a class="atlas-popup-link" href="${href}" target="_blank" rel="noopener noreferrer">Open on TEPwiki ↗</a>`)
       );
       mk.on("click", (e) => L.DomEvent.stopPropagation(e));
-      nationMarkersRef.current[n.name] = mk;
+      placeMarkersRef.current[p.name] = mk;
     });
     grp.addTo(map);
     return () => {
       grp.remove();
-      nationMarkersRef.current = {};
+      placeMarkersRef.current = {};
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showNations, mapSize, overrides]);

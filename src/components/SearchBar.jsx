@@ -1,13 +1,12 @@
 import { useMemo, useRef, useState, useEffect } from "react";
-import nations from "../data/nations.json";
-import { searchNations } from "../lib/wiki";
+import { searchPlaces } from "../lib/places";
 import { IconSearch, IconArrow } from "./icons";
 
-export default function SearchBar({ query, setQuery, onNation, onCoord }) {
+export default function SearchBar({ query, setQuery, onPlace }) {
   const [open, setOpen] = useState(false);
   const boxRef = useRef(null);
 
-  const matches = useMemo(() => searchNations(nations, query, 7), [query]);
+  const matches = useMemo(() => searchPlaces(query, 8), [query]);
 
   useEffect(() => {
     const onDown = (e) => {
@@ -20,18 +19,15 @@ export default function SearchBar({ query, setQuery, onNation, onCoord }) {
   const submit = (raw) => {
     const text = (raw ?? query).trim();
     if (!text) return;
-    const q = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const nation = nations.find(
-      (n) => n.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === q
-    );
-    if (nation) {
-      onNation(nation);
+    const place = searchPlaces(text, 1)[0];
+    if (place) {
+      onPlace(place);
       setOpen(false);
       return;
     }
     const parts = text.split(/[\s,]+/).map((s) => parseFloat(s));
     if (parts.length >= 2 && parts.every((n) => Number.isFinite(n))) {
-      onCoord(parts[0], parts[1]);
+      onPlace({ kind: "coord", a: parts[0], b: parts[1] });
       setOpen(false);
     }
   };
@@ -55,7 +51,7 @@ export default function SearchBar({ query, setQuery, onNation, onCoord }) {
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          placeholder="Search nation or 'lat, lng' / 'x, y' pixel"
+          placeholder="Search nation, city, or 'lat, lng' / 'x, y' pixel"
           spellCheck={false}
           className="w-full h-[42px] pl-10 pr-11 rounded-full bg-[#f1f3f4] focus:bg-white border border-transparent focus:border-zinc-200 focus:shadow-[0_1px_6px_rgba(0,0,0,0.12)] outline-none text-[14px] placeholder:text-zinc-500 transition-all"
         />
@@ -72,32 +68,33 @@ export default function SearchBar({ query, setQuery, onNation, onCoord }) {
         <div className="absolute top-[46px] left-0 right-0 bg-white rounded-2xl shadow-2xl border border-zinc-200 overflow-hidden z-[1100]">
           {matches.length === 0 && (
             <div className="px-4 py-3 text-[12px] text-zinc-500">
-              No nations match. Enter <span className="font-mono">lat, lng</span>{" "}
-              or pixel <span className="font-mono">x, y</span>.
+              No matches. Enter <span className="font-mono">lat, lng</span> or
+              pixel <span className="font-mono">x, y</span>.
             </div>
           )}
-          {matches.map((n) => (
-            <button
-              key={n.name}
-              onClick={() => {
-                onNation(n);
-                setOpen(false);
-              }}
-              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-[#f0f9fa] text-left transition-colors"
-            >
-              <span
-                className={`w-2 h-2 rounded-full shrink-0 ${n.missing ? "bg-zinc-300" : "bg-[#0e7490]"}`}
-              />
-              <span className="text-[13px] font-medium text-zinc-800 truncate">
-                {n.name}
-              </span>
-              {n.missing && (
-                <span className="ml-auto text-[9px] uppercase tracking-wide text-zinc-400 font-semibold">
-                  no page
+          {matches.map((p) => {
+            const isCity = p.kind === "city";
+            return (
+              <button
+                key={`${p.kind}-${p.name}`}
+                onClick={() => {
+                  onPlace(p);
+                  setOpen(false);
+                }}
+                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-[#f0f9fa] text-left transition-colors"
+              >
+                <span
+                  className={`w-2 h-2 rounded-full shrink-0 ${isCity ? "bg-amber-500" : p.missing ? "bg-zinc-300" : "bg-[#0e7490]"}`}
+                />
+                <span className="text-[13px] font-medium text-zinc-800 truncate">
+                  {p.name}
                 </span>
-              )}
-            </button>
-          ))}
+                <span className="ml-auto text-[9px] uppercase tracking-wide text-zinc-400 font-semibold shrink-0">
+                  {isCity ? "city" : p.missing ? "no page" : "nation"}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

@@ -1,0 +1,4 @@
+{
+  "_comment": "Community positions. Key = place name, value = {x, y} in map pixels (CRS.Simple). Any GitHub user can propose additions via a PR; after merge + deploy everyone gets them. This file is the shared 'save for everyone' store.",
+  "_version": 1
+}
