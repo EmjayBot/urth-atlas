@@ -9,7 +9,6 @@ import {
 } from "../lib/scale";
 import { wrapX, latFromPixel } from "../lib/geo";
 import { loadLayer, makeFallbackGrid } from "../lib/imageCache";
-import { PLACES } from "../lib/places";
 import { fullWikiUrl } from "../lib/wiki";
 
 const PICK_COLOR = "#0e7490";
@@ -35,13 +34,13 @@ export default function MapView({
   setStatus,
   layer,
   showNations,
+  places,
   initialView,
   focus,
   onFocusHandled,
   onViewChange,
   onMapReady,
   calibTarget,
-  overrides,
   onCalibrateClick,
 }) {
   const containerRef = useRef(null);
@@ -54,8 +53,8 @@ export default function MapView({
   const pointsRef = useRefLatest(points);
   const hoverRef = useRefLatest(hover);
   const layerRef = useRefLatest(layer);
+  const placesRef = useRefLatest(places);
   const calibTargetRef = useRefLatest(calibTarget);
-  const overridesRef = useRefLatest(overrides);
   const onCalibrateClickRef = useRefLatest(onCalibrateClick);
   const onCursorRef = useRefLatest(onCursor);
   const onViewChangeRef = useRefLatest(onViewChange);
@@ -371,25 +370,16 @@ export default function MapView({
     if (!map || !mapSize?.W || !showNations) return;
     const grp = L.layerGroup();
     placeMarkersRef.current = {};
-    const { W, H } = mapSize;
-    const ovr = overridesRef.current;
-    PLACES.forEach((p) => {
-      const pos = ovr[p.name];
-      const hasBase = p.nx != null && p.ny != null;
-      const latlng = pos ? [pos.y, pos.x] : hasBase ? [p.ny * H, p.nx * W] : null;
-      if (!latlng) return;
+    const pls = placesRef.current;
+    pls.forEach((p) => {
+      if (p.x == null || p.y == null) return;
+      const latlng = [p.y, p.x];
       const isCity = p.kind === "city";
       const mk = L.circleMarker(latlng, {
         radius: isCity ? 3 : 4,
         color: "#ffffff",
         weight: 1.5,
-        fillColor: pos
-          ? "#059669"
-          : isCity
-            ? "#f59e0b"
-            : p.missing
-              ? "#a1a1aa"
-              : "#0e7490",
+        fillColor: isCity ? "#f59e0b" : "#0e7490",
         fillOpacity: 0.95,
       }).addTo(grp);
       mk.bindTooltip(p.name, {
@@ -397,13 +387,13 @@ export default function MapView({
         offset: [0, -5],
         className: "atlas-tooltip",
       });
-      const href = fullWikiUrl(p.href);
+      const href = p.href ? fullWikiUrl(p.href) : null;
       mk.bindPopup(
         `<div class="atlas-popup"><div class="atlas-popup-title">${p.name}</div>` +
           `<div class="atlas-popup-coords">${latlng[0].toFixed(0)}, ${latlng[1].toFixed(0)} px · ${isCity ? "city" : "nation"}</div>` +
-          (p.missing
-            ? `<div class="atlas-popup-missing">No wiki page yet</div>`
-            : `<a class="atlas-popup-link" href="${href}" target="_blank" rel="noopener noreferrer">Open on TEPwiki ↗</a>`)
+          (href
+            ? `<a class="atlas-popup-link" href="${href}" target="_blank" rel="noopener noreferrer">Open on TEPwiki ↗</a>`
+            : `<div class="atlas-popup-missing">No TEPwiki page linked</div>`)
       );
       mk.on("click", (e) => L.DomEvent.stopPropagation(e));
       placeMarkersRef.current[p.name] = mk;
@@ -414,7 +404,7 @@ export default function MapView({
       placeMarkersRef.current = {};
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showNations, mapSize, overrides]);
+  }, [showNations, mapSize, places]);
 
   // ---- Calibration cursor hint ---------------------------------------------
   useEffect(() => {

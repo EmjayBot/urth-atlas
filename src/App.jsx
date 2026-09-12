@@ -5,18 +5,18 @@ import MapControls from "./components/MapControls";
 import MeasurementPanel from "./components/MeasurementPanel";
 import Footer from "./components/Footer";
 import Toast from "./components/Toast";
-import CalibrationPanel from "./components/CalibrationPanel";
+import PlacePanel from "./components/PlacePanel";
 import { measureDistance, measurePath, measureArea } from "./lib/measure";
 import { parseUrl, writeUrl, shareLink } from "./lib/url";
 import { getLayer, BASE_LAYERS } from "./lib/scale";
+import { mergePlaces, placeLatLng } from "./lib/places";
 
 const initial = parseUrl();
+const LOCAL_KEY = "urth-atlas.places.local.v1";
 
-const OVERRIDE_KEY = "urth-atlas.overrides.v1";
-
-function loadOverrides() {
+function loadLocal() {
   try {
-    return JSON.parse(localStorage.getItem(OVERRIDE_KEY) || "{}");
+    return JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}");
   } catch {
     return {};
   }
@@ -36,13 +36,25 @@ export default function App() {
   const [focus, setFocus] = useState(null);
   const [view, setView] = useState(null);
   const [toast, setToast] = useState(null);
-  const [calibOpen, setCalibOpen] = useState(false);
-  const [calibTarget, setCalibTarget] = useState(null);
-  const [overrides, setOverrides] = useState(loadOverrides);
-  const [community, setCommunity] = useState({});
-  const [communityStatus, setCommunityStatus] = useState("loading");
 
-  // Load shared community positions (the 'save for everyone' store).
+  // Shared community places (public/positions.json) + local edits.
+  const [shared, setShared] = useState({});
+  const [sharedStatus, setSharedStatus] = useState("loading");
+  const [local, setLocal] = useState(loadLocal);
+  const [calibOpen, setCalibOpen] = useState(false);
+  const [target, setTarget] = useState(null);
+
+  const mapRef = useRef(null);
+  const toastTimer = useRef(0);
+  const persistTimer = useRef(0);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(local));
+    } catch {}
+  }, [local]);
+
+  // Load shared community places.
   useEffect(() => {
     let alive = true;
     fetch(`${import.meta.env.BASE_URL}positions.json`)
@@ -55,28 +67,20 @@ export default function App() {
         const pos = {};
         for (const [k, v] of Object.entries(data)) {
           if (k.startsWith("_")) continue;
-          if (v && Number.isFinite(v.x) && Number.isFinite(v.y)) pos[k] = v;
+          if (v && typeof v === "object") pos[k] = v;
         }
-        setCommunity(pos);
-        setCommunityStatus(Object.keys(pos).length ? "ok" : "empty");
+        setShared(pos);
+        setSharedStatus(Object.keys(pos).length ? "ok" : "empty");
       })
       .catch(() => {
-        if (alive) setCommunityStatus("error");
+        if (alive) setSharedStatus("error");
       });
     return () => {
       alive = false;
     };
   }, []);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(OVERRIDE_KEY, JSON.stringify(overrides));
-    } catch {}
-  }, [overrides]);
-
-  const mapRef = useRef(null);
-  const toastTimer = useRef(0);
-  const persistTimer = useRef(0);
+  const places = useMemo(() => mergePlaces(shared, local), [shared, local]);
 
   const stateRef = useRef({ mode, points, showNations, view, layer });
   useEffect(() => {
@@ -127,58 +131,6 @@ export default function App() {
     setMode("none");
   };
 
-  // ---- Calibration --------------------------------------------------------
-  const onCalibrateClick = (x, y) => {
-    if (!calibTarget) return;
-    setOverrides((o) => ({ ...o, [calibTarget]: { x, y } }));
-    showToast(`Placed ${calibTarget}`);
-    setCalibTarget(null);
-  };
-
-  const exportOverrides = () => {
-    if (!mapSize) return;
-    const out = {};
-    for (const [name, { x, y }] of Object.entries(overrides)) {
-      out[name] = {
-        nx: +((x / mapSize.W).toFixed(5)),
-        ny: +((y / mapSize.H).toFixed(5)),
-      };
-    }
-    onCopy(JSON.stringify(out));
-  };
-
-  // Build a PR-ready patch for public/positions.json and open it on GitHub.
-  const submitOverrides = () => {
-    if (!mapSize) return;
-    const patch = {};
-    for (const [name, { x, y }] of Object.entries(overrides)) {
-      patch[name] = { x: +x.toFixed(1), y: +y.toFixed(1) };
-    }
-    const body =
-      "I placed these positions on Urth Atlas:\n\n```json\n" +
-      JSON.stringify(patch, null, 2) +
-      "\n```\n\nMerge to make them visible to everyone.";
-    const url =
-      "https://github.com/EmjayBot/urth-atlas/issues/new?title=" +
-      encodeURIComponent("Position update: " + Object.keys(patch).join(", ")) +
-      "&body=" +
-      encodeURIComponent(body);
-    window.open(url, "_blank", "noopener");
-    showToast("Opening GitHub issue…");
-  };
-
-  const clearOverrides = () => {
-    setOverrides({});
-    setCalibTarget(null);
-    showToast("Cleared all calibrations");
-  };
-
-  // Local overrides win over the shared community file.
-  const mergedOverrides = useMemo(
-    () => ({ ...community, ...overrides }),
-    [community, overrides]
-  );
-
   const onCopy = (text) => {
     navigator.clipboard?.writeText(text).then(
       () => showToast("Copied to clipboard"),
@@ -202,6 +154,79 @@ export default function App() {
     );
   };
 
+  // ---- Place creation / positioning --------------------------------------
+  const createPlace = ({ name, kind, href }) => {
+    const clean = name.trim();
+    if (!clean) return;
+    setLocal((l) => ({ ...l, [clean]: { kind, href: href || `/wiki/${clean.replace(/ /g, "_")}` } }));
+    setTarget({ name: clean, kind, href: href || `/wiki/${clean.replace(/ /g, "_")}` });
+    showToast(`Now click where ${clean} is`);
+  };
+
+  const positionPlace = (x, y) => {
+    if (!target) return;
+    setLocal((l) => {
+      const prev = l[target.name] || {};
+      return { ...l, [target.name]: { ...prev, x: +x.toFixed(1), y: +y.toFixed(1) } };
+    });
+    showToast(`Placed ${target.name}`);
+    setTarget(null);
+  };
+
+  const removePlace = (name) => {
+    setLocal((l) => {
+      const next = { ...l };
+      delete next[name];
+      return next;
+    });
+    showToast(`Removed ${name}`);
+  };
+
+  // Build PR-ready diff of local changes vs shared, open a GitHub issue.
+  const submitChanges = () => {
+    const diff = {};
+    for (const [name, v] of Object.entries(local)) {
+      diff[name] = { kind: v.kind, href: v.href, x: v.x, y: v.y };
+    }
+    if (!Object.keys(diff).length) {
+      showToast("No local changes to submit");
+      return;
+    }
+    const body =
+      "Community map update from Urth Atlas:\n\n```json\n" +
+      JSON.stringify(diff, null, 2) +
+      "\n```\n\nMerge to make these visible to everyone.";
+    const url =
+      "https://github.com/EmjayBot/urth-atlas/issues/new?title=" +
+      encodeURIComponent("Map update: " + Object.keys(diff).slice(0, 5).join(", ")) +
+      "&body=" +
+      encodeURIComponent(body);
+    window.open(url, "_blank", "noopener");
+    showToast("Opening GitHub issue…");
+  };
+
+  const clearLocal = () => {
+    setLocal({});
+    setTarget(null);
+    showToast("Cleared local places");
+  };
+
+  // ---- Search / focus -----------------------------------------------------
+  const onPlace = (p) => {
+    setQuery(p.name ?? `${p.a}, ${p.b}`);
+    if (p.kind === "coord") {
+      setFocus({ type: "coord", a: p.a, b: p.b });
+    } else {
+      const place = places.find((x) => x.name === p.name);
+      if (place && place.x != null && place.y != null) {
+        setFocus({ type: p.kind, name: p.name });
+      } else {
+        showToast("Not placed yet — add it with Calibrate");
+      }
+      if (calibOpen) setTarget({ name: p.name, kind: p.kind, href: p.href });
+    }
+  };
+
   // Keyboard shortcuts
   useEffect(() => {
     const onKey = (e) => {
@@ -212,7 +237,7 @@ export default function App() {
       else if (k === "a") selectTool("area");
       else if (k === "p") selectTool("path");
       else if (k === "escape") {
-        if (calibTarget) setCalibTarget(null);
+        if (target) setTarget(null);
         else clearAll();
       }
       else if (k === "+" || k === "=") mapRef.current?.zoomIn();
@@ -220,22 +245,15 @@ export default function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [target]);
 
   return (
     <div className="w-full h-[100dvh] flex flex-col bg-[#e5e3df] text-zinc-800 font-sans overflow-hidden">
       <Header
         query={query}
         setQuery={setQuery}
-        onPlace={(p) => {
-          setQuery(p.name ?? `${p.a}, ${p.b}`);
-          if (p.kind === "coord") {
-            setFocus({ type: "coord", a: p.a, b: p.b });
-          } else {
-            setFocus({ type: p.kind, name: p.name });
-          }
-          if (calibOpen && p.kind !== "coord") setCalibTarget(p.name);
-        }}
+        onPlace={onPlace}
+        places={places}
         showNations={showNations}
         setShowNations={setShowNations}
       />
@@ -273,6 +291,7 @@ export default function App() {
             setStatus={setStatus}
             layer={layer}
             showNations={showNations}
+            places={places}
             initialView={initial.at ? { at: initial.at, z: initial.z } : null}
             focus={focus}
             onFocusHandled={() => setFocus(null)}
@@ -280,22 +299,21 @@ export default function App() {
             onMapReady={(map) => {
               mapRef.current = map;
             }}
-            calibTarget={calibTarget}
-            overrides={mergedOverrides}
-            onCalibrateClick={onCalibrateClick}
+            calibTarget={target?.name}
+            onCalibrateClick={positionPlace}
           />
-          <CalibrationPanel
+          <PlacePanel
             open={calibOpen}
             setOpen={setCalibOpen}
-            target={calibTarget}
-            setTarget={setCalibTarget}
-            overrides={overrides}
-            onClearAll={clearOverrides}
-            onExport={exportOverrides}
-            onSubmit={submitOverrides}
-            mapSize={mapSize}
-            communityCount={Object.keys(community).length}
-            communityStatus={communityStatus}
+            target={target}
+            setTarget={setTarget}
+            local={local}
+            sharedCount={Object.keys(shared).length}
+            sharedStatus={sharedStatus}
+            onCreate={createPlace}
+            onRemove={removePlace}
+            onSubmit={submitChanges}
+            onClear={clearLocal}
           />
           <MapControls
             mode={mode}

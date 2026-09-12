@@ -2,11 +2,11 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { searchPlaces } from "../lib/places";
 import { IconSearch, IconArrow } from "./icons";
 
-export default function SearchBar({ query, setQuery, onPlace }) {
+export default function SearchBar({ query, setQuery, onPlace, places }) {
   const [open, setOpen] = useState(false);
   const boxRef = useRef(null);
 
-  const matches = useMemo(() => searchPlaces(query, 8), [query]);
+  const matches = useMemo(() => searchPlaces(places, query, 8), [places, query]);
 
   useEffect(() => {
     const onDown = (e) => {
@@ -19,7 +19,7 @@ export default function SearchBar({ query, setQuery, onPlace }) {
   const submit = (raw) => {
     const text = (raw ?? query).trim();
     if (!text) return;
-    const place = searchPlaces(text, 1)[0];
+    const place = searchPlaces(places, text, 1)[0];
     if (place) {
       onPlace(place);
       setOpen(false);
@@ -76,7 +76,7 @@ export default function SearchBar({ query, setQuery, onPlace }) {
             const isCity = p.kind === "city";
             return (
               <button
-                key={`${p.kind}-${p.name}`}
+                key={p.name}
                 onClick={() => {
                   onPlace(p);
                   setOpen(false);
@@ -84,13 +84,13 @@ export default function SearchBar({ query, setQuery, onPlace }) {
                 className="w-full flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-[#f0f9fa] text-left transition-colors"
               >
                 <span
-                  className={`w-2 h-2 rounded-full shrink-0 ${isCity ? "bg-amber-500" : p.missing ? "bg-zinc-300" : "bg-[#0e7490]"}`}
+                  className={`w-2 h-2 rounded-full shrink-0 ${isCity ? "bg-amber-500" : "bg-[#0e7490]"}`}
                 />
                 <span className="text-[13px] font-medium text-zinc-800 truncate">
                   {p.name}
                 </span>
                 <span className="ml-auto text-[9px] uppercase tracking-wide text-zinc-400 font-semibold shrink-0">
-                  {isCity ? "city" : p.missing ? "no page" : "nation"}
+                  {isCity ? "city" : "nation"}
                 </span>
               </button>
             );

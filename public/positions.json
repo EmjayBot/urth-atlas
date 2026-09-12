@@ -1,4 +1,7 @@
 {
-  "_comment": "Community positions. Key = place name, value = {x, y} in map pixels (CRS.Simple). Any GitHub user can propose additions via a PR; after merge + deploy everyone gets them. This file is the shared 'save for everyone' store.",
-  "_version": 1
+  "_comment": "Community place registry. Each key is a place name; value is { kind: 'nation'|'city', href: '/wiki/...', x, y } where x/y are map pixels (CRS.Simple). Anyone can add/reposition via the Calibrate panel, then Submit to map opens a PR that merges into this file.",
+  "_version": 2,
+  "_example": {
+    "Christie Island": { "kind": "nation", "href": "/wiki/Christie_Island", "x": 5616, "y": 4558 }
+  }
 }

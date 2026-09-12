@@ -7,6 +7,7 @@ function Header({
   query,
   setQuery,
   onPlace,
+  places,
   showNations,
   setShowNations,
 }) {
@@ -34,7 +35,7 @@ function Header({
         </div>
       </div>
 
-      <SearchBar query={query} setQuery={setQuery} onPlace={onPlace} />
+      <SearchBar query={query} setQuery={setQuery} onPlace={onPlace} places={places} />
 
       <button
         onClick={() => setShowNations((v) => !v)}
