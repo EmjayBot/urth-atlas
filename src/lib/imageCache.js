@@ -1,5 +1,9 @@
 // Persistent IndexedDB cache for the large map image, so repeat visits load
 // instantly and the map still works offline once it has been seen.
+//
+// Display path: overlays load the image directly via an <img> URL (works even
+// in legacy/IE-mode browsers where blob: URLs can be unreliable). IndexedDB is
+// only used as an offline cache written in the background.
 
 const DB_NAME = "urth-atlas";
 const STORE = "images";
@@ -37,61 +41,56 @@ function txPut(db, key, blob) {
   });
 }
 
-function loadFromBlob(blob) {
+function loadDimsFromUrl(url) {
   return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(blob);
     const img = new Image();
-    img.onload = () =>
-      resolve({ url, w: img.naturalWidth, h: img.naturalHeight });
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("corrupt image"));
-    };
+    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onerror = () => reject(new Error("image failed to load"));
     img.src = url;
   });
 }
 
+// Best-effort background write-through so the image is available offline later.
+function cacheToIndexedDb(db, key, url) {
+  if (!db) return;
+  fetch(url, { cache: "no-store" })
+    .then((r) => (r.ok ? r.blob() : Promise.reject(new Error("HTTP " + r.status))))
+    .then((blob) => txPut(db, key, blob))
+    .catch(() => {});
+}
+
 /**
- * Returns a blob URL + natural dimensions for the map image.
- * Tries IndexedDB first, then the network (also writing through to the cache).
- * If `url` fails, falls back to `fallbackUrl` (if provided).
- * Throws if the image is unavailable from every source.
+ * Resolve a layer to something Leaflet can display.
+ * Returns { url, w, h, fromCache } where url is either a cached blob URL or the
+ * direct source URL (preferred for maximum compatibility).
  */
-export async function loadImageCached(url, fallbackUrl) {
+export async function loadLayer(def) {
   let db = null;
   try {
     db = await openDb();
   } catch {
     /* cache unavailable */
   }
-  const key = keyFor(url);
+  const key = keyFor(def.url);
 
   if (db) {
     try {
       const blob = await txGet(db, key);
       if (blob) {
-        const hit = await loadFromBlob(blob);
-        return { ...hit, fromCache: true };
+        const url = URL.createObjectURL(blob);
+        const dims = await loadDimsFromUrl(url);
+        return { url, w: dims.w, h: dims.h, fromCache: true };
       }
     } catch {
       /* fall through to network */
     }
   }
 
-  for (const src of [url, fallbackUrl].filter(Boolean)) {
+  for (const src of [def.url, def.fallbackUrl].filter(Boolean)) {
     try {
-      const resp = await fetch(src, { cache: "no-store" });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const blob = await resp.blob();
-      if (db) {
-        try {
-          await txPut(db, key, blob);
-        } catch {
-          /* non-fatal */
-        }
-      }
-      const hit = await loadFromBlob(blob);
-      return { ...hit, fromCache: false };
+      const dims = await loadDimsFromUrl(src);
+      cacheToIndexedDb(db, key, def.url);
+      return { url: src, w: dims.w, h: dims.h, fromCache: false };
     } catch {
       /* try next source */
     }

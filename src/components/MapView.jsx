@@ -8,7 +8,7 @@ import {
   getLayer,
 } from "../lib/scale";
 import { wrapX, latFromPixel } from "../lib/geo";
-import { loadImageCached, makeFallbackGrid } from "../lib/imageCache";
+import { loadLayer, makeFallbackGrid } from "../lib/imageCache";
 import { PLACES } from "../lib/places";
 import { fullWikiUrl } from "../lib/wiki";
 
@@ -123,7 +123,7 @@ export default function MapView({
     };
 
     const def = getLayer(layerRef.current);
-    loadImageCached(def.url, def.fallbackUrl)
+    loadLayer(def)
       .then(({ url, w, h }) => finishLoad(url, w, h, "ok"))
       .catch(() => {
         if (canceled) return;
@@ -226,7 +226,7 @@ export default function MapView({
     const def = getLayer(layer);
     let canceled = false;
     setStatus("loading");
-    loadImageCached(def.url, def.fallbackUrl)
+    loadLayer(def)
       .then(({ url, w, h }) => {
         if (canceled) return;
         if (w !== mapSize.W || h !== mapSize.H) {
