@@ -108,9 +108,13 @@ export default function App() {
   };
 
   const exportOverrides = () => {
+    if (!mapSize) return;
     const out = {};
     for (const [name, { x, y }] of Object.entries(overrides)) {
-      out[name] = { x: +x.toFixed(1), y: +y.toFixed(1) };
+      out[name] = {
+        nx: +((x / mapSize.W).toFixed(5)),
+        ny: +((y / mapSize.H).toFixed(5)),
+      };
     }
     onCopy(JSON.stringify(out));
   };
