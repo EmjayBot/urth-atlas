@@ -593,9 +593,10 @@ export default function MapView({
     };
   }, [cloudsAllowed, cloudOpacity, cloudUrls, mapSize]);
 
-  // ---- City & subnational markers overlay (idle-deferred, WebP) ---------------
-  // Not needed for first paint — resolves after idle so the base map gets
-  // bandwidth + decode time first. WebP with PNG fallback for old browsers.
+  // ---- City & subnational markers overlay (idle-deferred) ----------------------
+  // Not needed for first paint — mounts after idle so the base map gets
+  // bandwidth + decode time first. Served as PNG (source of truth) since the
+  // fine text/lines showed softness complaints under WebP in some browsers.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapSize?.W || !showMarkers) return;
@@ -626,9 +627,8 @@ export default function MapView({
     };
     const start = () => {
       if (canceled) return;
-      const webp = `${import.meta.env.BASE_URL}cities-subnational-markers.webp`;
       const png = `${import.meta.env.BASE_URL}cities-subnational-markers.png`;
-      loadLayer({ url: webp, fallbackUrl: png })
+      loadLayer({ url: png, fallbackUrl: png })
         .then(({ url }) => mount(url))
         .catch(() => mount(png));
     };
@@ -880,13 +880,20 @@ export default function MapView({
 
   // ---- Render --------------------------------------------------------------
   const activeLayer = getLayer(layer);
+  // Blurred-preview backdrop: tiny (~20-30KB) preloaded image paints instantly
+  // so there's never a grey void while the full-res tiles load or swap.
+  const preview =
+    `${import.meta.env.BASE_URL}` +
+    (layer === "satellite" ? "preview-satellite.webp" : "preview-political.webp");
 
   return (
     <div className="absolute inset-0">
       <div
         ref={containerRef}
         className="absolute inset-0 urth-map-grab"
-        style={{ background: "#e5e3df" }}
+        style={{
+          background: `#e5e3df url(${preview}) center / cover no-repeat`,
+        }}
       />
       {status === "loading" && (
         <div className="absolute inset-0 z-[900] flex items-center justify-center pointer-events-none">
