@@ -39,36 +39,22 @@ body {
   cursor: crosshair !important;
 }
 
-/* Nation pins (classic map pin + name, like real maps) */
-.urth-nation-pin {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-}
-.urth-nation-pin-ico {
-  width: 26px;
-  height: 38px;
-  display: block;
-  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35));
-}
-.urth-nation-pin-name {
-  position: absolute;
-  left: 30px;
-  top: 6px;
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 600;
-  color: #111827;
-  white-space: nowrap;
-  cursor: pointer;
-  text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 4px #fff;
-}
-.urth-nation-pin:hover .urth-nation-pin-ico {
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
-}
-.urth-nation-pin-name:hover {
-  color: #0e7490;
-  text-decoration: underline;
+/* Cylinder easter egg shading: curved-side shadow + top/bottom vignette so the
+   repeating map reads as wrapped around a cylinder. */
+.urth-cyl-shade {
+  background:
+    linear-gradient(
+      to right,
+      rgba(15, 30, 45, 0.5),
+      rgba(15, 30, 45, 0) 18%,
+      rgba(15, 30, 45, 0) 82%,
+      rgba(15, 30, 45, 0.5)
+    ),
+    radial-gradient(
+      ellipse 120% 95% at 50% 50%,
+      rgba(15, 30, 45, 0) 62%,
+      rgba(15, 30, 45, 0.3) 100%
+    );
 }
 
 /* Coordinate grid labels */

@@ -34,33 +34,6 @@ function lngFromX(x, W) {
   return (x / W - 0.5) * 360;
 }
 
-// Horizontal barrel-displacement map so the wrapped map reads as a cylinder:
-// the middle magnifies, the sides recede. R channel encodes x displacement.
-function makeBarrelDisplacement() {
-  const w = 256;
-  const h = 8;
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d");
-  const img = ctx.createImageData(w, h);
-  const d = img.data;
-  const AMP = 110; // 0..127
-  for (let x = 0; x < w; x++) {
-    const t = x / (w - 1);
-    const r = 128 + Math.round(AMP * Math.sin(2 * Math.PI * (t - 0.5)));
-    for (let y = 0; y < h; y++) {
-      const i = (y * w + x) * 4;
-      d[i] = r;
-      d[i + 1] = 128;
-      d[i + 2] = 128;
-      d[i + 3] = 255;
-    }
-  }
-  ctx.putImageData(img, 0, 0);
-  return canvas.toDataURL("image/png");
-}
-
 export default function MapView({
   mode,
   points,
@@ -325,20 +298,8 @@ export default function MapView({
     if (!map) return;
     const container = map.getContainer();
     const pane = map.getPane("overlayPane");
-    if (cylinder && !container.querySelector("#urth-cyl-svg")) {
-      const dataUri = makeBarrelDisplacement();
-      const holder = document.createElement("div");
-      holder.innerHTML =
-        `<svg id="urth-cyl-svg" xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true">` +
-        `<defs><filter id="urth-cyl">` +
-        `<feImage href="${dataUri}" xlink:href="${dataUri}" result="m"/>` +
-        `<feDisplacementMap in="SourceGraphic" in2="m" scale="220" xChannelSelector="R" yChannelSelector="G"/>` +
-        `</filter></defs></svg>`;
-      container.appendChild(holder.firstChild);
-    }
     if (pane) {
-      const base = satellite ? "saturate(1.2) contrast(1.1)" : "";
-      pane.style.filter = cylinder ? `url(#urth-cyl)${base ? " " + base : ""}` : base;
+      pane.style.filter = satellite ? "saturate(1.2) contrast(1.1)" : "";
       if (cylinder) {
         const mask =
           "linear-gradient(to right, transparent 2%, black 14%, black 86%, transparent 98%)";
@@ -476,10 +437,11 @@ export default function MapView({
     const map = mapRef.current;
     if (!map || !focus || !mapSize?.W) return;
     if (focus.type === "nation" || focus.type === "city") {
-      const mk = placeMarkersRef.current?.[focus.name];
-      if (mk) {
-        map.setView(mk.getLatLng(), Math.max(map.getZoom(), 4));
-        mk.openPopup();
+      const ll = placeLatLngRef.current?.[focus.name];
+      if (ll) {
+        map.setView(ll, Math.max(map.getZoom(), 4));
+        const mk = placeMarkersRef.current?.[focus.name];
+        if (mk) mk.openPopup();
       }
     } else if (focus.type === "coord") {
       const { a, b } = focus;
@@ -588,41 +550,28 @@ export default function MapView({
 
   // ---- Wiki nations layer ---------------------------------------------------
   const placeMarkersRef = useRef({});
+  const placeLatLngRef = useRef({});
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapSize?.W || !showNations) return;
     const grp = L.layerGroup();
     placeMarkersRef.current = {};
+    placeLatLngRef.current = {};
     const pls = placesRef.current;
     pls.forEach((p) => {
       if (p.x == null || p.y == null) return;
       const latlng = [p.y, p.x];
-      const isCity = p.kind === "city";
+      placeLatLngRef.current[p.name] = latlng;
+      if (p.kind !== "city") return; // nations have no location marker
+      const isCity = true;
       const href = p.href ? fullWikiUrl(p.href) : null;
-      let mk;
-      if (isCity) {
-        mk = L.circleMarker(latlng, {
-          radius: 3,
-          color: "#ffffff",
-          weight: 1.5,
-          fillColor: "#f59e0b",
-          fillOpacity: 0.95,
-        }).addTo(grp);
-      } else {
-        const icon = L.divIcon({
-          className: "urth-nation-pin",
-          html:
-            `<svg class="urth-nation-pin-ico" viewBox="0 0 24 24" aria-hidden="true">` +
-            `<path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7z" fill="#0e7490" stroke="#ffffff" stroke-width="1.5"/>` +
-            `<circle cx="12" cy="9" r="2.6" fill="#ffffff"/></svg>` +
-            `<span class="urth-nation-pin-name">${p.name}</span>`,
-          iconSize: [26, 38],
-          iconAnchor: [13, 36],
-          popupAnchor: [0, -34],
-          tooltipAnchor: [16, -20],
-        });
-        mk = L.marker(latlng, { icon, riseOnHover: true }).addTo(grp);
-      }
+      const mk = L.circleMarker(latlng, {
+        radius: 3,
+        color: "#ffffff",
+        weight: 1.5,
+        fillColor: "#f59e0b",
+        fillOpacity: 0.95,
+      }).addTo(grp);
       mk.bindTooltip(p.name, {
         direction: "top",
         offset: [0, -5],
@@ -630,7 +579,7 @@ export default function MapView({
       });
       mk.bindPopup(
         `<div class="atlas-popup"><div class="atlas-popup-title">${p.name}</div>` +
-          `<div class="atlas-popup-coords">${latlng[0].toFixed(0)}, ${latlng[1].toFixed(0)} px · ${isCity ? "city" : "nation"}</div>` +
+          `<div class="atlas-popup-coords">${latlng[0].toFixed(0)}, ${latlng[1].toFixed(0)} px · city</div>` +
           (href
             ? `<a class="atlas-popup-link" href="${href}" target="_blank" rel="noopener noreferrer">Open on TEPwiki ↗</a>`
             : `<div class="atlas-popup-missing">No TEPwiki page linked</div>`)
@@ -642,6 +591,7 @@ export default function MapView({
     return () => {
       grp.remove();
       placeMarkersRef.current = {};
+      placeLatLngRef.current = {};
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showNations, mapSize, places]);
@@ -693,11 +643,14 @@ export default function MapView({
         <ScaleBarReadout bar={scaleBar} />
       )}
       {cylinder && status !== "loading" && (
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[700] pointer-events-none select-none">
-          <div className="bg-[#0e7490]/90 text-white text-[11px] font-semibold tracking-wide uppercase px-3 py-1.5 rounded-full shadow-lg backdrop-blur">
-            ◍ Cylinder mode — Urth wraps around
+        <>
+          <div className="absolute inset-0 z-[650] pointer-events-none urth-cyl-shade" />
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[700] pointer-events-none select-none">
+            <div className="bg-[#0e7490]/90 text-white text-[11px] font-semibold tracking-wide uppercase px-3 py-1.5 rounded-full shadow-lg backdrop-blur">
+              ◍ Cylinder mode — Urth wraps around
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
