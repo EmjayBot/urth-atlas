@@ -13,8 +13,8 @@ export const BASE_LAYERS = [
     id: "map",
     label: "Political",
     sub: "Blank political map",
-    url: `${import.meta.env.BASE_URL}blank-political.png`,
-    fallbackUrl: `${import.meta.env.BASE_URL}blank-political.png`,
+    url: `${import.meta.env.BASE_URL}blank-political.png?v=2`,
+    fallbackUrl: `${import.meta.env.BASE_URL}blank-political.png?v=2`,
     chip: "bg-gradient-to-br from-sky-300 via-sky-600 to-cyan-800",
   },
   {
