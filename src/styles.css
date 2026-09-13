@@ -39,33 +39,36 @@ body {
   cursor: crosshair !important;
 }
 
-/* Nation name labels (clickable, replaces plain dots) */
-.urth-nation-label {
+/* Nation pins (classic map pin + name, like real maps) */
+.urth-nation-pin {
   background: transparent;
   border: none;
   box-shadow: none;
-  width: 0 !important;
-  height: 0 !important;
 }
-.urth-nation-label-name {
+.urth-nation-pin-ico {
+  width: 26px;
+  height: 38px;
+  display: block;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35));
+}
+.urth-nation-pin-name {
   position: absolute;
-  transform: translate(-50%, -50%);
+  left: 30px;
+  top: 6px;
   font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 700;
-  color: #0e7490;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(14, 116, 144, 0.35);
-  border-radius: 4px;
-  padding: 1px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
   white-space: nowrap;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
   cursor: pointer;
-  text-decoration: none;
+  text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 4px #fff;
 }
-.urth-nation-label-name:hover {
-  background: #0e7490;
-  color: #fff;
+.urth-nation-pin:hover .urth-nation-pin-ico {
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
+}
+.urth-nation-pin-name:hover {
+  color: #0e7490;
+  text-decoration: underline;
 }
 
 /* Coordinate grid labels */

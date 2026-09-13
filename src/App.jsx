@@ -12,7 +12,7 @@ import { mergePlaces } from "./lib/places";
 import { num } from "./lib/format";
 
 const initial = parseUrl();
-const LOCAL_KEY = "urth-atlas.places.local.v1";
+const LOCAL_KEY = "urth-atlas.places.local.v2";
 
 function loadLocal() {
   try {

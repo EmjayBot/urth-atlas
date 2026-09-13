@@ -12,7 +12,8 @@ import { loadLayer, makeFallbackGrid } from "../lib/imageCache";
 import { fullWikiUrl } from "../lib/wiki";
 
 const PICK_COLOR = "#0e7490";
-const WORLD_COPIES = 5; // horizontal copies, side-by-side (infinite wrap)
+const WORLD_COPIES = 21; // horizontal copies (i in -10..10) so the wrapped map fills the screen at extreme zoom
+const HALF_COPIES = 10;
 
 // Zoom levels: -3 = "all the way out" (whole flat map fits the screen).
 // Beyond -3 is the easter egg: keep zooming and the repeating map reads as a
@@ -31,6 +32,33 @@ function useRefLatest(value) {
 
 function lngFromX(x, W) {
   return (x / W - 0.5) * 360;
+}
+
+// Horizontal barrel-displacement map so the wrapped map reads as a cylinder:
+// the middle magnifies, the sides recede. R channel encodes x displacement.
+function makeBarrelDisplacement() {
+  const w = 256;
+  const h = 8;
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  const img = ctx.createImageData(w, h);
+  const d = img.data;
+  const AMP = 110; // 0..127
+  for (let x = 0; x < w; x++) {
+    const t = x / (w - 1);
+    const r = 128 + Math.round(AMP * Math.sin(2 * Math.PI * (t - 0.5)));
+    for (let y = 0; y < h; y++) {
+      const i = (y * w + x) * 4;
+      d[i] = r;
+      d[i + 1] = 128;
+      d[i + 2] = 128;
+      d[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return canvas.toDataURL("image/png");
 }
 
 export default function MapView({
@@ -117,8 +145,9 @@ export default function MapView({
     let W = 0;
 
     const installOverlays = (url) => {
-      // 5 copies side-by-side so the map wraps horizontally. Vertical is clamped.
-      for (let i = -2; i <= 2; i++) {
+      // Many copies side-by-side so the map wraps horizontally and fills the
+      // screen at extreme (cylinder) zoom. Vertical is clamped.
+      for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
         const ov = L.imageOverlay(
           url,
           [
@@ -294,11 +323,25 @@ export default function MapView({
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    const container = map.getContainer();
     const pane = map.getPane("overlayPane");
+    if (cylinder && !container.querySelector("#urth-cyl-svg")) {
+      const dataUri = makeBarrelDisplacement();
+      const holder = document.createElement("div");
+      holder.innerHTML =
+        `<svg id="urth-cyl-svg" xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true">` +
+        `<defs><filter id="urth-cyl">` +
+        `<feImage href="${dataUri}" xlink:href="${dataUri}" result="m"/>` +
+        `<feDisplacementMap in="SourceGraphic" in2="m" scale="220" xChannelSelector="R" yChannelSelector="G"/>` +
+        `</filter></defs></svg>`;
+      container.appendChild(holder.firstChild);
+    }
     if (pane) {
-      pane.style.filter = satellite ? "saturate(1.2) contrast(1.1)" : "";
+      const base = satellite ? "saturate(1.2) contrast(1.1)" : "";
+      pane.style.filter = cylinder ? `url(#urth-cyl)${base ? " " + base : ""}` : base;
       if (cylinder) {
-        const mask = "linear-gradient(to right, transparent 3%, black 16%, black 84%, transparent 97%)";
+        const mask =
+          "linear-gradient(to right, transparent 2%, black 14%, black 86%, transparent 98%)";
         pane.style.maskImage = mask;
         pane.style.webkitMaskImage = mask;
       } else {
@@ -306,9 +349,8 @@ export default function MapView({
         pane.style.webkitMaskImage = "";
       }
     }
-    const wrap = map.getContainer();
-    wrap.classList.toggle("urth-satellite", satellite);
-    wrap.classList.toggle("urth-cylinder", cylinder);
+    container.classList.toggle("urth-satellite", satellite);
+    container.classList.toggle("urth-cylinder", cylinder);
   }, [satellite, cylinder]);
 
   useEffect(() => {
@@ -568,10 +610,16 @@ export default function MapView({
         }).addTo(grp);
       } else {
         const icon = L.divIcon({
-          className: "urth-nation-label",
-          html: `<span class="urth-nation-label-name">${p.name}</span>`,
-          iconSize: [0, 0],
-          iconAnchor: [0, 0],
+          className: "urth-nation-pin",
+          html:
+            `<svg class="urth-nation-pin-ico" viewBox="0 0 24 24" aria-hidden="true">` +
+            `<path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7z" fill="#0e7490" stroke="#ffffff" stroke-width="1.5"/>` +
+            `<circle cx="12" cy="9" r="2.6" fill="#ffffff"/></svg>` +
+            `<span class="urth-nation-pin-name">${p.name}</span>`,
+          iconSize: [26, 38],
+          iconAnchor: [13, 36],
+          popupAnchor: [0, -34],
+          tooltipAnchor: [16, -20],
         });
         mk = L.marker(latlng, { icon, riseOnHover: true }).addTo(grp);
       }
