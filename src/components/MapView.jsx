@@ -618,11 +618,8 @@ export default function MapView({
     placeMarkersRef.current = {};
     placeLatLngRef.current = {};
     const pls = placesRef.current;
-    const maxFont = 15;
-    const font = Math.max(
-      8,
-      Math.min(maxFont, maxFont * Math.pow(2, (zoomLevel ?? 0) - 1.75))
-    );
+    const NATION_TEXT_MIN_ZOOM = 0;
+    const showNationText = (zoomLevel ?? 0) >= NATION_TEXT_MIN_ZOOM;
     pls.forEach((p) => {
       if (p.x == null || p.y == null) return;
       const latlng = [p.y, p.x];
@@ -649,10 +646,11 @@ export default function MapView({
           className: "atlas-tooltip",
         });
       } else {
-        // Nation name rendered as real-map style text (no pin, no box).
+        // Nation names: constant text size, only visible above a zoom threshold.
+        if (!showNationText) return;
         const icon = L.divIcon({
           className: "urth-nation-text",
-          html: `<span class="urth-nation-text-name" style="font-size:${font}px">${p.name}</span>`,
+          html: `<span class="urth-nation-text-name">${p.name}</span>`,
           iconSize: null,
         });
         mk = L.marker(latlng, { icon, riseOnHover: true }).addTo(grp);
