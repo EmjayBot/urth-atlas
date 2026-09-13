@@ -109,7 +109,7 @@ export async function loadLayer(def) {
 // soft; keeps memory + GPU cheap vs the old 4096x2048 blob field).
 const _cloudMemo = new Map();
 export function makeCloudTexture(W = 2048, H = 1024, opts = {}) {
-  const { coverage = 0.52, softness = 0.32, seed = 20260913, alpha = 235 } = opts;
+  const { coverage = 0.54, softness = 0.28, seed = 20260913, alpha = 235 } = opts;
   const memoKey = `${W}x${H}:${coverage}:${softness}:${seed}:${alpha}`;
   if (_cloudMemo.has(memoKey)) return _cloudMemo.get(memoKey);
 
@@ -150,7 +150,7 @@ export function makeCloudTexture(W = 2048, H = 1024, opts = {}) {
     return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
   }
   // fbm with x-stretch for westerly streaks; wraps every `basePx` cells.
-  function fbm(nx, ny, octaves, basePx, basePy, stretchX = 2.6) {
+  function fbm(nx, ny, octaves, basePx, basePy, stretchX = 3.0) {
     let amp = 0.5;
     let freq = 1;
     let sum = 0;
@@ -188,7 +188,7 @@ export function makeCloudTexture(W = 2048, H = 1024, opts = {}) {
       let d = fbm(wx, wy, 6, 9, 5);
       // Ridged detail for wispy cirrus streaks mixed in.
       const r = 1 - Math.abs(2 * fbm(u * 14 + 3.7, v * 7 + 9.1, 4, 14, 7) - 1);
-      d = d * 0.82 + r * r * 0.18;
+      d = d * 0.78 + r * r * 0.22;
       field[y * w + x] = d * bands + (rnd() - 0.5) * 0.012;
     }
   }
@@ -211,7 +211,9 @@ export function makeCloudTexture(W = 2048, H = 1024, opts = {}) {
     for (let x = 0; x < w; x++) {
       const i = y * w + x;
       const d = field[i];
-      const a01 = smoothstep(lo, lo + softness, d);
+      let a01 = smoothstep(lo, lo + softness, d);
+      // Gamma the alpha: kills uniform haze, keeps distinct puffy cores.
+      a01 = Math.pow(a01, 1.35);
       if (a01 <= 0.003) continue;
       // Thickness shading from local gradient (light from upper-left).
       const xm = field[y * w + ((x - 1 + w) % w)];
@@ -221,12 +223,14 @@ export function makeCloudTexture(W = 2048, H = 1024, opts = {}) {
       const gx = (xp - xm) * 8;
       const gy = (yp - ym) * 8;
       const shade = Math.max(-1, Math.min(1, -(gx * lightX + gy * lightY)));
-      // Bright tops (~255), gray-blue bellies (~218) for depth.
-      const v = Math.round(255 - (1 - Math.max(0, shade)) * 0 + (1 - a01) * 0 - Math.max(0, -shade) * 26 - (1 - smoothstep(lo, 1, d)) * 10);
+      // Bright tops (~255), cool gray bellies for depth.
+      const shadeAmt = Math.max(0, -shade);
+      const core = smoothstep(lo, 1, d);
+      const v = Math.round(255 - shadeAmt * 38 - (1 - core) * 14);
       const o = i * 4;
-      px[o] = Math.max(218, Math.min(255, v));
-      px[o + 1] = Math.max(222, Math.min(255, v + 2));
-      px[o + 2] = Math.max(228, Math.min(255, v + 5));
+      px[o] = Math.max(205, Math.min(255, v));
+      px[o + 1] = Math.max(212, Math.min(255, v + 2));
+      px[o + 2] = Math.max(222, Math.min(255, v + 6));
       px[o + 3] = Math.round(a01 * alpha);
     }
   }
@@ -266,7 +270,7 @@ export function makeCloudTexture(W = 2048, H = 1024, opts = {}) {
     ctx.globalAlpha = 1;
   } catch {}
   try {
-    ctx.filter = "blur(1.5px)";
+    ctx.filter = "blur(0.8px)";
     ctx.drawImage(canvas, 0, 0);
     ctx.filter = "none";
   } catch {}

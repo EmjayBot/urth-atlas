@@ -25,6 +25,9 @@ const HALF_COPIES = 2;
 const NORMAL_MIN_ZOOM = -3;
 const CYLINDER_ZOOM = -3.5;
 const ABSOLUTE_MIN_ZOOM = -7;
+// Google-Earth style: clouds only read as real at whole-world zooms.
+// Shown at or beyond CLOUD_MAX_ZOOM, never once zoomed in or in cylinder.
+const CLOUD_MAX_ZOOM = -2;
 
 function useRefLatest(value) {
   const ref = useRef(value);
@@ -487,17 +490,26 @@ export default function MapView({
   // Two depth-stacked sheets: a soft base deck + a faint fast cirrus wisp
   // layer for parallax. GPU transform drift (no layout thrash), textures
   // memoised in imageCache. Density presets map to FBM coverage.
-  // Textures generate off the critical path (idle-deferred) so the base map
-  // stays interactive; the effect only needs cloudUrls to paint.
+  // Google-Earth style gating: only at whole-world zooms (CLOUD_MAX_ZOOM and
+  // out, above cylinder mode). Textures generate off the critical path
+  // (idle-deferred) and stay cached, so zooming back out is instant.
+  const cloudsAllowed =
+    layer === "satellite" &&
+    showClouds &&
+    zoomLevel !== null &&
+    zoomLevel <= CLOUD_MAX_ZOOM &&
+    zoomLevel > CYLINDER_ZOOM;
   const [cloudUrls, setCloudUrls] = useState(null);
   useEffect(() => {
     if (layer !== "satellite" || !showClouds) {
       setCloudUrls(null);
       return;
     }
-    setCloudUrls(null);
+    // Keep the cache while zoomed in / in cylinder so returning is instant.
+    if (!cloudsAllowed) return;
     const cov =
-      cloudDensity === "light" ? 0.44 : cloudDensity === "stormy" ? 0.6 : 0.52;
+      cloudDensity === "light" ? 0.44 : cloudDensity === "stormy" ? 0.6 : 0.54;
+    if (cloudUrls && cloudUrls.cov === cov) return;
     let canceled = false;
     const gen = () => {
       if (canceled) return;
@@ -512,7 +524,7 @@ export default function MapView({
           seed: 770213,
           alpha: 150,
         });
-        if (!canceled) setCloudUrls({ base, wisp });
+        if (!canceled) setCloudUrls({ base, wisp, cov });
       }, 30);
     };
     if (typeof requestIdleCallback === "function") {
@@ -527,11 +539,11 @@ export default function MapView({
       canceled = true;
       clearTimeout(t);
     };
-  }, [layer, showClouds, cloudDensity]);
+  }, [layer, showClouds, cloudDensity, cloudsAllowed, cloudUrls]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapSize?.W || layer !== "satellite" || !showClouds || !cloudUrls) return;
+    if (!map || !mapSize?.W || !cloudsAllowed || !cloudUrls) return;
     const grp = L.layerGroup({ interactive: false });
     const { W, H } = mapSize;
     const { base: baseUrl, wisp: wispUrl } = cloudUrls;
@@ -579,7 +591,7 @@ export default function MapView({
     return () => {
       grp.remove();
     };
-  }, [layer, showClouds, cloudOpacity, cloudUrls, mapSize]);
+  }, [cloudsAllowed, cloudOpacity, cloudUrls, mapSize]);
 
   // ---- City & subnational markers overlay -------------------------------------
   useEffect(() => {

@@ -365,7 +365,7 @@ export default function Sidebar({
           label="Clouds"
           checked={showClouds}
           onChange={setShowClouds}
-          sub="Satellite view only • realistic cover"
+          sub="Zoomed-out satellite view"
         />
         {showClouds && (
           <div className="ml-6 mt-1 mb-2 rounded-lg border border-[#e5e7eb] bg-[#f9fafb] p-2.5 space-y-2.5">
