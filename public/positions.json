@@ -6,5 +6,35 @@
     "href": "/wiki/Free_Pax_States",
     "x": 8227,
     "y": 4494
+  },
+  "Hoopland": {
+    "kind": "nation",
+    "href": "/wiki/Hoopland",
+    "x": 7906,
+    "y": 4948
+  },
+  "Tarseen": {
+    "kind": "nation",
+    "href": "/wiki/Tarseen",
+    "x": 8219,
+    "y": 4896
+  },
+  "Iseul": {
+    "kind": "nation",
+    "href": "/wiki/Iseul",
+    "x": 8751,
+    "y": 3317
+  },
+  "East Gemica": {
+    "kind": "nation",
+    "href": "/wiki/East_Gemica",
+    "x": 9631,
+    "y": 3323
+  },
+  "Packilvania": {
+    "kind": "nation",
+    "href": "/wiki/Packilvania",
+    "x": 7787,
+    "y": 5415
   }
 }
