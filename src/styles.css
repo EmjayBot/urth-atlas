@@ -170,6 +170,34 @@ body {
   background: radial-gradient(circle, rgba(30, 120, 200, 0.2), transparent 70%);
 }
 
+/* Nation name text (real-map style: label with halo, no pin/box) */
+.urth-nation-text {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  width: 0 !important;
+  height: 0 !important;
+  cursor: pointer;
+}
+.urth-nation-text-name {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #0f172a;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 4px #fff, 0 0 5px #fff;
+}
+.urth-nation-text:hover .urth-nation-text-name {
+  color: #0e7490;
+  text-decoration: underline;
+}
+
 /* Coordinate grid labels */
 .urth-coord-label {
   background: transparent;

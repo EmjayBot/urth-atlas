@@ -103,8 +103,6 @@ export default function App() {
       writeUrl({
         at: s.view ? [s.view.x, s.view.y] : undefined,
         z: s.view?.z,
-        mode: s.mode === "none" ? undefined : s.mode,
-        pts: s.mode !== "none" ? s.points : undefined,
         nations: s.showNations,
         layer: s.layer,
       });

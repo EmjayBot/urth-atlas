@@ -598,28 +598,37 @@ export default function MapView({
       if (p.x == null || p.y == null) return;
       const latlng = [p.y, p.x];
       placeLatLngRef.current[p.name] = latlng;
-      if (p.kind !== "city") return; // nations have no location marker
-      const isCity = true;
       const href = p.href ? fullWikiUrl(p.href) : null;
-      const mk = L.circleMarker(latlng, {
-        radius: 3,
-        color: "#ffffff",
-        weight: 1.5,
-        fillColor: "#f59e0b",
-        fillOpacity: 0.95,
-      }).addTo(grp);
-      mk.bindTooltip(p.name, {
-        direction: "top",
-        offset: [0, -5],
-        className: "atlas-tooltip",
-      });
-      mk.bindPopup(
+      const popup =
         `<div class="atlas-popup"><div class="atlas-popup-title">${p.name}</div>` +
-          `<div class="atlas-popup-coords">${latlng[0].toFixed(0)}, ${latlng[1].toFixed(0)} px · city</div>` +
-          (href
-            ? `<a class="atlas-popup-link" href="${href}" target="_blank" rel="noopener noreferrer">Open on TEPwiki ↗</a>`
-            : `<div class="atlas-popup-missing">No TEPwiki page linked</div>`)
-      );
+        `<div class="atlas-popup-coords">${latlng[0].toFixed(0)}, ${latlng[1].toFixed(0)} px · ${p.kind === "city" ? "city" : "nation"}</div>` +
+        (href
+          ? `<a class="atlas-popup-link" href="${href}" target="_blank" rel="noopener noreferrer">Open on TEPwiki ↗</a>`
+          : `<div class="atlas-popup-missing">No TEPwiki page linked</div>`);
+      let mk;
+      if (p.kind === "city") {
+        mk = L.circleMarker(latlng, {
+          radius: 3,
+          color: "#ffffff",
+          weight: 1.5,
+          fillColor: "#f59e0b",
+          fillOpacity: 0.95,
+        }).addTo(grp);
+        mk.bindTooltip(p.name, {
+          direction: "top",
+          offset: [0, -5],
+          className: "atlas-tooltip",
+        });
+      } else {
+        // Nation name rendered as real-map style text (no pin, no box).
+        const icon = L.divIcon({
+          className: "urth-nation-text",
+          html: `<span class="urth-nation-text-name">${p.name}</span>`,
+          iconSize: null,
+        });
+        mk = L.marker(latlng, { icon, riseOnHover: true }).addTo(grp);
+      }
+      mk.bindPopup(popup);
       mk.on("click", (e) => L.DomEvent.stopPropagation(e));
       placeMarkersRef.current[p.name] = mk;
     });

@@ -16,21 +16,6 @@ export function parseUrl() {
   const z = q.get("z");
   if (z && Number.isFinite(Number(z))) out.z = Number(z);
 
-  const mode = q.get("mode");
-  if (mode === "measure" || mode === "area" || mode === "path") out.mode = mode;
-
-  const pts = q.get("pts");
-  if (pts) {
-    const arr = pts
-      .split("|")
-      .map((s) => {
-        const [x, y] = s.split(",").map(Number);
-        return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
-      })
-      .filter(Boolean);
-    if (arr.length) out.pts = arr;
-  }
-
   if (q.get("nations") === "1") out.nations = true;
 
   const layer = q.get("layer");
