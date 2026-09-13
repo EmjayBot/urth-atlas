@@ -39,22 +39,35 @@ body {
   cursor: crosshair !important;
 }
 
-/* Cylinder easter egg shading: curved-side shadow + top/bottom vignette so the
-   repeating map reads as wrapped around a cylinder. */
-.urth-cyl-shade {
-  background:
-    linear-gradient(
-      to right,
-      rgba(15, 30, 45, 0.5),
-      rgba(15, 30, 45, 0) 18%,
-      rgba(15, 30, 45, 0) 82%,
-      rgba(15, 30, 45, 0.5)
-    ),
-    radial-gradient(
-      ellipse 120% 95% at 50% 50%,
-      rgba(15, 30, 45, 0) 62%,
-      rgba(15, 30, 45, 0.3) 100%
-    );
+/* Cylinder easter egg: a real 3D CSS cylinder wrapped with the Urth map */
+.urth-cyl-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.urth-cyl-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 660;
+  perspective: 1400px;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 46%, #eceae6, #dcd9d4 75%, #d3d0ca);
+}
+.urth-cyl-scene:active {
+  cursor: grabbing;
+}
+.urth-cyl {
+  position: relative;
+  transform-style: preserve-3d;
+}
+.urth-cyl-face {
+  position: absolute;
+  backface-visibility: hidden;
+  background-repeat: no-repeat;
 }
 
 /* Coordinate grid labels */

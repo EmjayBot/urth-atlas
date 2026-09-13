@@ -10,6 +10,7 @@ import {
 import { wrapX, wrapY, latFromPixel } from "../lib/geo";
 import { loadLayer, makeFallbackGrid } from "../lib/imageCache";
 import { fullWikiUrl } from "../lib/wiki";
+import CylinderView from "./CylinderView";
 
 const PICK_COLOR = "#0e7490";
 const WORLD_COPIES = 21; // horizontal copies (i in -10..10) so the wrapped map fills the screen at extreme zoom
@@ -69,6 +70,8 @@ export default function MapView({
   const loadedLayerRef = useRef(null);
   const [scaleBar, setScaleBar] = useState(null);
   const [zoomLevel, setZoomLevel] = useState(null);
+  const [cylCx, setCylCx] = useState(0);
+  const [cylImg, setCylImg] = useState(null);
 
   const modeRef = useRefLatest(mode);
   const pointsRef = useRefLatest(points);
@@ -148,6 +151,7 @@ export default function MapView({
         map.setView([H / 2, W / 2], 0, { animate: false });
       }
       setZoomLevel(map.getZoom());
+      setCylImg(imagesRef.current[0]?.getElement()?.src ?? url);
       setStatus(okStatus);
       onMapReadyRef.current(map);
     };
@@ -260,6 +264,7 @@ export default function MapView({
       }
       updateScale();
       setZoomLevel(map.getZoom());
+      setCylCx(wrapX(c.lng, W || 1));
       onViewChangeRef.current({ x: wrapX(c.lng, W || 1), y: wrapY(c.lat, H || 1), z: map.getZoom() });
     };
 
@@ -300,19 +305,25 @@ export default function MapView({
     const pane = map.getPane("overlayPane");
     if (pane) {
       pane.style.filter = satellite ? "saturate(1.2) contrast(1.1)" : "";
-      if (cylinder) {
-        const mask =
-          "linear-gradient(to right, transparent 2%, black 14%, black 86%, transparent 98%)";
-        pane.style.maskImage = mask;
-        pane.style.webkitMaskImage = mask;
-      } else {
-        pane.style.maskImage = "";
-        pane.style.webkitMaskImage = "";
-      }
     }
     container.classList.toggle("urth-satellite", satellite);
-    container.classList.toggle("urth-cylinder", cylinder);
+    container.classList.toggle("urth-cyl-hidden", cylinder);
   }, [satellite, cylinder]);
+
+  // When leaving cylinder mode, point the flat map at the rotated position.
+  const cylActiveRef = useRef(false);
+  useEffect(() => {
+    if (cylinder) {
+      cylActiveRef.current = true;
+    } else if (cylActiveRef.current) {
+      cylActiveRef.current = false;
+      const map = mapRef.current;
+      if (map && mapSize?.W && cylCx != null) {
+        map.setView([map.getCenter().lat, cylCx], map.getZoom(), { animate: false });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cylinder]);
 
   useEffect(() => {
     if (mapRef.current && mapSize?.W) {
@@ -337,6 +348,7 @@ export default function MapView({
         imagesRef.current.forEach((ov) => ov.setUrl(url));
         loadedLayerRef.current = layer;
         applyOpacity();
+        setCylImg(imagesRef.current[0]?.getElement()?.src ?? url);
         setStatus("ok");
       })
       .catch(() => {
@@ -644,10 +656,15 @@ export default function MapView({
       )}
       {cylinder && status !== "loading" && (
         <>
-          <div className="absolute inset-0 z-[650] pointer-events-none urth-cyl-shade" />
+          <CylinderView
+            imageUrl={cylImg}
+            cx={cylCx}
+            W={mapSize?.W}
+            onRotateWorld={(cx) => setCylCx(wrapX(cx, mapSize?.W ?? 1))}
+          />
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[700] pointer-events-none select-none">
             <div className="bg-[#0e7490]/90 text-white text-[11px] font-semibold tracking-wide uppercase px-3 py-1.5 rounded-full shadow-lg backdrop-blur">
-              ◍ Cylinder mode — Urth wraps around
+              ◍ Cylinder mode — drag to rotate
             </div>
           </div>
         </>
