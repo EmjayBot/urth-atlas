@@ -806,18 +806,25 @@ export default function MapView({
     placeMarkersRef.current = {};
     placeLatLngRef.current = {};
     const pls = placesRef.current;
-    const { W } = mapSize;
+    const { W, H } = mapSize;
     pls.forEach((p) => {
       if (p.x == null || p.y == null) return;
       const latlng = [p.y, p.x];
       placeLatLngRef.current[p.name] = latlng;
       const href = p.href ? fullWikiUrl(p.href) : null;
+      const kindLabel = p.kind === "city" ? "City" : "Nation";
+      const lat = latFromPixel(p.y, H);
+      const lng = lngFromX(p.x, W);
+      const latStr = `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? "N" : "S"}`;
+      const lngStr = `${Math.abs(lng).toFixed(1)}°${lng >= 0 ? "E" : "W"}`;
       const popup =
-        `<div class="atlas-popup"><div class="atlas-popup-title">${p.name}</div>` +
-        `<div class="atlas-popup-coords">${latlng[0].toFixed(0)}, ${latlng[1].toFixed(0)} px · ${p.kind === "city" ? "city" : "nation"}</div>` +
+        `<div class="atlas-popup"><div class="atlas-popup-head">` +
+        `<span class="atlas-popup-title">${p.name}</span>` +
+        `<span class="atlas-popup-kind atlas-popup-kind-${p.kind}">${kindLabel}</span></div>` +
+        `<div class="atlas-popup-coords">${latStr}, ${lngStr} · X ${p.x.toFixed(0)} Y ${p.y.toFixed(0)}</div>` +
         (href
-          ? `<a class="atlas-popup-link" href="${href}" target="_blank" rel="noopener noreferrer">Open on TEPwiki ↗</a>`
-          : `<div class="atlas-popup-missing">No TEPwiki page linked</div>`);
+          ? `<a class="atlas-popup-link" href="${href}" target="_blank" rel="noopener noreferrer">Learn more on TEPwiki <span aria-hidden="true">↗</span></a>`
+          : `<div class="atlas-popup-missing">No TEPwiki page linked yet</div>`);
       if (p.kind === "city") {
         const mk = L.circleMarker(latlng, {
           radius: 3,
