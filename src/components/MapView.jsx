@@ -593,26 +593,58 @@ export default function MapView({
     };
   }, [cloudsAllowed, cloudOpacity, cloudUrls, mapSize]);
 
-  // ---- City & subnational markers overlay -------------------------------------
+  // ---- City & subnational markers overlay (idle-deferred, WebP) ---------------
+  // Not needed for first paint — resolves after idle so the base map gets
+  // bandwidth + decode time first. WebP with PNG fallback for old browsers.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapSize?.W || !showMarkers) return;
-    const grp = L.layerGroup();
-    const { W, H } = mapSize;
-    const url = `${import.meta.env.BASE_URL}cities-subnational-markers.png`;
-    for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
-      L.imageOverlay(
-        url,
-        [
-          [0, i * W],
-          [H, (i + 1) * W],
-        ],
-        { interactive: false, bubblingMouseEvents: false, zIndex: 5 }
-      ).addTo(grp);
+    let canceled = false;
+    let grp = null;
+    const mount = (url) => {
+      if (canceled || grp) return;
+      const { W, H } = mapSize;
+      grp = L.layerGroup();
+      for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
+        L.imageOverlay(
+          url,
+          [
+            [0, i * W],
+            [H, (i + 1) * W],
+          ],
+          { interactive: false, bubblingMouseEvents: false, zIndex: 5 }
+        ).addTo(grp);
+      }
+      grp.addTo(map);
+      grp.getLayers().forEach((l) => {
+        const el = l.getElement?.();
+        if (el) {
+          el.decoding = "async";
+          el.draggable = false;
+        }
+      });
+    };
+    const start = () => {
+      if (canceled) return;
+      const webp = `${import.meta.env.BASE_URL}cities-subnational-markers.webp`;
+      const png = `${import.meta.env.BASE_URL}cities-subnational-markers.png`;
+      loadLayer({ url: webp, fallbackUrl: png })
+        .then(({ url }) => mount(url))
+        .catch(() => mount(png));
+    };
+    if (typeof requestIdleCallback === "function") {
+      const id = requestIdleCallback(start, { timeout: 2000 });
+      return () => {
+        canceled = true;
+        cancelIdleCallback(id);
+        if (grp) grp.remove();
+      };
     }
-    grp.addTo(map);
+    const t = setTimeout(start, 800);
     return () => {
-      grp.remove();
+      canceled = true;
+      clearTimeout(t);
+      if (grp) grp.remove();
     };
   }, [showMarkers, mapSize]);
 
