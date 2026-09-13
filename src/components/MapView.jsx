@@ -7,9 +7,15 @@ import {
   MI_PER_KM,
   getLayer,
 } from "../lib/scale";
-import { wrapX, wrapY, latFromPixel } from "../lib/geo";
+import { wrapX, wrapY, latFromPixel, lngFromX, pixelFromLat, pixelFromLng } from "../lib/geo";
 import { loadLayer, makeFallbackGrid, makeCloudTexture } from "../lib/imageCache";
-import { fullWikiUrl } from "../lib/wiki";
+import {
+  fullWikiUrl,
+  wikiTitleFor,
+  peekWikiSummary,
+  fetchWikiSummary,
+  shortExtract,
+} from "../lib/wiki";
 import CylinderView from "./CylinderView";
 
 const PICK_COLOR = "#0e7490";
@@ -35,10 +41,6 @@ function useRefLatest(value) {
     ref.current = value;
   });
   return ref;
-}
-
-function lngFromX(x, W) {
-  return (x / W - 0.5) * 360;
 }
 
 export default function MapView({
@@ -466,21 +468,23 @@ export default function MapView({
     };
 
     if (showGrid) {
-      // 15° graticule as vectors (canvas-rendered) — far cheaper than the old
-      // 11232x7525 grid.png image decoded 5x (~340MB). Same look, ~190 lines.
-      const stepX = W / 24;
-      const stepY = H / 12;
+      // True graticule as vectors (canvas-rendered) — far cheaper than the old
+      // 11232x7525 grid.png image decoded 5x (~340MB). 20° meridians + 15°
+      // parallels locked to the calibrated 0° lines (geo.js), so the overlay
+      // sits exactly on the map's own Aequator and prime meridian.
       for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
-        for (let x = 0; x <= W; x += stepX) {
+        for (let lng = -180; lng < 180; lng += 20) {
+          const x = pixelFromLng(lng, W) + i * W;
           L.polyline(
             [
-              [0, x + i * W],
-              [H, x + i * W],
+              [0, x],
+              [H, x],
             ],
             { color: "#64748b", weight: 1, opacity: 0.28, interactive: false }
           ).addTo(grp);
         }
-        for (let y = 0; y <= H; y += stepY) {
+        for (let lat = -60; lat <= 60; lat += 15) {
+          const y = pixelFromLat(lat, H);
           L.polyline(
             [
               [y, i * W],
@@ -665,22 +669,20 @@ export default function MapView({
     };
   }, [showMarkers, mapSize]);
 
-  // ---- Coordinate labels ------------------------------------------------------
+  // ---- Coordinate labels (on true graticule intersections) -------------------
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapSize?.W || !showCoords) return;
     const grp = L.layerGroup();
     const { W, H } = mapSize;
-    const STEP = 2048;
-    for (let i = -2; i <= 2; i++) {
-      for (let x = 0; x <= W; x += STEP) {
-        for (let y = 0; y <= H; y += STEP) {
-          const px = i * W + x;
-          const lat = latFromPixel(y, H);
-          const lng = lngFromX(px, W);
+    for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
+      for (let lat = -60; lat <= 60; lat += 30) {
+        for (let lng = -180; lng < 180; lng += 60) {
+          const y = pixelFromLat(lat, H);
+          const px = pixelFromLng(lng, W) + i * W;
           const icon = L.divIcon({
             className: "urth-coord-label",
-            html: `${lat.toFixed(1)}°, ${lng.toFixed(1)}°`,
+            html: `${lat.toFixed(0)}°, ${lng.toFixed(0)}°`,
             iconSize: null,
           });
           L.marker([y, px], { icon, interactive: false }).addTo(grp);
@@ -713,9 +715,9 @@ export default function MapView({
         x = wrapX(a, mapSize.W);
         y = b;
       } else {
-        // "lat, lng"
+        // "lat, lng" (calibrated 75N..75S world)
         x = wrapX(b, mapSize.W);
-        y = ((90 - a) / 180) * mapSize.H;
+        y = pixelFromLat(a, mapSize.H);
       }
       map.setView([y, x], Math.max(map.getZoom(), 1), { animate: true });
     }
@@ -852,12 +854,14 @@ export default function MapView({
       const nearest = nearestOf(p);
       const esc = (s) =>
         String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+      const wikiTitle = wikiTitleFor(p);
       const popup =
-        `<div class="atlas-popup"><div class="atlas-popup-head">` +
+        `<div class="atlas-popup" data-wiki="${esc(wikiTitle)}"><div class="atlas-popup-head">` +
         `<span class="atlas-popup-title">${p.name}</span>` +
         `<span class="atlas-popup-kind atlas-popup-kind-${p.kind}">${kindLabel}</span></div>` +
         `<div class="atlas-popup-coords">${latStr}, ${lngStr} · ${hemi}</div>` +
         `<div class="atlas-popup-coords">X ${p.x.toFixed(0)} · Y ${p.y.toFixed(0)}${nearest ? ` · Nearest: ${nearest}` : ""}</div>` +
+        `<div class="atlas-popup-wiki" hidden></div>` +
         `<div class="atlas-popup-actions">` +
         `<button class="atlas-popup-btn" data-act="copy" data-name="${esc(p.name)}" data-x="${p.x}" data-y="${p.y}" data-lat="${lat}" data-lng="${lng}">Copy location</button>` +
         `</div>` +
@@ -911,6 +915,60 @@ export default function MapView({
     const hide = (zoomLevel ?? 0) < NORMAL_MIN_ZOOM;
     map.getContainer().classList.toggle("urth-hide-nations", hide);
   }, [zoomLevel]);
+
+  // ---- Live wiki enrichment for popups (flag + summary) ----------------------
+  // Fetched lazily on popup open, cached (memory + week-long localStorage).
+  // The static card stays untouched as fallback when offline or when the
+  // wiki page has no extract.
+  const wikiToken = useRef(0);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const escHtml = (s) =>
+      String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/"/g, "&quot;");
+    const renderSlot = (slot, v) => {
+      const text = v.extract ? shortExtract(v.extract) : "";
+      if (!text && !v.thumb) {
+        slot.hidden = true;
+        return;
+      }
+      slot.hidden = false;
+      slot.innerHTML =
+        (v.thumb
+          ? `<img class="atlas-popup-flag" src="${escHtml(v.thumb)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" draggable="false" />`
+          : "") + (text ? `<p class="atlas-popup-summary">${escHtml(text)}</p>` : "");
+    };
+    const onWikiPopup = (e) => {
+      const root = e.popup?.getElement?.()?.querySelector?.(".atlas-popup[data-wiki]");
+      if (!root) return;
+      const slot = root.querySelector(".atlas-popup-wiki");
+      if (!slot) return;
+      const title = root.dataset.wiki;
+      if (!title) return;
+      const token = ++wikiToken.current;
+      const hit = peekWikiSummary(title);
+      if (hit) {
+        renderSlot(slot, hit);
+        return;
+      }
+      slot.hidden = false;
+      slot.innerHTML = `<div class="atlas-popup-wiki-loading">Loading from TEPwiki…</div>`;
+      fetchWikiSummary(title)
+        .then((v) => {
+          if (token === wikiToken.current && slot.isConnected) renderSlot(slot, v);
+        })
+        .catch(() => {
+          slot.hidden = true;
+        });
+    };
+    map.on("popupopen", onWikiPopup);
+    return () => {
+      map.off("popupopen", onWikiPopup);
+    };
+  }, []);
 
   // ---- Calibration cursor hint ---------------------------------------------
   useEffect(() => {

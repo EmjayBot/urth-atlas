@@ -1,13 +1,32 @@
 // Coordinate helpers for the atlas' equirectangular-style mapping.
 // Leaflet CRS.Simple uses [lat = image row (down positive), lng = image col].
-// The atlas defines latitude as:  lat = 90 - (row / H) * 180   (top = +90, bottom = -90).
+//
+// Calibrated against the official graticule overlay (line-centroid fit within
+// ~2px on all 15° parallels, tropics and polar circles): the world spans
+// 75N..75S vertically with the Aequator (0°) at H/2, and the prime meridian
+// (0°) at W/2 with 20° meridian spacing. So:
+//   lat = 75 - (row / H) * 150   (top = +75, bottom = -75)
+//   lng = (col / W - 0.5) * 360   (wraps every W px)
+
+export const LAT_TOP = 75;
+export const LAT_SPAN = 150;
+export const GRAT_LAT_STEP = 15;
+export const GRAT_LNG_STEP = 20;
 
 export function latFromPixel(y, H) {
-  return 90 - (y / H) * 180;
+  return LAT_TOP - (y / H) * LAT_SPAN;
 }
 
 export function pixelFromLat(lat, H) {
-  return ((90 - lat) / 180) * H;
+  return ((LAT_TOP - lat) / LAT_SPAN) * H;
+}
+
+export function lngFromX(x, W) {
+  return (x / W - 0.5) * 360;
+}
+
+export function pixelFromLng(lng, W) {
+  return ((lng + 180) / 360) * W;
 }
 
 export function wrapX(x, W) {
