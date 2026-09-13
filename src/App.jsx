@@ -282,6 +282,20 @@ export default function App() {
     showToast("Click a second point");
   };
 
+  // Leaflet popup quick actions (Copy location / Measure from here).
+  const onPopupAction = (act, p) => {
+    if (!p) return;
+    if (act === "copy") {
+      const lat = p.lat != null ? `${Math.abs(p.lat).toFixed(2)}°${p.lat >= 0 ? "N" : "S"}` : "";
+      const lng = p.lng != null ? `${Math.abs(p.lng).toFixed(2)}°${p.lng >= 0 ? "E" : "W"}` : "";
+      onCopy(`${p.name} — X ${(+p.x).toFixed(0)}, Y ${(+p.y).toFixed(0)} (${lat}, ${lng})`);
+    } else if (act === "measure") {
+      setMode("measure");
+      setPoints([{ x: +p.x, y: +p.y }]);
+      showToast(`Measuring from ${p.name} — click a second point`);
+    }
+  };
+
   const onCtxPin = (name) => {
     if (!ctx || !name) return;
     const pt = ctx.pt;
@@ -416,6 +430,7 @@ export default function App() {
                 pos: { x: p.clientX, y: p.clientY },
               })
             }
+            onPopupAction={onPopupAction}
           />
           <MapControls
             mode={mode}

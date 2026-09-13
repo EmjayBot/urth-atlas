@@ -320,23 +320,60 @@ body {
   margin-top: 10px;
   font-style: italic;
 }
-.atlas-popup-link {
+.atlas-popup .atlas-popup-link,
+.atlas-popup .atlas-popup-link:visited {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   margin-top: 10px;
-  padding: 7px 14px;
+  padding: 8px 16px;
   border-radius: 8px;
-  background: #0e7490;
+  background-color: #0b556b;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #ffffff;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+.atlas-popup .atlas-popup-link:hover,
+.atlas-popup .atlas-popup-link:active {
+  background-color: #083f4f;
+  color: #ffffff;
+  text-decoration: none;
+}
+.atlas-popup .atlas-popup-link span {
+  color: inherit;
+}
+/* Quick actions row (Copy / Measure) */
+.atlas-popup-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+.atlas-popup-btn {
+  flex: 1;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
   font-size: 12px;
   font-weight: 600;
-  color: #fff;
-  text-decoration: none;
-  transition: background 0.15s ease;
+  line-height: 1.2;
+  color: #111827;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
 }
-.atlas-popup-link:hover {
-  background: #0c5a70;
-  text-decoration: none;
+.atlas-popup-btn:hover {
+  background: #f3f4f6;
+}
+.atlas-popup-btn-primary {
+  border-color: #0b556b;
+  background-color: #0b556b;
+  color: #ffffff;
+}
+.atlas-popup-btn-primary:hover {
+  background-color: #083f4f;
 }
 
 /* Popup pane sits under our toolbar z-indexes */

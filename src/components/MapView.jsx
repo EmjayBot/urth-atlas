@@ -70,6 +70,7 @@ export default function MapView({
   showClouds,
   showMarkers,
   onContextMenu,
+  onPopupAction,
   cloudOpacity = 58,
   cloudDensity = "normal",
 }) {
@@ -94,6 +95,7 @@ export default function MapView({
   const onFocusHandledRef = useRefLatest(onFocusHandled);
   const onMapReadyRef = useRefLatest(onMapReady);
   const onContextMenuRef = useRefLatest(onContextMenu);
+  const onPopupActionRef = useRefLatest(onPopupAction);
 
   const initialViewRef = useRef(initialView);
   useEffect(() => {
@@ -275,6 +277,20 @@ export default function MapView({
     };
     container.addEventListener("contextmenu", onContextMenu, true);
 
+    // Delegated actions for Leaflet popup buttons (Copy / Measure).
+    const onPopupClick = (e) => {
+      const btn = e.target?.closest?.("[data-act]");
+      if (!btn || !onPopupActionRef.current) return;
+      onPopupActionRef.current(btn.dataset.act, {
+        name: btn.dataset.name,
+        x: +btn.dataset.x,
+        y: +btn.dataset.y,
+        lat: btn.dataset.lat != null ? +btn.dataset.lat : null,
+        lng: btn.dataset.lng != null ? +btn.dataset.lng : null,
+      });
+    };
+    container.addEventListener("click", onPopupClick);
+
     const onMoveEnd = () => {
       const c = map.getCenter();
       // Horizontal infinite wrap (world repeats every W px).
@@ -327,6 +343,7 @@ export default function MapView({
     return () => {
       canceled = true;
       container.removeEventListener("contextmenu", onContextMenu, true);
+      container.removeEventListener("click", onPopupClick);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       map.remove();
       mapRef.current = null;
@@ -817,11 +834,17 @@ export default function MapView({
       const lng = lngFromX(p.x, W);
       const latStr = `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? "N" : "S"}`;
       const lngStr = `${Math.abs(lng).toFixed(1)}°${lng >= 0 ? "E" : "W"}`;
+      const esc = (s) =>
+        String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
       const popup =
         `<div class="atlas-popup"><div class="atlas-popup-head">` +
         `<span class="atlas-popup-title">${p.name}</span>` +
         `<span class="atlas-popup-kind atlas-popup-kind-${p.kind}">${kindLabel}</span></div>` +
         `<div class="atlas-popup-coords">${latStr}, ${lngStr} · X ${p.x.toFixed(0)} Y ${p.y.toFixed(0)}</div>` +
+        `<div class="atlas-popup-actions">` +
+        `<button class="atlas-popup-btn" data-act="copy" data-name="${esc(p.name)}" data-x="${p.x}" data-y="${p.y}" data-lat="${lat}" data-lng="${lng}">Copy location</button>` +
+        `<button class="atlas-popup-btn atlas-popup-btn-primary" data-act="measure" data-name="${esc(p.name)}" data-x="${p.x}" data-y="${p.y}">Measure from here</button>` +
+        `</div>` +
         (href
           ? `<a class="atlas-popup-link" href="${href}" target="_blank" rel="noopener noreferrer">Learn more on TEPwiki <span aria-hidden="true">↗</span></a>`
           : `<div class="atlas-popup-missing">No TEPwiki page linked yet</div>`);
