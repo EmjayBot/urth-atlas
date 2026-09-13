@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { BASE_LAYERS, KM_PER_PX, MI_PER_PX, KM2_PER_PX2 } from "../lib/scale";
 import { searchPlaces } from "../lib/places";
+import { latFromPixel } from "../lib/geo";
 import MeasurementPanel from "./MeasurementPanel";
 import { IconChevron, IconPin, IconTrash } from "./icons";
 
@@ -217,6 +218,131 @@ function PinsSection({
   );
 }
 
+const NATION_SORTS = [
+  { id: "name", label: "A–Z" },
+  { id: "north", label: "N→S" },
+  { id: "west", label: "W→E" },
+];
+
+function NationsSection({ places, mapSize, onPlace }) {
+  const [q, setQ] = useState("");
+  const [sort, setSort] = useState("name");
+
+  const rows = useMemo(() => {
+    if (!mapSize?.W) return [];
+    const { W, H } = mapSize;
+    return places
+      .filter((p) => p.kind !== "city" && p.x != null && p.y != null)
+      .map((p) => {
+        const lat = latFromPixel(p.y, H);
+        const lng = (p.x / W - 0.5) * 360;
+        return { ...p, lat, lng };
+      });
+  }, [places, mapSize]);
+
+  const stats = useMemo(() => {
+    const nations = places.filter((p) => p.kind !== "city").length;
+    const cities = places.filter((p) => p.kind === "city").length;
+    const placed = places.filter((p) => p.x != null && p.y != null).length;
+    const north = rows.filter((r) => r.lat >= 0).length;
+    return { nations, cities, placed, north, south: rows.length - north };
+  }, [places, rows]);
+
+  const visible = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    const list = needle ? rows.filter((r) => r.name.toLowerCase().includes(needle)) : [...rows];
+    list.sort((a, b) => {
+      if (sort === "north") return b.lat - a.lat;
+      if (sort === "west") return a.lng - b.lng;
+      return a.name.localeCompare(b.name);
+    });
+    return list;
+  }, [rows, q, sort]);
+
+  return (
+    <div className="space-y-2.5">
+      <div className="grid grid-cols-3 gap-1.5">
+        {[
+          { v: String(stats.nations), l: "Nations" },
+          { v: String(stats.cities), l: "Cities" },
+          { v: `${stats.north}/${stats.south}`, l: "N / S" },
+        ].map((s) => (
+          <div
+            key={s.l}
+            className="rounded-lg border border-[#e5e7eb] bg-[#f9fafb] px-2 py-1.5 text-center"
+          >
+            <div className="text-[15px] font-bold text-[#111827] font-mono leading-tight">
+              {s.v}
+            </div>
+            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#6b7280]">
+              {s.l}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {rows.length > 0 && (
+        <>
+          <div className="flex gap-1.5">
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search nations…"
+              spellCheck={false}
+              className="flex-1 min-w-0 h-9 px-3 rounded-md bg-[#f9fafb] border border-[#e5e7eb] focus:bg-white focus:border-[#0e7490] outline-none text-[13px] placeholder:text-zinc-400"
+            />
+          </div>
+          <div className="flex gap-1 rounded-md bg-[#f9fafb] p-1 border border-[#e5e7eb]">
+            {NATION_SORTS.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setSort(s.id)}
+                className={`flex-1 h-6 rounded text-[11px] font-bold uppercase transition-all ${
+                  sort === s.id
+                    ? "bg-white shadow-sm text-[#111827] border border-[#d1d5db]"
+                    : "text-zinc-500 hover:text-zinc-800"
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <div className="rounded-md border border-[#d1d5db] max-h-[220px] overflow-y-auto">
+            {visible.length === 0 && (
+              <div className="px-3 py-2 text-[12px] text-zinc-500">No match</div>
+            )}
+            {visible.map((p) => (
+              <button
+                key={p.name}
+                onClick={() => onPlace({ name: p.name, kind: p.kind })}
+                title="Fly to nation"
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 border-b border-[#e5e7eb] last:border-0 hover:bg-[#e6f4f1] text-left transition-colors"
+              >
+                <span className="w-2 h-2 rounded-full shrink-0 bg-[#0e7490]" />
+                <span className="text-[12px] font-medium text-zinc-800 truncate flex-1">
+                  {p.name}
+                </span>
+                <span className="text-[9px] text-zinc-400 font-mono shrink-0">
+                  {Math.abs(p.lat).toFixed(0)}°{p.lat >= 0 ? "N" : "S"}{" "}
+                  {Math.abs(p.lng).toFixed(0)}°{p.lng >= 0 ? "E" : "W"}
+                </span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {rows.length === 0 && (
+        <div className="text-[12px] text-[#6b7280]">
+          {mapSize?.W
+            ? "No placed nations yet — add them in the Pins panel."
+            : "Loading map…"}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function OverlayCheck({ label, checked, onChange, sub }) {
   return (
     <label className="flex items-center gap-2.5 py-1 select-none cursor-pointer group">
@@ -280,6 +406,8 @@ export default function Sidebar({
   local,
   sharedStatus,
   sharedCount,
+  places = [],
+  onPlace = () => {},
   onCreate,
   onRemove,
   onSubmit,
@@ -468,6 +596,10 @@ export default function Sidebar({
         <div className="mt-2.5 text-[11px] text-[#6b7280] font-mono">
           1 px = {KM_PER_PX.toFixed(3)} km ({MI_PER_PX.toFixed(3)} mi)
         </div>
+      </Section>
+
+      <Section title="Nations">
+        <NationsSection places={places} mapSize={mapSize} onPlace={onPlace} />
       </Section>
 
       <Section title="Pins">

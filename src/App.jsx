@@ -385,6 +385,8 @@ export default function App() {
           local={local}
           sharedStatus={sharedStatus}
           sharedCount={Object.keys(shared).length}
+          places={places}
+          onPlace={onPlace}
           onCreate={createPlace}
           onRemove={removePlace}
           onSubmit={submitChanges}
