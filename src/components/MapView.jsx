@@ -62,6 +62,7 @@ export default function MapView({
   showPixelGrid,
   showCoords,
   showClouds,
+  showMarkers,
   onContextMenu,
 }) {
   const containerRef = useRef(null);
@@ -440,6 +441,29 @@ export default function MapView({
     };
   }, [layer, showClouds, mapSize]);
 
+  // ---- City & subnational markers overlay -------------------------------------
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapSize?.W || !showMarkers) return;
+    const grp = L.layerGroup();
+    const { W, H } = mapSize;
+    const url = `${import.meta.env.BASE_URL}cities-subnational-markers.png`;
+    for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
+      L.imageOverlay(
+        url,
+        [
+          [0, i * W],
+          [H, (i + 1) * W],
+        ],
+        { interactive: false }
+      ).addTo(grp);
+    }
+    grp.addTo(map);
+    return () => {
+      grp.remove();
+    };
+  }, [showMarkers, mapSize]);
+
   // ---- Coordinate labels ------------------------------------------------------
   useEffect(() => {
     const map = mapRef.current;
@@ -475,7 +499,7 @@ export default function MapView({
     if (focus.type === "nation" || focus.type === "city") {
       const ll = placeLatLngRef.current?.[focus.name];
       if (ll) {
-        map.setView(ll, Math.max(map.getZoom(), 4));
+        map.setView(ll, -0.25);
         const mk = placeMarkersRef.current?.[focus.name];
         if (mk) mk.openPopup();
       }
@@ -594,6 +618,11 @@ export default function MapView({
     placeMarkersRef.current = {};
     placeLatLngRef.current = {};
     const pls = placesRef.current;
+    const maxFont = 15;
+    const font = Math.max(
+      8,
+      Math.min(maxFont, maxFont * Math.pow(2, (zoomLevel ?? 0) - 1.75))
+    );
     pls.forEach((p) => {
       if (p.x == null || p.y == null) return;
       const latlng = [p.y, p.x];
@@ -623,7 +652,7 @@ export default function MapView({
         // Nation name rendered as real-map style text (no pin, no box).
         const icon = L.divIcon({
           className: "urth-nation-text",
-          html: `<span class="urth-nation-text-name">${p.name}</span>`,
+          html: `<span class="urth-nation-text-name" style="font-size:${font}px">${p.name}</span>`,
           iconSize: null,
         });
         mk = L.marker(latlng, { icon, riseOnHover: true }).addTo(grp);
@@ -639,7 +668,7 @@ export default function MapView({
       placeLatLngRef.current = {};
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showNations, mapSize, places]);
+  }, [showNations, mapSize, places, zoomLevel]);
 
   // ---- Calibration cursor hint ---------------------------------------------
   useEffect(() => {

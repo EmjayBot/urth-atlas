@@ -252,6 +252,8 @@ export default function Sidebar({
   setShowCoords,
   showClouds,
   setShowClouds,
+  showMarkers,
+  setShowMarkers,
   showNations,
   setShowNations,
   status,
@@ -354,6 +356,11 @@ export default function Sidebar({
           checked={showClouds}
           onChange={setShowClouds}
           sub="Satellite view only"
+        />
+        <OverlayCheck
+          label="City & region markers"
+          checked={showMarkers}
+          onChange={setShowMarkers}
         />
         <OverlayCheck
           label="Nation markers"

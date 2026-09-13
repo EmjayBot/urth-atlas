@@ -37,6 +37,7 @@ export default function App() {
   const [showPixelGrid, setShowPixelGrid] = useState(false);
   const [showCoords, setShowCoords] = useState(false);
   const [showClouds, setShowClouds] = useState(true);
+  const [showMarkers, setShowMarkers] = useState(true);
   const [showNations, setShowNations] = useState(initial.nations ?? true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [saved, setSaved] = useState([]);
@@ -339,6 +340,8 @@ export default function App() {
           setShowCoords={setShowCoords}
           showClouds={showClouds}
           setShowClouds={setShowClouds}
+          showMarkers={showMarkers}
+          setShowMarkers={setShowMarkers}
           showNations={showNations}
           setShowNations={setShowNations}
           status={status}
@@ -397,6 +400,7 @@ export default function App() {
             showPixelGrid={showPixelGrid}
             showCoords={showCoords}
             showClouds={showClouds}
+            showMarkers={showMarkers}
             onContextMenu={(p) =>
               setCtx({
                 pt: { x: p.x, y: p.y, lat: p.lat, lngDeg: p.lngDeg },
