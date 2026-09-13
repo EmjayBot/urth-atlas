@@ -98,6 +98,37 @@ export async function loadLayer(def) {
   throw new Error("image unavailable");
 }
 
+// Procedural cloud texture used over the satellite layer. Soft white blobs on
+// a transparent canvas, tiled across the world like the base map.
+export function makeCloudTexture(W = 4096, H = 2048) {
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  let seed = 987654;
+  const rnd = () => {
+    seed = (seed * 9301 + 49297) % 233280;
+    return seed / 233280;
+  };
+  const blobs = 64;
+  for (let i = 0; i < blobs; i++) {
+    const x = rnd() * W;
+    const y = rnd() * H;
+    const r = 90 + rnd() * 280;
+    const a = 0.22 + rnd() * 0.5;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(255,255,255,${a})`);
+    g.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.filter = "blur(30px)";
+  ctx.drawImage(canvas, 0, 0);
+  return canvas.toDataURL("image/png");
+}
+
 // Fallback placeholder grid used when the live map cannot be fetched.
 export function makeFallbackGrid(W, H) {
   const canvas = document.createElement("canvas");

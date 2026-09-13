@@ -240,8 +240,6 @@ export default function Sidebar({
   open,
   layer,
   setLayer,
-  satellite,
-  setSatellite,
   opacity,
   setOpacity,
   showScale,
@@ -252,6 +250,8 @@ export default function Sidebar({
   setShowPixelGrid,
   showCoords,
   setShowCoords,
+  showClouds,
+  setShowClouds,
   showNations,
   setShowNations,
   status,
@@ -323,27 +323,6 @@ export default function Sidebar({
         </div>
 
         <div className="mt-3 pt-3 border-t border-[#e5e7eb]">
-          <div className="text-[10px] font-bold tracking-[0.14em] uppercase text-[#6b7280] mb-1.5">
-            View
-          </div>
-          <div className="flex rounded-md bg-[#f9fafb] p-1 border border-[#e5e7eb]">
-            {[
-              { id: false, label: "Map" },
-              { id: true, label: "Satellite" },
-            ].map((v) => (
-              <button
-                key={String(v.id)}
-                onClick={() => setSatellite(v.id)}
-                className={`flex-1 h-7 rounded text-[11px] font-bold uppercase transition-all ${
-                  satellite === v.id
-                    ? "bg-[#0e7490] text-white shadow-sm"
-                    : "text-zinc-500 hover:text-zinc-800"
-                }`}
-              >
-                {v.label}
-              </button>
-            ))}
-          </div>
           <div className="mt-3">
             <div className="flex items-center justify-between text-[10px] font-bold tracking-[0.14em] uppercase text-[#6b7280] mb-1">
               <span>Opacity</span>
@@ -370,6 +349,12 @@ export default function Sidebar({
           onChange={setShowPixelGrid}
         />
         <OverlayCheck label="Coordinates" checked={showCoords} onChange={setShowCoords} />
+        <OverlayCheck
+          label="Clouds"
+          checked={showClouds}
+          onChange={setShowClouds}
+          sub="Satellite view only"
+        />
         <OverlayCheck
           label="Nation markers"
           checked={showNations}

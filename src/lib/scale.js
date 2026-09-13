@@ -18,6 +18,14 @@ export const BASE_LAYERS = [
     chip: "bg-gradient-to-br from-sky-300 via-sky-600 to-cyan-800",
   },
   {
+    id: "satellite",
+    label: "Satellite",
+    sub: "Real-world imagery",
+    url: `${import.meta.env.BASE_URL}satellite.jpg`,
+    fallbackUrl: `${import.meta.env.BASE_URL}satellite.jpg`,
+    chip: "bg-gradient-to-br from-sky-800 via-teal-700 to-emerald-900",
+  },
+  {
     id: "topo",
     label: "Topographic",
     sub: "Elevation & relief",

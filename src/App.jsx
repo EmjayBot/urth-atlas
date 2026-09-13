@@ -31,12 +31,12 @@ export default function App() {
   const [mapSize, setMapSize] = useState(null);
   const [status, setStatus] = useState("loading");
   const [layer, setLayer] = useState(initial.layer ?? "map");
-  const [satellite, setSatellite] = useState(false);
   const [opacity, setOpacity] = useState(100);
   const [showScale, setShowScale] = useState(true);
   const [showGrid, setShowGrid] = useState(true);
   const [showPixelGrid, setShowPixelGrid] = useState(false);
   const [showCoords, setShowCoords] = useState(false);
+  const [showClouds, setShowClouds] = useState(true);
   const [showNations, setShowNations] = useState(initial.nations ?? true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [saved, setSaved] = useState([]);
@@ -329,8 +329,6 @@ export default function App() {
           open={sidebarOpen}
           layer={layer}
           setLayer={setLayer}
-          satellite={satellite}
-          setSatellite={setSatellite}
           opacity={opacity}
           setOpacity={setOpacity}
           showScale={showScale}
@@ -341,6 +339,8 @@ export default function App() {
           setShowPixelGrid={setShowPixelGrid}
           showCoords={showCoords}
           setShowCoords={setShowCoords}
+          showClouds={showClouds}
+          setShowClouds={setShowClouds}
           showNations={showNations}
           setShowNations={setShowNations}
           status={status}
@@ -393,12 +393,12 @@ export default function App() {
             }}
             calibTarget={target?.name}
             onCalibrateClick={positionPlace}
-            satellite={satellite}
             opacity={opacity}
             showScale={showScale}
             showGrid={showGrid}
             showPixelGrid={showPixelGrid}
             showCoords={showCoords}
+            showClouds={showClouds}
             onContextMenu={(p) =>
               setCtx({
                 pt: { x: p.x, y: p.y, lat: p.lat, lngDeg: p.lngDeg },
@@ -412,8 +412,8 @@ export default function App() {
             units={units}
             setUnits={setUnits}
             points={points}
-            satellite={satellite}
-            setSatellite={setSatellite}
+            layer={layer}
+            setLayer={setLayer}
             onZoomIn={() => mapRef.current?.zoomIn()}
             onZoomOut={() => mapRef.current?.zoomOut()}
             onReset={recenter}

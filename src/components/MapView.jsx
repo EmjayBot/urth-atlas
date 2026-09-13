@@ -8,7 +8,7 @@ import {
   getLayer,
 } from "../lib/scale";
 import { wrapX, wrapY, latFromPixel } from "../lib/geo";
-import { loadLayer, makeFallbackGrid } from "../lib/imageCache";
+import { loadLayer, makeFallbackGrid, makeCloudTexture } from "../lib/imageCache";
 import { fullWikiUrl } from "../lib/wiki";
 import CylinderView from "./CylinderView";
 
@@ -56,12 +56,12 @@ export default function MapView({
   onMapReady,
   calibTarget,
   onCalibrateClick,
-  satellite,
   opacity,
   showScale,
   showGrid,
   showPixelGrid,
   showCoords,
+  showClouds,
   onContextMenu,
 }) {
   const containerRef = useRef(null);
@@ -84,7 +84,6 @@ export default function MapView({
   const onViewChangeRef = useRefLatest(onViewChange);
   const onFocusHandledRef = useRefLatest(onFocusHandled);
   const onMapReadyRef = useRefLatest(onMapReady);
-  const satelliteRef = useRefLatest(satellite);
   const onContextMenuRef = useRefLatest(onContextMenu);
 
   const initialViewRef = useRef(initialView);
@@ -296,19 +295,13 @@ export default function MapView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ---- Satellite filter + cylinder easter egg + opacity -----------------------
+  // ---- Cylinder easter egg (hides the flat Leaflet map) -----------------------
   const cylinder = zoomLevel !== null && zoomLevel <= CYLINDER_ZOOM;
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    const container = map.getContainer();
-    const pane = map.getPane("overlayPane");
-    if (pane) {
-      pane.style.filter = satellite ? "saturate(1.2) contrast(1.1)" : "";
-    }
-    container.classList.toggle("urth-satellite", satellite);
-    container.classList.toggle("urth-cyl-hidden", cylinder);
-  }, [satellite, cylinder]);
+    map.getContainer().classList.toggle("urth-cyl-hidden", cylinder);
+  }, [cylinder]);
 
   // When leaving cylinder mode, point the flat map at the rotated position.
   const cylActiveRef = useRef(false);
@@ -400,8 +393,16 @@ export default function MapView({
     };
 
     if (showGrid) {
-      for (let i = -2; i <= 2; i++) {
-        gridForCopy(1024, "#0e7490", 1.5, i * W).forEach((l) => grp.addLayer(l));
+      const url = `${import.meta.env.BASE_URL}grid.png`;
+      for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
+        L.imageOverlay(
+          url,
+          [
+            [0, i * W],
+            [H, (i + 1) * W],
+          ],
+          { interactive: false }
+        ).addTo(grp);
       }
     }
     if (showPixelGrid) {
@@ -415,6 +416,29 @@ export default function MapView({
       grp.remove();
     };
   }, [showGrid, showPixelGrid, mapSize]);
+
+  // ---- Cloud layer (satellite view only) --------------------------------------
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapSize?.W || layer !== "satellite" || !showClouds) return;
+    const grp = L.layerGroup();
+    const { W, H } = mapSize;
+    const url = makeCloudTexture();
+    for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
+      L.imageOverlay(
+        url,
+        [
+          [0, i * W],
+          [H, (i + 1) * W],
+        ],
+        { opacity: 0.62, interactive: false }
+      ).addTo(grp);
+    }
+    grp.addTo(map);
+    return () => {
+      grp.remove();
+    };
+  }, [layer, showClouds, mapSize]);
 
   // ---- Coordinate labels ------------------------------------------------------
   useEffect(() => {
