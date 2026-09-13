@@ -11,10 +11,10 @@ export const MAP_BASE_RAW =
 export const BASE_LAYERS = [
   {
     id: "map",
-    label: "Standard",
-    sub: "Political map",
-    url: `${MAP_BASE}/urth.png`,
-    fallbackUrl: `${MAP_BASE_RAW}/urth.png`,
+    label: "Political",
+    sub: "Blank political map",
+    url: `${import.meta.env.BASE_URL}blank-political.png`,
+    fallbackUrl: `${import.meta.env.BASE_URL}blank-political.png`,
     chip: "bg-gradient-to-br from-sky-300 via-sky-600 to-cyan-800",
   },
   {
