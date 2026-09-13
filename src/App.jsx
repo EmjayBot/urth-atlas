@@ -37,6 +37,8 @@ export default function App() {
   const [showPixelGrid, setShowPixelGrid] = useState(false);
   const [showCoords, setShowCoords] = useState(false);
   const [showClouds, setShowClouds] = useState(true);
+  const [cloudOpacity, setCloudOpacity] = useState(58);
+  const [cloudDensity, setCloudDensity] = useState("normal");
   const [showMarkers, setShowMarkers] = useState(true);
   const [showNations, setShowNations] = useState(initial.nations ?? true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -326,6 +328,7 @@ export default function App() {
       <div className="flex-1 flex min-h-0 relative">
         <Sidebar
           open={sidebarOpen}
+          setOpen={setSidebarOpen}
           layer={layer}
           setLayer={setLayer}
           opacity={opacity}
@@ -340,6 +343,10 @@ export default function App() {
           setShowCoords={setShowCoords}
           showClouds={showClouds}
           setShowClouds={setShowClouds}
+          cloudOpacity={cloudOpacity}
+          setCloudOpacity={setCloudOpacity}
+          cloudDensity={cloudDensity}
+          setCloudDensity={setCloudDensity}
           showMarkers={showMarkers}
           setShowMarkers={setShowMarkers}
           showNations={showNations}
@@ -400,6 +407,8 @@ export default function App() {
             showPixelGrid={showPixelGrid}
             showCoords={showCoords}
             showClouds={showClouds}
+            cloudOpacity={cloudOpacity}
+            cloudDensity={cloudDensity}
             showMarkers={showMarkers}
             onContextMenu={(p) =>
               setCtx({

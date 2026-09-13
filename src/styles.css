@@ -170,6 +170,20 @@ body {
   background: radial-gradient(circle, rgba(30, 120, 200, 0.2), transparent 70%);
 }
 
+/* Slowly drifting clouds over the satellite layer */
+.urth-cloud {
+  animation: urth-cloud-drift 70s ease-in-out infinite alternate;
+  will-change: margin-left;
+}
+@keyframes urth-cloud-drift {
+  from {
+    margin-left: 0;
+  }
+  to {
+    margin-left: -90px;
+  }
+}
+
 /* Nation name text (real-map style: label with halo, no pin/box) */
 .urth-nation-text {
   background: transparent;

@@ -252,6 +252,10 @@ export default function Sidebar({
   setShowCoords,
   showClouds,
   setShowClouds,
+  cloudOpacity = 58,
+  setCloudOpacity = () => {},
+  cloudDensity = "normal",
+  setCloudDensity = () => {},
   showMarkers,
   setShowMarkers,
   showNations,
@@ -280,11 +284,17 @@ export default function Sidebar({
   onRemove,
   onSubmit,
   onClear,
+  setOpen,
 }) {
   if (!open) return null;
 
   return (
-    <aside className="w-[340px] shrink-0 bg-white border-r border-[#e5e7eb] flex flex-col max-md:hidden z-[1000] shadow-[2px_0_8px_rgba(0,0,0,0.04)] overflow-y-auto">
+    <>
+      <div
+        className="md:hidden fixed inset-0 bg-black/40 z-[1040]"
+        onClick={() => setOpen?.(false)}
+      />
+      <aside className="w-[340px] shrink-0 bg-white border-r border-[#e5e7eb] flex flex-col z-[1000] shadow-[2px_0_8px_rgba(0,0,0,0.04)] overflow-y-auto max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-[1050] max-md:w-[85vw] max-md:max-w-[340px] max-md:border-r-0 max-md:shadow-2xl">
       <Section title="Map Info">
         <div className="text-[15px] font-bold text-[#111827]">Urth Atlas</div>
         <div className="text-[12px] text-[#6b7280] mt-0.5">The East Pacific</div>
@@ -355,8 +365,50 @@ export default function Sidebar({
           label="Clouds"
           checked={showClouds}
           onChange={setShowClouds}
-          sub="Satellite view only"
+          sub="Satellite view only • realistic cover"
         />
+        {showClouds && (
+          <div className="ml-6 mt-1 mb-2 rounded-lg border border-[#e5e7eb] bg-[#f9fafb] p-2.5 space-y-2.5">
+            <div>
+              <div className="flex items-center justify-between text-[10px] font-bold tracking-[0.14em] uppercase text-[#6b7280] mb-1">
+                <span>Cloud opacity</span>
+                <span className="font-mono">{cloudOpacity}%</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={90}
+                value={cloudOpacity}
+                onChange={(e) => setCloudOpacity(Number(e.target.value))}
+                className="w-full accent-[#0e7490] cursor-pointer"
+              />
+            </div>
+            <div>
+              <div className="text-[10px] font-bold tracking-[0.14em] uppercase text-[#6b7280] mb-1">
+                Cover
+              </div>
+              <div className="flex gap-1 rounded-md bg-white p-1 border border-[#e5e7eb]">
+                {[
+                  { id: "light", label: "Light" },
+                  { id: "normal", label: "Realistic" },
+                  { id: "stormy", label: "Stormy" },
+                ].map((d) => (
+                  <button
+                    key={d.id}
+                    onClick={() => setCloudDensity(d.id)}
+                    className={`flex-1 h-6 rounded text-[11px] font-bold uppercase transition-all ${
+                      cloudDensity === d.id
+                        ? "bg-white shadow-sm text-[#111827] border border-[#d1d5db]"
+                        : "text-zinc-500 hover:text-zinc-800"
+                    }`}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
         <OverlayCheck
           label="City & region markers"
           checked={showMarkers}
@@ -431,6 +483,7 @@ export default function Sidebar({
           onClear={onClear}
         />
       </Section>
-    </aside>
+      </aside>
+    </>
   );
 }

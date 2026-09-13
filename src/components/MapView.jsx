@@ -13,8 +13,11 @@ import { fullWikiUrl } from "../lib/wiki";
 import CylinderView from "./CylinderView";
 
 const PICK_COLOR = "#0e7490";
-const WORLD_COPIES = 21; // horizontal copies (i in -10..10) so the wrapped map fills the screen at extreme zoom
-const HALF_COPIES = 10;
+// Stability: 5 world copies (i in -2..2) is enough to fill ultra-wide screens
+// at max zoom-out. The old 21 copies of 11232x7525 images (~7GB decoded)
+// caused major jank / OOMs. Overlays reuse the same window.
+const WORLD_COPIES = 5;
+const HALF_COPIES = 2;
 
 // Zoom levels: -3 = "all the way out" (whole flat map fits the screen).
 // Beyond -3 is the easter egg: keep zooming and the repeating map reads as a
@@ -64,6 +67,8 @@ export default function MapView({
   showClouds,
   showMarkers,
   onContextMenu,
+  cloudOpacity = 58,
+  cloudDensity = "normal",
 }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
@@ -111,8 +116,15 @@ export default function MapView({
       zoomDelta: 0.5,
       inertia: true,
       inertiaDeceleration: 3000,
+      inertiaMaxSpeed: 2200,
       doubleClickZoom: false,
       attributionControl: false,
+      preferCanvas: true,
+      zoomAnimation: true,
+      fadeAnimation: true,
+      markerZoomAnimation: true,
+      trackResize: true,
+      wheelPxPerZoomLevel: 90,
     });
     mapRef.current = map;
 
@@ -120,8 +132,19 @@ export default function MapView({
     let H = 0;
     let W = 0;
 
+    const applySatGrade = () => {
+      // Google-Earth vibe: gently lift satellite imagery (richer blues/greens)
+      // via GPU-friendly CSS filters on the <img> elements only.
+      const isSat = layerRef.current === "satellite";
+      imagesRef.current.forEach((ov) => {
+        const el = ov.getElement();
+        if (!el) return;
+        el.classList.toggle("urth-sat-base", isSat);
+      });
+    };
+
     const installOverlays = (url) => {
-      // Many copies side-by-side so the map wraps horizontally and fills the
+      // 5 copies side-by-side so the map wraps horizontally and fills the
       // screen at extreme (cylinder) zoom. Vertical is clamped.
       for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
         const ov = L.imageOverlay(
@@ -130,11 +153,20 @@ export default function MapView({
             [0, i * W],
             [H, (i + 1) * W],
           ],
-          { interactive: true }
+          { interactive: false, bubblingMouseEvents: false, className: "urth-base-tile" }
         ).addTo(map);
+        const el = ov.getElement();
+        if (el) {
+          el.decoding = "async";
+          el.referrerPolicy = "no-referrer";
+          el.draggable = false;
+          // Hint the browser these are large static layers.
+          el.style.willChange = "transform";
+        }
         imagesRef.current.push(ov);
       }
       applyOpacity();
+      applySatGrade();
     };
 
     const finishLoad = (url, w, h, okStatus) => {
@@ -143,13 +175,14 @@ export default function MapView({
       H = h;
       loadedLayerRef.current = layerRef.current;
       setMapSize({ W, H });
-      installOverlays(url);
+      // Set the initial view first so overlays initialize on a ready map.
       const init = initialViewRef.current;
       if (init?.at) {
         map.setView([init.at[1], init.at[0]], init.z ?? 1, { animate: false });
       } else {
         map.setView([H / 2, W / 2], 0, { animate: false });
       }
+      installOverlays(url);
       setZoomLevel(map.getZoom());
       setCylImg(imagesRef.current[0]?.getElement()?.src ?? url);
       setStatus(okStatus);
@@ -329,7 +362,15 @@ export default function MapView({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapSize?.W) return;
-    if (loadedLayerRef.current === layer) return;
+    if (loadedLayerRef.current === layer) {
+      // Still refresh the satellite grade (toggled back to same layer).
+      const isSat = layer === "satellite";
+      imagesRef.current.forEach((ov) => {
+        const el = ov.getElement();
+        if (el) el.classList.toggle("urth-sat-base", isSat);
+      });
+      return;
+    }
     const def = getLayer(layer);
     let canceled = false;
     setStatus("loading");
@@ -342,6 +383,14 @@ export default function MapView({
         imagesRef.current.forEach((ov) => ov.setUrl(url));
         loadedLayerRef.current = layer;
         applyOpacity();
+        const isSat = layer === "satellite";
+        // setUrl swaps the <img> src async — grade on next tick too.
+        requestAnimationFrame(() => {
+          imagesRef.current.forEach((ov) => {
+            const el = ov.getElement();
+            if (el) el.classList.toggle("urth-sat-base", isSat);
+          });
+        });
         setCylImg(imagesRef.current[0]?.getElement()?.src ?? url);
         setStatus("ok");
       })
@@ -407,7 +456,7 @@ export default function MapView({
       }
     }
     if (showPixelGrid) {
-      for (let i = -2; i <= 2; i++) {
+      for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
         gridForCopy(256, "#0e7490", 1, i * W).forEach((l) => grp.addLayer(l));
       }
     }
@@ -419,27 +468,67 @@ export default function MapView({
   }, [showGrid, showPixelGrid, mapSize]);
 
   // ---- Cloud layer (satellite view only) --------------------------------------
+  // Two depth-stacked sheets: a soft base deck + a faint fast cirrus wisp
+  // layer for parallax. GPU transform drift (no layout thrash), textures
+  // memoised in imageCache. Density presets map to FBM coverage.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapSize?.W || layer !== "satellite" || !showClouds) return;
-    const grp = L.layerGroup();
+    const grp = L.layerGroup({ interactive: false });
     const { W, H } = mapSize;
-    const url = makeCloudTexture();
+    const cov =
+      cloudDensity === "light" ? 0.44 : cloudDensity === "stormy" ? 0.6 : 0.52;
+    const baseUrl = makeCloudTexture(2048, 1024, { coverage: cov, seed: 20260913 });
+    // Cirrus: sparser, higher-altitude streaks drifting faster.
+    const wispUrl = makeCloudTexture(2048, 1024, {
+      coverage: Math.max(0.3, cov - 0.1),
+      softness: 0.24,
+      seed: 770213,
+      alpha: 150,
+    });
+    const baseOpacity = (cloudOpacity ?? 58) / 100;
+    const overlays = [];
     for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
-      L.imageOverlay(
-        url,
-        [
-          [0, i * W],
-          [H, (i + 1) * W],
-        ],
-        { opacity: 0.62, interactive: false }
-      ).addTo(grp);
+      const bounds = [
+        [0, i * W],
+        [H, (i + 1) * W],
+      ];
+      const ov = L.imageOverlay(baseUrl, bounds, {
+        opacity: baseOpacity,
+        interactive: false,
+        bubblingMouseEvents: false,
+        className: "urth-cloud-sheet",
+      });
+      overlays.push({ ov, cls: "urth-cloud" });
+      grp.addLayer(ov);
+      const wisp = L.imageOverlay(wispUrl, bounds, {
+        opacity: Math.min(1, baseOpacity * 0.55),
+        interactive: false,
+        bubblingMouseEvents: false,
+        className: "urth-cloud-sheet",
+      });
+      overlays.push({ ov: wisp, cls: "urth-cloud-wisp" });
+      grp.addLayer(wisp);
     }
     grp.addTo(map);
+    // Bring clouds above the base tiles but below markers/popups.
+    grp.getLayers().forEach((l) => {
+      const el = l.getElement?.();
+      if (el) {
+        el.style.pointerEvents = "none";
+      }
+    });
+    overlays.forEach(({ ov, cls }) => {
+      const el = ov.getElement();
+      if (el) {
+        el.classList.add(cls);
+        el.draggable = false;
+      }
+    });
     return () => {
       grp.remove();
     };
-  }, [layer, showClouds, mapSize]);
+  }, [layer, showClouds, cloudOpacity, cloudDensity, mapSize]);
 
   // ---- City & subnational markers overlay -------------------------------------
   useEffect(() => {
@@ -721,6 +810,10 @@ export default function MapView({
             cx={cylCx}
             W={mapSize?.W}
             onRotateWorld={(cx) => setCylCx(wrapX(cx, mapSize?.W ?? 1))}
+            onWheelZoom={(dir) => {
+              const map = mapRef.current;
+              if (map) (dir > 0 ? map.zoomIn() : map.zoomOut());
+            }}
           />
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[700] pointer-events-none select-none">
             <div className="bg-[#0e7490]/90 text-white text-[11px] font-semibold tracking-wide uppercase px-3 py-1.5 rounded-full shadow-lg backdrop-blur">

@@ -1,12 +1,27 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 const FACES = 32;
 const RADIUS = 170;
 const MAP_W = 11232;
 const MAP_H = 7525;
 
-export default function CylinderView({ imageUrl, cx, W, onRotateWorld }) {
+export default function CylinderView({ imageUrl, cx, W, onRotateWorld, onWheelZoom }) {
   const sceneRef = useRef(null);
+  const onWheelZoomRef = useRef(onWheelZoom);
+  useEffect(() => {
+    onWheelZoomRef.current = onWheelZoom;
+  }, [onWheelZoom]);
+
+  useEffect(() => {
+    const el = sceneRef.current;
+    if (!el) return;
+    const onWheel = (e) => {
+      e.preventDefault();
+      onWheelZoomRef.current?.(e.deltaY < 0 ? 1 : -1);
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
 
   const circ = 2 * Math.PI * RADIUS;
   const faceW = circ / FACES;

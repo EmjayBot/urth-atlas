@@ -21,8 +21,8 @@ export const BASE_LAYERS = [
     id: "satellite",
     label: "Satellite",
     sub: "Real-world imagery",
-    url: `${import.meta.env.BASE_URL}satellite.jpg`,
-    fallbackUrl: `${import.meta.env.BASE_URL}satellite.jpg`,
+    url: `${import.meta.env.BASE_URL}satellite.jpg?v=2`,
+    fallbackUrl: `${import.meta.env.BASE_URL}satellite.jpg?v=2`,
     chip: "bg-gradient-to-br from-sky-800 via-teal-700 to-emerald-900",
   },
   {

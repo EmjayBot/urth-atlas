@@ -33,7 +33,7 @@ export default function SearchBar({ query, setQuery, onPlace, places }) {
   };
 
   return (
-    <div ref={boxRef} className="relative w-[440px] max-w-[42vw] min-w-0 shrink">
+    <div ref={boxRef} className="relative flex-1 min-w-0 max-w-[440px]">
       <form
         className="relative"
         onSubmit={(e) => {
