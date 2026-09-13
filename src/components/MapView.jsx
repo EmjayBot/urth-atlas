@@ -843,7 +843,6 @@ export default function MapView({
         `<div class="atlas-popup-coords">${latStr}, ${lngStr} · X ${p.x.toFixed(0)} Y ${p.y.toFixed(0)}</div>` +
         `<div class="atlas-popup-actions">` +
         `<button class="atlas-popup-btn" data-act="copy" data-name="${esc(p.name)}" data-x="${p.x}" data-y="${p.y}" data-lat="${lat}" data-lng="${lng}">Copy location</button>` +
-        `<button class="atlas-popup-btn atlas-popup-btn-primary" data-act="measure" data-name="${esc(p.name)}" data-x="${p.x}" data-y="${p.y}">Measure from here</button>` +
         `</div>` +
         (href
           ? `<a class="atlas-popup-link" href="${href}" target="_blank" rel="noopener noreferrer">Learn more on TEPwiki <span aria-hidden="true">↗</span></a>`
