@@ -184,6 +184,11 @@ body {
   }
 }
 
+/* Hidden below full-world zoom (toggled from MapView, avoids layer rebuild) */
+.urth-hide-nations .urth-nation-text {
+  display: none !important;
+}
+
 /* Nation name text (real-map style: label with halo, no pin/box) */
 .urth-nation-text {
   background: transparent;

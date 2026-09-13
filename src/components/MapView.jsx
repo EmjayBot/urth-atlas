@@ -153,7 +153,7 @@ export default function MapView({
             [0, i * W],
             [H, (i + 1) * W],
           ],
-          { interactive: false, bubblingMouseEvents: false, className: "urth-base-tile" }
+          { interactive: false, bubblingMouseEvents: false, className: "urth-base-tile", zIndex: 1 }
         ).addTo(map);
         const el = ov.getElement();
         if (el) {
@@ -198,7 +198,9 @@ export default function MapView({
         finishLoad(url, FALLBACK_W, FALLBACK_H, "blocked");
       });
 
-    // Cursor + hover tracking (rAF-throttled React updates)
+    // Cursor readout is cheap; hover preview rebuilds the measurement layer,
+    // so skip it entirely unless a measurement tool (or place-targeting) is
+    // active — plain panning then does zero React re-renders per mousemove.
     const onMouseMove = (e) => {
       const x = e.latlng.lng;
       const y = e.latlng.lat;
@@ -218,7 +220,8 @@ export default function MapView({
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = requestAnimationFrame(() => {
         onCursorRef.current(payload);
-        setHover(pt);
+        const m = modeRef.current;
+        if ((m && m !== "none") || calibTargetRef.current) setHover(pt);
       });
     };
 
@@ -443,16 +446,29 @@ export default function MapView({
     };
 
     if (showGrid) {
-      const url = `${import.meta.env.BASE_URL}grid.png`;
+      // 15° graticule as vectors (canvas-rendered) — far cheaper than the old
+      // 11232x7525 grid.png image decoded 5x (~340MB). Same look, ~190 lines.
+      const stepX = W / 24;
+      const stepY = H / 12;
       for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
-        L.imageOverlay(
-          url,
-          [
-            [0, i * W],
-            [H, (i + 1) * W],
-          ],
-          { interactive: false }
-        ).addTo(grp);
+        for (let x = 0; x <= W; x += stepX) {
+          L.polyline(
+            [
+              [0, x + i * W],
+              [H, x + i * W],
+            ],
+            { color: "#64748b", weight: 1, opacity: 0.28, interactive: false }
+          ).addTo(grp);
+        }
+        for (let y = 0; y <= H; y += stepY) {
+          L.polyline(
+            [
+              [y, i * W],
+              [y, (i + 1) * W],
+            ],
+            { color: "#64748b", weight: 1, opacity: 0.28, interactive: false }
+          ).addTo(grp);
+        }
       }
     }
     if (showPixelGrid) {
@@ -471,21 +487,54 @@ export default function MapView({
   // Two depth-stacked sheets: a soft base deck + a faint fast cirrus wisp
   // layer for parallax. GPU transform drift (no layout thrash), textures
   // memoised in imageCache. Density presets map to FBM coverage.
+  // Textures generate off the critical path (idle-deferred) so the base map
+  // stays interactive; the effect only needs cloudUrls to paint.
+  const [cloudUrls, setCloudUrls] = useState(null);
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapSize?.W || layer !== "satellite" || !showClouds) return;
-    const grp = L.layerGroup({ interactive: false });
-    const { W, H } = mapSize;
+    if (layer !== "satellite" || !showClouds) {
+      setCloudUrls(null);
+      return;
+    }
+    setCloudUrls(null);
     const cov =
       cloudDensity === "light" ? 0.44 : cloudDensity === "stormy" ? 0.6 : 0.52;
-    const baseUrl = makeCloudTexture(2048, 1024, { coverage: cov, seed: 20260913 });
-    // Cirrus: sparser, higher-altitude streaks drifting faster.
-    const wispUrl = makeCloudTexture(2048, 1024, {
-      coverage: Math.max(0.3, cov - 0.1),
-      softness: 0.24,
-      seed: 770213,
-      alpha: 150,
-    });
+    let canceled = false;
+    const gen = () => {
+      if (canceled) return;
+      const base = makeCloudTexture(2048, 1024, { coverage: cov, seed: 20260913 });
+      if (canceled) return;
+      // Yield between the two heavy passes so pan/zoom stays smooth.
+      setTimeout(() => {
+        if (canceled) return;
+        const wisp = makeCloudTexture(2048, 1024, {
+          coverage: Math.max(0.3, cov - 0.1),
+          softness: 0.24,
+          seed: 770213,
+          alpha: 150,
+        });
+        if (!canceled) setCloudUrls({ base, wisp });
+      }, 30);
+    };
+    if (typeof requestIdleCallback === "function") {
+      const id = requestIdleCallback(gen, { timeout: 1500 });
+      return () => {
+        canceled = true;
+        cancelIdleCallback(id);
+      };
+    }
+    const t = setTimeout(gen, 600);
+    return () => {
+      canceled = true;
+      clearTimeout(t);
+    };
+  }, [layer, showClouds, cloudDensity]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapSize?.W || layer !== "satellite" || !showClouds || !cloudUrls) return;
+    const grp = L.layerGroup({ interactive: false });
+    const { W, H } = mapSize;
+    const { base: baseUrl, wisp: wispUrl } = cloudUrls;
     const baseOpacity = (cloudOpacity ?? 58) / 100;
     const overlays = [];
     for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
@@ -498,6 +547,7 @@ export default function MapView({
         interactive: false,
         bubblingMouseEvents: false,
         className: "urth-cloud-sheet",
+        zIndex: 3,
       });
       overlays.push({ ov, cls: "urth-cloud" });
       grp.addLayer(ov);
@@ -506,6 +556,7 @@ export default function MapView({
         interactive: false,
         bubblingMouseEvents: false,
         className: "urth-cloud-sheet",
+        zIndex: 4,
       });
       overlays.push({ ov: wisp, cls: "urth-cloud-wisp" });
       grp.addLayer(wisp);
@@ -528,7 +579,7 @@ export default function MapView({
     return () => {
       grp.remove();
     };
-  }, [layer, showClouds, cloudOpacity, cloudDensity, mapSize]);
+  }, [layer, showClouds, cloudOpacity, cloudUrls, mapSize]);
 
   // ---- City & subnational markers overlay -------------------------------------
   useEffect(() => {
@@ -544,7 +595,7 @@ export default function MapView({
           [0, i * W],
           [H, (i + 1) * W],
         ],
-        { interactive: false }
+        { interactive: false, bubblingMouseEvents: false, zIndex: 5 }
       ).addTo(grp);
     }
     grp.addTo(map);
@@ -698,6 +749,10 @@ export default function MapView({
   }, [points, hover, mode, mapSize]);
 
   // ---- Wiki nations layer ---------------------------------------------------
+  // Built once per places/mapSize (NOT per zoom — zoom only toggles a CSS
+  // class, so zoom gestures don't rebuild markers). Labels repeat per world
+  // copy so they survive horizontal wrapping. Text labels stay visible down
+  // to the full-world zoom (NORMAL_MIN_ZOOM), not just zoom >= 0.
   const placeMarkersRef = useRef({});
   const placeLatLngRef = useRef({});
   useEffect(() => {
@@ -707,8 +762,7 @@ export default function MapView({
     placeMarkersRef.current = {};
     placeLatLngRef.current = {};
     const pls = placesRef.current;
-    const NATION_TEXT_MIN_ZOOM = 0;
-    const showNationText = (zoomLevel ?? 0) >= NATION_TEXT_MIN_ZOOM;
+    const { W } = mapSize;
     pls.forEach((p) => {
       if (p.x == null || p.y == null) return;
       const latlng = [p.y, p.x];
@@ -720,9 +774,8 @@ export default function MapView({
         (href
           ? `<a class="atlas-popup-link" href="${href}" target="_blank" rel="noopener noreferrer">Open on TEPwiki ↗</a>`
           : `<div class="atlas-popup-missing">No TEPwiki page linked</div>`);
-      let mk;
       if (p.kind === "city") {
-        mk = L.circleMarker(latlng, {
+        const mk = L.circleMarker(latlng, {
           radius: 3,
           color: "#ffffff",
           weight: 1.5,
@@ -734,19 +787,23 @@ export default function MapView({
           offset: [0, -5],
           className: "atlas-tooltip",
         });
+        mk.bindPopup(popup);
+        mk.on("click", (e) => L.DomEvent.stopPropagation(e));
+        placeMarkersRef.current[p.name] = mk;
       } else {
-        // Nation names: constant text size, only visible above a zoom threshold.
-        if (!showNationText) return;
-        const icon = L.divIcon({
-          className: "urth-nation-text",
-          html: `<span class="urth-nation-text-name">${p.name}</span>`,
-          iconSize: null,
-        });
-        mk = L.marker(latlng, { icon, riseOnHover: true }).addTo(grp);
+        // One label per world copy so wrapping never loses them.
+        for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
+          const icon = L.divIcon({
+            className: "urth-nation-text",
+            html: `<span class="urth-nation-text-name">${p.name}</span>`,
+            iconSize: null,
+          });
+          const mk = L.marker([p.y, p.x + i * W], { icon, riseOnHover: true }).addTo(grp);
+          mk.bindPopup(popup);
+          mk.on("click", (e) => L.DomEvent.stopPropagation(e));
+          if (i === 0) placeMarkersRef.current[p.name] = mk;
+        }
       }
-      mk.bindPopup(popup);
-      mk.on("click", (e) => L.DomEvent.stopPropagation(e));
-      placeMarkersRef.current[p.name] = mk;
     });
     grp.addTo(map);
     return () => {
@@ -755,7 +812,15 @@ export default function MapView({
       placeLatLngRef.current = {};
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showNations, mapSize, places, zoomLevel]);
+  }, [showNations, mapSize, places]);
+
+  // Nation-text visibility follows zoom via CSS (no layer rebuild).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const hide = (zoomLevel ?? 0) < NORMAL_MIN_ZOOM;
+    map.getContainer().classList.toggle("urth-hide-nations", hide);
+  }, [zoomLevel]);
 
   // ---- Calibration cursor hint ---------------------------------------------
   useEffect(() => {
