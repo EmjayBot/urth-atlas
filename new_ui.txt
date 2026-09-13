@@ -1,0 +1,129 @@
+URTH ATLAS - SIMPLE UI SPEC
+============================
+Clean map software - inspired by modern maps but own branding only
+Map: https://urthmaps.com/maps/export/urth.png
+Scale: 6.34126 km²/pixel | 1 px = 2.518 km (1.565 mi)
+
+------------------------------------------------------------
+1. DESIGN PRINCIPLES
+------------------------------------------------------------
+- Simple, clean, no third-party branding
+- Own brand only: "Urth Atlas"
+- Minimal chrome, map is hero
+- Colors: 
+  Primary: #0e7490 (teal-blue)
+  Hover: #0c5a70
+  Light: #e6f4f1
+  Border: #d1d5db / #e5e7eb
+  Text: #111827 primary, #6b7280 secondary
+  Map bg: #e5e3df
+- Font: Inter or system sans, 14px base
+- Radius: 6px (slightly squared, clean)
+- Shadows: 0 1px 3px rgba(0,0,0,0.1) - subtle
+
+------------------------------------------------------------
+2. LAYOUT
+------------------------------------------------------------
+[Top Bar - 56px, white, border bottom 1px #e5e7eb]
+- Left: Menu icon (20px) + Globe icon teal + "URTH ATLAS" 16px semibold tracking-wide
+- Center: Search box 440px wide, 38px tall, 6px radius, border 1px #d1d5db
+  Placeholder: "Search Urth Atlas"
+  Focus: border #0e7490, shadow 0 0 0 3px #e6f4f1
+  Inside right: search icon
+- Right: My location (target icon) + Measure (ruler icon) - 36px buttons, hover #f3f4f6
+
+[Left Sidebar - 340px, white, shadow]
+- Collapsible with chevron, default open
+- Section: Map Info
+  Title: Urth Atlas
+  Subtitle: The East Pacific
+  Meta: "urthmaps.com • 6.34126 km²/px • 2.518 km/px"
+- Section: Base Layer
+  Radio: Standard (default - normal Urth.png)
+  Radio: Satellite (filter saturate 1.2 contrast 1.1)
+  Opacity slider 0-100% teal thumb
+- Section: Overlays (checkboxes)
+  [x] Scale bar
+  [x] Grid
+  [ ] Pixel grid
+  [ ] Coordinates
+- Section: Measurements
+  Empty: "No measurements. Right-click map to measure."
+  List: Shows distance with km + mi, delete X
+  Footer: "1 px = 2.518 km (1.565 mi)"
+- Section: Pins
+  "No pins yet - click map to add"
+
+[Main Map - fills remaining space]
+- Wired to https://urthmaps.com/maps/export/urth.png
+- Infinite horizontal: 5 copies side-by-side, wrap logic
+  if lng < -W*0.5 -> +W, if > W*1.5 -> -W
+- Vertical clamped, horizontal infinite
+- Cursor grab/grabbing
+- Placeholder canvas grid if image blocked in preview
+
+[Bottom Right Controls]
+- Zoom: Two white buttons 36px, 6px radius, stacked with 1px gap, border 1px #d1d5db, shadow
+  Top + , Bottom -
+- Below: Compass/Recenter 36px button
+- Hover #f3f4f6
+
+[Bottom Left]
+- Layer toggle pill: White, 6px radius, border, shadow
+  Buttons: Map | Satellite (active teal bg white text)
+- Scale bar next to it: White card, 6px radius, border
+  Graphic line + text "100 km • 62 mi" updates with zoom
+
+[Bottom Status Bar - 28px, #f9fafb, border top 1px #e5e7eb]
+- Left mono 12px: "X: 1234 Y: 567 | 3,106 km E | Lat 12.3° Lng 45.6°"
+- Center: "1:2.5M | 1 px = 2.518 km (1.565 mi)"
+- Right: "© Urth Atlas • 6.34126 km²/px"
+
+------------------------------------------------------------
+3. INTERACTIONS
+------------------------------------------------------------
+- Click map: Add pin, repeats across 5 world copies, popup simple white card with X,Y, km, mi
+- Right-click: Simple context menu white 180px, 6px radius, shadow
+  - What's here? (shows coords)
+  - Measure distance
+  - Add pin
+- Measure distance:
+  Click first point blue dot #0e7490, drag shows dashed line + tooltip "312.2 km (194.0 mi)"
+  Second click solidifies, card in sidebar with both units
+  Path: keep clicking sums distance
+  Area: 3+ points double-click closes, shows km² + mi²
+  Math:
+    km/px = sqrt(6.34126) = 2.51819
+    mi/px = 1.56472
+    km²/px = 6.34126
+    mi²/px = 2.44837
+    Corrected for lat: dx_corr = dx * cos(lat), dist = sqrt(dx_corr²+dy²)*2.51819
+    Show both raw and corrected
+
+------------------------------------------------------------
+4. MEASUREMENT DISPLAY (BOTH UNITS)
+------------------------------------------------------------
+Always show km + miles together, no branding:
+- Distance: "312.2 km (194.0 mi)" + "168.6 NM" smaller
+- With correction: "298.4 km (185.4 mi) corrected for latitude"
+- Area: "33,228 km² / 12,829 mi² / 8,211,000 acres"
+- Toggle in sidebar: Metric / Imperial / Both (default Both)
+
+------------------------------------------------------------
+5. TECHNICAL
+------------------------------------------------------------
+- Single file index.html
+- Inline Leaflet CSS
+- Leaflet JS from unpkg
+- Load Urth PNG via Image() crossOrigin, get W,H, create 5 imageOverlays
+- Fallback canvas grid if blocked
+- No demo data, clean start
+- Deploy to urthmaps.com/atlas/ -> wired, infinite, works
+
+------------------------------------------------------------
+6. WHAT NOT INCLUDED
+------------------------------------------------------------
+- No "Bing", "Google", "HERE" mentions anywhere
+- No Bird's Eye, Streetside branding
+- No third-party logos
+- Simple own UI only: Urth Atlas

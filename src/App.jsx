@@ -2,14 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Header from "./components/Header";
 import MapView from "./components/MapView";
 import MapControls from "./components/MapControls";
-import MeasurementPanel from "./components/MeasurementPanel";
-import Footer from "./components/Footer";
+import Sidebar from "./components/Sidebar";
+import StatusBar from "./components/StatusBar";
 import Toast from "./components/Toast";
-import PlacePanel from "./components/PlacePanel";
+import ContextMenu from "./components/ContextMenu";
 import { measureDistance, measurePath, measureArea } from "./lib/measure";
 import { parseUrl, writeUrl, shareLink } from "./lib/url";
-import { getLayer, BASE_LAYERS } from "./lib/scale";
-import { mergePlaces, placeLatLng } from "./lib/places";
+import { mergePlaces } from "./lib/places";
+import { num } from "./lib/format";
 
 const initial = parseUrl();
 const LOCAL_KEY = "urth-atlas.places.local.v1";
@@ -31,7 +31,16 @@ export default function App() {
   const [mapSize, setMapSize] = useState(null);
   const [status, setStatus] = useState("loading");
   const [layer, setLayer] = useState(initial.layer ?? "map");
+  const [satellite, setSatellite] = useState(false);
+  const [opacity, setOpacity] = useState(100);
+  const [showScale, setShowScale] = useState(true);
+  const [showGrid, setShowGrid] = useState(true);
+  const [showPixelGrid, setShowPixelGrid] = useState(false);
+  const [showCoords, setShowCoords] = useState(false);
   const [showNations, setShowNations] = useState(initial.nations ?? true);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [saved, setSaved] = useState([]);
+  const [ctx, setCtx] = useState(null);
   const [query, setQuery] = useState("");
   const [focus, setFocus] = useState(null);
   const [view, setView] = useState(null);
@@ -41,7 +50,6 @@ export default function App() {
   const [shared, setShared] = useState({});
   const [sharedStatus, setSharedStatus] = useState("loading");
   const [local, setLocal] = useState(loadLocal);
-  const [calibOpen, setCalibOpen] = useState(false);
   const [target, setTarget] = useState(null);
 
   const mapRef = useRef(null);
@@ -154,6 +162,34 @@ export default function App() {
     );
   };
 
+  const recenter = () => {
+    if (mapRef.current && mapSize) {
+      mapRef.current.setView([mapSize.H / 2, mapSize.W / 2], 0);
+    }
+  };
+
+  const onSaveResult = () => {
+    if (!result) return;
+    let label;
+    let kind;
+    if (result.kind === "distance") {
+      label = `${num(result.data.km, 1)} km (${num(result.data.mi, 1)} mi)`;
+      kind = "D";
+    } else if (result.kind === "path") {
+      label = `${num(result.data.totalKm, 1)} km (${num(result.data.totalMi, 1)} mi)`;
+      kind = "P";
+    } else {
+      label = `${num(result.data.areaKm2, 1)} km² (${num(result.data.areaMi2, 1)} mi²)`;
+      kind = "A";
+    }
+    setSaved((s) => [...s, { kind, label }]);
+    showToast("Measurement saved");
+  };
+
+  const onDeleteSaved = (i) => {
+    setSaved((s) => s.filter((_, idx) => idx !== i));
+  };
+
   // ---- Place creation / positioning --------------------------------------
   const createPlace = ({ name, kind, href }) => {
     const clean = name.trim();
@@ -222,10 +258,37 @@ export default function App() {
       if (place && place.x != null && place.y != null) {
         setFocus({ type: p.kind, name: p.name });
       } else {
-        showToast("Not placed yet — add it with Calibrate");
+        showToast("Not placed yet — add it in the Pins panel");
       }
-      if (calibOpen) setTarget({ name: p.name, kind: p.kind, href: p.href });
+      if (target) setTarget({ name: p.name, kind: p.kind, href: p.href });
     }
+  };
+
+  // ---- Context menu handlers ---------------------------------------------
+  const onCtxWhat = () => {
+    if (!ctx) return;
+    showToast(
+      `X ${ctx.pt.x.toFixed(0)}, Y ${ctx.pt.y.toFixed(0)} • ${ctx.pt.lat.toFixed(2)}°, ${ctx.pt.lngDeg.toFixed(2)}°`
+    );
+  };
+
+  const onCtxMeasure = () => {
+    if (!ctx) return;
+    const pt = { x: ctx.pt.x, y: ctx.pt.y };
+    setMode("measure");
+    setPoints([pt]);
+    setCtx(null);
+    showToast("Click a second point");
+  };
+
+  const onCtxPin = (name) => {
+    if (!ctx || !name) return;
+    const pt = ctx.pt;
+    setLocal((l) => ({
+      ...l,
+      [name]: { kind: "city", href: "", x: +pt.x.toFixed(1), y: +pt.y.toFixed(1) },
+    }));
+    showToast(`Pinned ${name}`);
   };
 
   // Keyboard shortcuts
@@ -239,14 +302,14 @@ export default function App() {
       else if (k === "p") selectTool("path");
       else if (k === "escape") {
         if (target) setTarget(null);
+        else if (ctx) setCtx(null);
         else clearAll();
-      }
-      else if (k === "+" || k === "=") mapRef.current?.zoomIn();
+      } else if (k === "+" || k === "=") mapRef.current?.zoomIn();
       else if (k === "-") mapRef.current?.zoomOut();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [target]);
+  }, [target, ctx]);
 
   return (
     <div className="w-full h-[100dvh] flex flex-col bg-[#e5e3df] text-zinc-800 font-sans overflow-hidden">
@@ -255,28 +318,56 @@ export default function App() {
         setQuery={setQuery}
         onPlace={onPlace}
         places={places}
-        showNations={showNations}
-        setShowNations={setShowNations}
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        onLocate={recenter}
+        onMeasure={() => selectTool("measure")}
       />
 
       <div className="flex-1 flex min-h-0 relative">
-        <aside className="w-[360px] shrink-0 bg-white border-r border-zinc-200 flex flex-col max-md:hidden z-[1000] shadow-[2px_0_8px_rgba(0,0,0,0.04)]">
-          <MeasurementPanel
-            mode={mode}
-            setMode={selectTool}
-            units={units}
-            setUnits={setUnits}
-            points={points}
-            setPoints={setPoints}
-            mapSize={mapSize}
-            cursor={cursor}
-            status={status}
-            result={result}
-            layer={layer}
-            onCopy={onCopy}
-            onShare={onShare}
-          />
-        </aside>
+        <Sidebar
+          open={sidebarOpen}
+          layer={layer}
+          setLayer={setLayer}
+          satellite={satellite}
+          setSatellite={setSatellite}
+          opacity={opacity}
+          setOpacity={setOpacity}
+          showScale={showScale}
+          setShowScale={setShowScale}
+          showGrid={showGrid}
+          setShowGrid={setShowGrid}
+          showPixelGrid={showPixelGrid}
+          setShowPixelGrid={setShowPixelGrid}
+          showCoords={showCoords}
+          setShowCoords={setShowCoords}
+          showNations={showNations}
+          setShowNations={setShowNations}
+          status={status}
+          mode={mode}
+          setMode={selectTool}
+          units={units}
+          setUnits={setUnits}
+          points={points}
+          setPoints={setPoints}
+          mapSize={mapSize}
+          cursor={cursor}
+          result={result}
+          onCopy={onCopy}
+          onShare={onShare}
+          onSaveResult={onSaveResult}
+          saved={saved}
+          onDeleteSaved={onDeleteSaved}
+          target={target}
+          setTarget={setTarget}
+          local={local}
+          sharedStatus={sharedStatus}
+          sharedCount={Object.keys(shared).length}
+          onCreate={createPlace}
+          onRemove={removePlace}
+          onSubmit={submitChanges}
+          onClear={clearLocal}
+        />
 
         <div className="flex-1 relative min-w-0 bg-[#e5e3df] overflow-hidden">
           <MapView
@@ -302,19 +393,18 @@ export default function App() {
             }}
             calibTarget={target?.name}
             onCalibrateClick={positionPlace}
-          />
-          <PlacePanel
-            open={calibOpen}
-            setOpen={setCalibOpen}
-            target={target}
-            setTarget={setTarget}
-            local={local}
-            sharedCount={Object.keys(shared).length}
-            sharedStatus={sharedStatus}
-            onCreate={createPlace}
-            onRemove={removePlace}
-            onSubmit={submitChanges}
-            onClear={clearLocal}
+            satellite={satellite}
+            opacity={opacity}
+            showScale={showScale}
+            showGrid={showGrid}
+            showPixelGrid={showPixelGrid}
+            showCoords={showCoords}
+            onContextMenu={(p) =>
+              setCtx({
+                pt: { x: p.x, y: p.y, lat: p.lat, lngDeg: p.lngDeg },
+                pos: { x: p.clientX, y: p.clientY },
+              })
+            }
           />
           <MapControls
             mode={mode}
@@ -322,26 +412,26 @@ export default function App() {
             units={units}
             setUnits={setUnits}
             points={points}
-            hover={hover}
-            cursor={cursor}
-            mapSize={mapSize}
-            result={result}
-            layer={layer}
-            setLayer={setLayer}
+            satellite={satellite}
+            setSatellite={setSatellite}
             onZoomIn={() => mapRef.current?.zoomIn()}
             onZoomOut={() => mapRef.current?.zoomOut()}
-            onReset={() => {
-              if (mapRef.current && mapSize) {
-                mapRef.current.setView([mapSize.H / 2, mapSize.W / 2], 0);
-              }
-            }}
+            onReset={recenter}
             onClear={clearAll}
           />
           <Toast toast={toast} />
+          <ContextMenu
+            pos={ctx?.pos}
+            pt={ctx?.pt ?? { x: 0, y: 0 }}
+            onClose={() => setCtx(null)}
+            onWhat={onCtxWhat}
+            onMeasure={onCtxMeasure}
+            onPin={onCtxPin}
+          />
         </div>
       </div>
 
-      <Footer status={status} />
+      <StatusBar status={status} cursor={cursor} />
     </div>
   );
 }

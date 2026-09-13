@@ -138,3 +138,36 @@ export const IconLayers = (p) => (
     <path d="m2 17.5 10 5.5 10-5.5" />
   </svg>
 );
+
+export const IconMenu = (p) => (
+  <svg {...base} {...p}>
+    <path d="M4 6h16M4 12h16M4 18h16" />
+  </svg>
+);
+
+export const IconChevron = (p) => (
+  <svg {...base} {...p}>
+    <path d="m9 18 6-6-6-6" />
+  </svg>
+);
+
+export const IconTarget = (p) => (
+  <svg {...base} {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+  </svg>
+);
+
+export const IconCompass = (p) => (
+  <svg {...base} {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="m15.5 8.5-2 5-5 2 2-5z" />
+  </svg>
+);
+
+export const IconCursor = (p) => (
+  <svg {...base} {...p}>
+    <path d="M4 4l7.07 17 2.51-7.39L21 11.07z" />
+  </svg>
+);

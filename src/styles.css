@@ -24,8 +24,63 @@ body {
   outline: none;
 }
 
-.leaflet-container.calibrating {
+/* Grab / grabbing cursor for the draggable map */
+.leaflet-container.urth-map-grab,
+.leaflet-container.urth-map-grab .leaflet-interactive {
+  cursor: grab !important;
+}
+.leaflet-container.urth-map-grab.leaflet-dragging,
+.leaflet-container.urth-map-grab.leaflet-dragging .leaflet-interactive {
+  cursor: grabbing !important;
+}
+
+.leaflet-container.calibrating,
+.leaflet-container.calibrating .leaflet-interactive {
   cursor: crosshair !important;
+}
+
+/* Nation name labels (clickable, replaces plain dots) */
+.urth-nation-label {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  width: 0 !important;
+  height: 0 !important;
+}
+.urth-nation-label-name {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  color: #0e7490;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(14, 116, 144, 0.35);
+  border-radius: 4px;
+  padding: 1px 6px;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  text-decoration: none;
+}
+.urth-nation-label-name:hover {
+  background: #0e7490;
+  color: #fff;
+}
+
+/* Coordinate grid labels */
+.urth-coord-label {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: rgba(17, 24, 39, 0.72);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  transform: translate(4px, -10px);
+  text-shadow: 0 0 3px #fff, 0 0 3px #fff;
+  cursor: default;
 }
 
 /* Point number labels */

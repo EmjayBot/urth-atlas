@@ -12,6 +12,14 @@ import { loadLayer, makeFallbackGrid } from "../lib/imageCache";
 import { fullWikiUrl } from "../lib/wiki";
 
 const PICK_COLOR = "#0e7490";
+const WORLD_COPIES = 5; // horizontal copies, side-by-side (infinite wrap)
+
+// Zoom levels: -3 = "all the way out" (whole flat map fits the screen).
+// Beyond -3 is the easter egg: keep zooming and the repeating map reads as a
+// cylinder wrapping around.
+const NORMAL_MIN_ZOOM = -3;
+const CYLINDER_ZOOM = -3.5;
+const ABSOLUTE_MIN_ZOOM = -7;
 
 function useRefLatest(value) {
   const ref = useRef(value);
@@ -19,6 +27,10 @@ function useRefLatest(value) {
     ref.current = value;
   });
   return ref;
+}
+
+function lngFromX(x, W) {
+  return (x / W - 0.5) * 360;
 }
 
 export default function MapView({
@@ -42,12 +54,20 @@ export default function MapView({
   onMapReady,
   calibTarget,
   onCalibrateClick,
+  satellite,
+  opacity,
+  showScale,
+  showGrid,
+  showPixelGrid,
+  showCoords,
+  onContextMenu,
 }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const imagesRef = useRef([]);
   const loadedLayerRef = useRef(null);
   const [scaleBar, setScaleBar] = useState(null);
+  const [zoomLevel, setZoomLevel] = useState(null);
 
   const modeRef = useRefLatest(mode);
   const pointsRef = useRefLatest(points);
@@ -60,6 +80,8 @@ export default function MapView({
   const onViewChangeRef = useRefLatest(onViewChange);
   const onFocusHandledRef = useRefLatest(onFocusHandled);
   const onMapReadyRef = useRefLatest(onMapReady);
+  const satelliteRef = useRefLatest(satellite);
+  const onContextMenuRef = useRefLatest(onContextMenu);
 
   const initialViewRef = useRef(initialView);
   useEffect(() => {
@@ -68,6 +90,10 @@ export default function MapView({
 
   const rafRef = useRef(0);
 
+  const applyOpacity = () => {
+    imagesRef.current.forEach((ov) => ov.setOpacity(opacity / 100));
+  };
+
   // ---- Map creation -------------------------------------------------------
   useEffect(() => {
     const container = containerRef.current;
@@ -75,7 +101,7 @@ export default function MapView({
 
     const map = L.map(container, {
       crs: L.CRS.Simple,
-      minZoom: -2,
+      minZoom: ABSOLUTE_MIN_ZOOM,
       maxZoom: 6,
       zoomSnap: 0.25,
       zoomDelta: 0.5,
@@ -91,20 +117,19 @@ export default function MapView({
     let W = 0;
 
     const installOverlays = (url) => {
-      // 2D tile grid so the map wraps infinitely in every direction.
-      for (let j = -2; j <= 2; j++) {
-        for (let i = -2; i <= 2; i++) {
-          const ov = L.imageOverlay(
-            url,
-            [
-              [j * H, i * W],
-              [(j + 1) * H, (i + 1) * W],
-            ],
-            { interactive: true }
-          ).addTo(map);
-          imagesRef.current.push(ov);
-        }
+      // 5 copies side-by-side so the map wraps horizontally. Vertical is clamped.
+      for (let i = -2; i <= 2; i++) {
+        const ov = L.imageOverlay(
+          url,
+          [
+            [0, i * W],
+            [H, (i + 1) * W],
+          ],
+          { interactive: true }
+        ).addTo(map);
+        imagesRef.current.push(ov);
       }
+      applyOpacity();
     };
 
     const finishLoad = (url, w, h, okStatus) => {
@@ -120,6 +145,7 @@ export default function MapView({
       } else {
         map.setView([H / 2, W / 2], 0, { animate: false });
       }
+      setZoomLevel(map.getZoom());
       setStatus(okStatus);
       onMapReadyRef.current(map);
     };
@@ -144,6 +170,7 @@ export default function MapView({
         x: wx,
         y: wy,
         lat: latFromPixel(wy, H),
+        lngDeg: lngFromX(wx, W || 1),
         kmX: wx * KM_PER_PX,
         kmY: wy * KM_PER_PX,
         miX: wx * KM_PER_PX * MI_PER_KM,
@@ -161,6 +188,14 @@ export default function MapView({
       const t = calibTargetRef.current;
       if (t) {
         onCalibrateClickRef.current(pt.x, pt.y);
+        L.popup({ className: "atlas-popup", closeButton: true })
+          .setLatLng([pt.y, pt.x])
+          .setContent(
+            `<div class="atlas-popup"><div class="atlas-popup-title">${t}</div>` +
+              `<div class="atlas-popup-coords">${pt.x.toFixed(0)}, ${pt.y.toFixed(0)} px</div>` +
+              `<div class="atlas-popup-coords">${(pt.x * KM_PER_PX).toLocaleString(void 0, { maximumFractionDigits: 0 })} km • ${(pt.x * KM_PER_PX * MI_PER_KM).toLocaleString(void 0, { maximumFractionDigits: 0 })} mi E</div>`
+          )
+          .addTo(map);
         return;
       }
       const m = modeRef.current;
@@ -179,29 +214,50 @@ export default function MapView({
       }
     };
 
+    const onContextMenu = (e) => {
+      e.preventDefault();
+      if (!W || !H) return;
+      const rect = container.getBoundingClientRect();
+      const pt = map.containerPointToLatLng([e.clientX - rect.left, e.clientY - rect.top]);
+      onContextMenuRef.current({
+        x: wrapX(pt.lng, W || 1),
+        y: wrapY(pt.lat, H || 1),
+        lat: latFromPixel(pt.lat, H || 1),
+        lngDeg: lngFromX(pt.lng, W || 1),
+        clientX: e.clientX,
+        clientY: e.clientY,
+      });
+    };
+    container.addEventListener("contextmenu", onContextMenu, true);
+
     const onMoveEnd = () => {
       const c = map.getCenter();
-      if (W > 0) {
-        if (c.lng < -W * 0.5) {
-          map.setView([c.lat, c.lng + W * 3], map.getZoom(), { animate: false });
-          return;
-        }
-        if (c.lng > W * 1.5) {
-          map.setView([c.lat, c.lng - W * 3], map.getZoom(), { animate: false });
-          return;
-        }
+      // Horizontal infinite wrap (world repeats every W px).
+      if (W > 0 && (c.lng < -W * 0.5 || c.lng > W * 1.5)) {
+        const wrapped = ((c.lng + W * 0.5) % W + W) % W - W * 0.5;
+        map.setView([c.lat, wrapped], map.getZoom(), { animate: false });
+        return;
       }
+      // Vertical clamp (single copy vertically).
       if (H > 0) {
-        if (c.lat < -H * 0.5) {
-          map.setView([c.lat + H * 3, c.lng], map.getZoom(), { animate: false });
-          return;
+        const vpHalf = map.getSize().y / 2 / 2 ** map.getZoom();
+        let newY = null;
+        if (vpHalf * 2 >= H) {
+          // Map smaller than the viewport vertically — lock to center.
+          if (Math.abs(c.lat - H / 2) > 0.5) newY = H / 2;
+        } else {
+          const minY = vpHalf;
+          const maxY = H - vpHalf;
+          if (c.lat < minY) newY = minY;
+          else if (c.lat > maxY) newY = maxY;
         }
-        if (c.lat > H * 1.5) {
-          map.setView([c.lat - H * 3, c.lng], map.getZoom(), { animate: false });
+        if (newY !== null) {
+          map.setView([newY, c.lng], map.getZoom(), { animate: false });
           return;
         }
       }
       updateScale();
+      setZoomLevel(map.getZoom());
       onViewChangeRef.current({ x: wrapX(c.lng, W || 1), y: wrapY(c.lat, H || 1), z: map.getZoom() });
     };
 
@@ -213,6 +269,7 @@ export default function MapView({
       if (!span) return;
       const kmPerScreenPx = (W * KM_PER_PX) / span;
       setScaleBar({ kmPerScreenPx, zoom: map.getZoom() });
+      setZoomLevel(map.getZoom());
     };
 
     map.on("mousemove", onMouseMove);
@@ -223,6 +280,7 @@ export default function MapView({
 
     return () => {
       canceled = true;
+      container.removeEventListener("contextmenu", onContextMenu, true);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       map.remove();
       mapRef.current = null;
@@ -230,6 +288,34 @@ export default function MapView({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ---- Satellite filter + cylinder easter egg + opacity -----------------------
+  const cylinder = zoomLevel !== null && zoomLevel <= CYLINDER_ZOOM;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const pane = map.getPane("overlayPane");
+    if (pane) {
+      pane.style.filter = satellite ? "saturate(1.2) contrast(1.1)" : "";
+      if (cylinder) {
+        const mask = "linear-gradient(to right, transparent 3%, black 16%, black 84%, transparent 97%)";
+        pane.style.maskImage = mask;
+        pane.style.webkitMaskImage = mask;
+      } else {
+        pane.style.maskImage = "";
+        pane.style.webkitMaskImage = "";
+      }
+    }
+    const wrap = map.getContainer();
+    wrap.classList.toggle("urth-satellite", satellite);
+    wrap.classList.toggle("urth-cylinder", cylinder);
+  }, [satellite, cylinder]);
+
+  useEffect(() => {
+    if (mapRef.current && mapSize?.W) {
+      imagesRef.current.forEach((ov) => ov.setOpacity(opacity / 100));
+    }
+  }, [opacity, mapSize?.W]);
 
   // ---- Base layer swapping -------------------------------------------------
   useEffect(() => {
@@ -247,6 +333,7 @@ export default function MapView({
         }
         imagesRef.current.forEach((ov) => ov.setUrl(url));
         loadedLayerRef.current = layer;
+        applyOpacity();
         setStatus("ok");
       })
       .catch(() => {
@@ -254,6 +341,7 @@ export default function MapView({
         const url = makeFallbackGrid(FALLBACK_W, FALLBACK_H);
         imagesRef.current.forEach((ov) => ov.setUrl(url));
         loadedLayerRef.current = layer;
+        applyOpacity();
         setStatus("blocked");
       });
     return () => {
@@ -261,6 +349,85 @@ export default function MapView({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layer, mapSize?.W]);
+
+  // ---- Grid overlays ---------------------------------------------------------
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapSize?.W) return;
+    const grp = L.layerGroup();
+    const { W, H } = mapSize;
+
+    const gridForCopy = (step, color, weight, offsetX) => {
+      const lines = [];
+      for (let x = 0; x <= W; x += step) {
+        lines.push(
+          L.polyline(
+            [
+              [0, x + offsetX],
+              [H, x + offsetX],
+            ],
+            { color, weight, opacity: 0.35, interactive: false }
+          )
+        );
+      }
+      for (let y = 0; y <= H; y += step) {
+        lines.push(
+          L.polyline(
+            [
+              [y, offsetX],
+              [y, W + offsetX],
+            ],
+            { color, weight, opacity: 0.35, interactive: false }
+          )
+        );
+      }
+      return lines;
+    };
+
+    if (showGrid) {
+      for (let i = -2; i <= 2; i++) {
+        gridForCopy(1024, "#0e7490", 1.5, i * W).forEach((l) => grp.addLayer(l));
+      }
+    }
+    if (showPixelGrid) {
+      for (let i = -2; i <= 2; i++) {
+        gridForCopy(256, "#0e7490", 1, i * W).forEach((l) => grp.addLayer(l));
+      }
+    }
+
+    grp.addTo(map);
+    return () => {
+      grp.remove();
+    };
+  }, [showGrid, showPixelGrid, mapSize]);
+
+  // ---- Coordinate labels ------------------------------------------------------
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapSize?.W || !showCoords) return;
+    const grp = L.layerGroup();
+    const { W, H } = mapSize;
+    const STEP = 2048;
+    for (let i = -2; i <= 2; i++) {
+      for (let x = 0; x <= W; x += STEP) {
+        for (let y = 0; y <= H; y += STEP) {
+          const px = i * W + x;
+          const lat = latFromPixel(y, H);
+          const lng = lngFromX(px, W);
+          const icon = L.divIcon({
+            className: "urth-coord-label",
+            html: `${lat.toFixed(1)}°, ${lng.toFixed(1)}°`,
+            iconSize: null,
+          });
+          L.marker([y, px], { icon, interactive: false }).addTo(grp);
+        }
+      }
+    }
+    grp.addTo(map);
+    return () => {
+      grp.remove();
+    };
+  }, [showCoords, mapSize]);
 
   // ---- Focus handling (search / deep link) --------------------------------
   useEffect(() => {
@@ -389,19 +556,30 @@ export default function MapView({
       if (p.x == null || p.y == null) return;
       const latlng = [p.y, p.x];
       const isCity = p.kind === "city";
-      const mk = L.circleMarker(latlng, {
-        radius: isCity ? 3 : 4,
-        color: "#ffffff",
-        weight: 1.5,
-        fillColor: isCity ? "#f59e0b" : "#0e7490",
-        fillOpacity: 0.95,
-      }).addTo(grp);
+      const href = p.href ? fullWikiUrl(p.href) : null;
+      let mk;
+      if (isCity) {
+        mk = L.circleMarker(latlng, {
+          radius: 3,
+          color: "#ffffff",
+          weight: 1.5,
+          fillColor: "#f59e0b",
+          fillOpacity: 0.95,
+        }).addTo(grp);
+      } else {
+        const icon = L.divIcon({
+          className: "urth-nation-label",
+          html: `<span class="urth-nation-label-name">${p.name}</span>`,
+          iconSize: [0, 0],
+          iconAnchor: [0, 0],
+        });
+        mk = L.marker(latlng, { icon, riseOnHover: true }).addTo(grp);
+      }
       mk.bindTooltip(p.name, {
         direction: "top",
         offset: [0, -5],
         className: "atlas-tooltip",
       });
-      const href = p.href ? fullWikiUrl(p.href) : null;
       mk.bindPopup(
         `<div class="atlas-popup"><div class="atlas-popup-title">${p.name}</div>` +
           `<div class="atlas-popup-coords">${latlng[0].toFixed(0)}, ${latlng[1].toFixed(0)} px · ${isCity ? "city" : "nation"}</div>` +
@@ -439,12 +617,12 @@ export default function MapView({
     <div className="absolute inset-0">
       <div
         ref={containerRef}
-        className="absolute inset-0"
+        className="absolute inset-0 urth-map-grab"
         style={{ background: "#e5e3df" }}
       />
       {status === "loading" && (
         <div className="absolute inset-0 z-[900] flex items-center justify-center pointer-events-none">
-          <div className="bg-white/95 rounded-2xl shadow-xl border border-zinc-200 px-6 py-4 text-center">
+          <div className="bg-white/95 rounded-lg shadow-xl border border-[#e5e7eb] px-6 py-4 text-center">
             <div className="w-7 h-7 border-[3px] border-[#0e7490] border-t-transparent rounded-full animate-spin mx-auto mb-2.5" />
             <div className="text-[12px] font-semibold tracking-wide uppercase text-zinc-600">
               Loading {activeLayer.label}
@@ -463,8 +641,15 @@ export default function MapView({
           </div>
         </div>
       )}
-      {scaleBar && status !== "loading" && (
+      {showScale && scaleBar && status !== "loading" && (
         <ScaleBarReadout bar={scaleBar} />
+      )}
+      {cylinder && status !== "loading" && (
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[700] pointer-events-none select-none">
+          <div className="bg-[#0e7490]/90 text-white text-[11px] font-semibold tracking-wide uppercase px-3 py-1.5 rounded-full shadow-lg backdrop-blur">
+            ◍ Cylinder mode — Urth wraps around
+          </div>
+        </div>
       )}
     </div>
   );
@@ -489,18 +674,20 @@ function ScaleBarReadout({ bar }) {
   }
   const mi = value * MI_PER_KM;
   return (
-    <div className="absolute bottom-3 left-3 z-[700] pointer-events-none select-none">
-      <div
-        className="h-[6px] border-x border-b border-zinc-700 bg-white/60"
-        style={{ width }}
-      />
-      <div className="text-[10px] font-semibold text-zinc-700 mt-0.5 font-mono">
-        {value < 1 ? `${value} km` : `${value.toLocaleString()} km`}
-        <span className="text-zinc-400"> · </span>
-        {mi < 1 ? `${mi.toFixed(2)} mi` : `${mi.toLocaleString(void 0, { maximumFractionDigits: mi < 10 ? 1 : 0 })} mi`}
-      </div>
-      <div className="text-[9px] text-zinc-400 font-mono mt-0.5">
-        zoom {zoom.toFixed(2)}
+    <div className="absolute bottom-12 left-3 z-[700] pointer-events-none select-none">
+      <div className="bg-white rounded-md border border-[#d1d5db] shadow-[0_1px_3px_rgba(0,0,0,0.1)] px-2.5 py-1.5">
+        <div
+          className="h-[6px] border-x border-b border-[#111827] bg-white/70"
+          style={{ width }}
+        />
+        <div className="text-[10px] font-semibold text-[#111827] mt-0.5 font-mono">
+          {value < 1 ? `${value} km` : `${value.toLocaleString()} km`}
+          <span className="text-zinc-400"> • </span>
+          {mi < 1 ? `${mi.toFixed(2)} mi` : `${mi.toLocaleString(void 0, { maximumFractionDigits: mi < 10 ? 1 : 0 })} mi`}
+        </div>
+        <div className="text-[9px] text-zinc-400 font-mono mt-0.5">
+          zoom {zoom.toFixed(2)}
+        </div>
       </div>
     </div>
   );

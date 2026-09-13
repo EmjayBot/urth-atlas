@@ -1,4 +1,4 @@
-import { KM_PER_PX, MI_PER_PX, KM2_PER_PX2, MI2_PER_PX2, getLayer } from "../lib/scale";
+import { KM_PER_PX, MI_PER_PX, KM2_PER_PX2, MI2_PER_PX2 } from "../lib/scale";
 import { num, intNum } from "../lib/format";
 import {
   IconRuler,
@@ -237,9 +237,7 @@ export default function MeasurementPanel({
   setPoints,
   mapSize,
   cursor,
-  status,
   result,
-  layer,
   onCopy,
   onShare,
 }) {
@@ -247,21 +245,20 @@ export default function MeasurementPanel({
   const undo = () => setPoints((p) => p.slice(0, -1));
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-zinc-100">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[11px] font-bold tracking-[0.16em] text-zinc-500 uppercase">
-            Measurement
-          </h2>
-          <div className="flex items-center gap-1.5">
-            {points.length > 0 && (
-              <>
-                <ActionButton onClick={undo} icon={IconUndo} label="Undo last point" />
-                <ActionButton onClick={clear} icon={IconTrash} label="Clear all" />
-              </>
-            )}
-          </div>
+    <div>
+      <div className="flex items-center justify-between mb-2.5">
+        <h3 className="text-[12px] font-bold tracking-[0.14em] text-[#6b7280] uppercase">
+          Measurements
+        </h3>
+        <div className="flex items-center gap-1.5">
+          {points.length > 0 && (
+            <>
+              <ActionButton onClick={undo} icon={IconUndo} label="Undo last point" />
+              <ActionButton onClick={clear} icon={IconTrash} label="Clear all" />
+            </>
+          )}
         </div>
+      </div>
 
         <div className="grid grid-cols-3 gap-1.5">
           {TOOLS.map(({ id, label, icon: Icon }) => {
@@ -297,12 +294,11 @@ export default function MeasurementPanel({
         </div>
 
         <div className="mt-3 text-[11px] leading-4 text-zinc-500 bg-[#f8fafc] border border-zinc-100 rounded-lg p-2.5">
-          {TOOLS.find((t) => t.id === mode)?.hint ??
-            "Select a tool to start measuring. Nothing is recorded until you click."}
-        </div>
+        {TOOLS.find((t) => t.id === mode)?.hint ??
+          "Select a tool to start measuring. Nothing is recorded until you click."}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="mt-3 space-y-4">
         {/* Cursor */}
         <section>
           <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-zinc-400 mb-2">
@@ -353,45 +349,9 @@ export default function MeasurementPanel({
 
         {!result && (
           <div className="text-[12px] text-zinc-400 leading-5">
-            No measurements yet. This atlas uses exact scale:
-            <br />
-            <span className="font-mono text-zinc-700">
-              1 px = {KM_PER_PX.toFixed(6)} km ({MI_PER_PX.toFixed(6)} mi)
-            </span>
-            <br />
-            <span className="font-mono text-zinc-700">
-              1 px² = {KM2_PER_PX2.toFixed(2)} km² = {MI2_PER_PX2.toFixed(6)} mi²
-            </span>
+            No measurements. Right-click the map to measure.
           </div>
         )}
-
-        {/* Map info */}
-        <section className="pt-4 border-t border-zinc-100">
-          <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-zinc-400 mb-2">
-            Map Info
-          </div>
-          <div className="text-[11px] leading-4 text-zinc-600 space-y-1">
-            <div>
-              • Layer:{" "}
-              <span className="font-mono text-[10px]">{getLayer(layer).label}</span>{" "}
-              {status === "blocked"
-                ? "(fallback grid shown)"
-                : status === "ok"
-                  ? "(live)"
-                  : "(loading…)"}
-            </div>
-            <div>• CRS.Simple, 5 wraps, infinite scroll</div>
-            <div>• MinZoom -2 / MaxZoom 6, inertia</div>
-            <div>• Equirectangular: lon × cos(lat)</div>
-            <div>• Nations layer sourced from TEPwiki</div>
-            <div className="pt-1.5 mt-1.5 border-t border-zinc-100 font-mono text-[10px]">
-              <div>km per px = {KM_PER_PX.toFixed(4)}</div>
-              <div>mi per px = {MI_PER_PX.toFixed(4)}</div>
-              <div>km² per px = {KM2_PER_PX2.toFixed(2)}</div>
-              <div>mi² per px = {MI2_PER_PX2.toFixed(4)}</div>
-            </div>
-          </div>
-        </section>
       </div>
     </div>
   );
