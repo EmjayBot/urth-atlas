@@ -824,6 +824,20 @@ export default function MapView({
     placeLatLngRef.current = {};
     const pls = placesRef.current;
     const { W, H } = mapSize;
+    const placed = pls.filter((q) => q.x != null && q.y != null);
+    // Nearest placed neighbour per nation (latitude-corrected km).
+    const nearestOf = (p) => {
+      let best = null;
+      const cos = Math.cos((latFromPixel(p.y, H) * Math.PI) / 180);
+      for (const q of placed) {
+        if (q.name === p.name) continue;
+        const dPx = Math.hypot((q.x - p.x) * cos, q.y - p.y);
+        if (!best || dPx < best.dPx) best = { name: q.name, dPx };
+      }
+      return best
+        ? `${best.name} · ${(best.dPx * KM_PER_PX).toLocaleString(void 0, { maximumFractionDigits: 0 })} km`
+        : null;
+    };
     pls.forEach((p) => {
       if (p.x == null || p.y == null) return;
       const latlng = [p.y, p.x];
@@ -834,13 +848,16 @@ export default function MapView({
       const lng = lngFromX(p.x, W);
       const latStr = `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? "N" : "S"}`;
       const lngStr = `${Math.abs(lng).toFixed(1)}°${lng >= 0 ? "E" : "W"}`;
+      const hemi = lat >= 0 ? "Northern hemisphere" : "Southern hemisphere";
+      const nearest = nearestOf(p);
       const esc = (s) =>
         String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
       const popup =
         `<div class="atlas-popup"><div class="atlas-popup-head">` +
         `<span class="atlas-popup-title">${p.name}</span>` +
         `<span class="atlas-popup-kind atlas-popup-kind-${p.kind}">${kindLabel}</span></div>` +
-        `<div class="atlas-popup-coords">${latStr}, ${lngStr} · X ${p.x.toFixed(0)} Y ${p.y.toFixed(0)}</div>` +
+        `<div class="atlas-popup-coords">${latStr}, ${lngStr} · ${hemi}</div>` +
+        `<div class="atlas-popup-coords">X ${p.x.toFixed(0)} · Y ${p.y.toFixed(0)}${nearest ? ` · Nearest: ${nearest}` : ""}</div>` +
         `<div class="atlas-popup-actions">` +
         `<button class="atlas-popup-btn" data-act="copy" data-name="${esc(p.name)}" data-x="${p.x}" data-y="${p.y}" data-lat="${lat}" data-lng="${lng}">Copy location</button>` +
         `</div>` +
