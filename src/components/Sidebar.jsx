@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
-import { BASE_LAYERS, KM_PER_PX, MI_PER_PX, KM2_PER_PX2 } from "../lib/scale";
+import { BASE_LAYERS, getLayer, KM_PER_PX, MI_PER_PX, KM2_PER_PX2 } from "../lib/scale";
 import { searchPlaces } from "../lib/places";
+import { latFromPixel, lngFromX } from "../lib/geo";
 import { IS_LOW_MEM } from "../lib/device";
 import MeasurementPanel from "./MeasurementPanel";
 import { IconChevron, IconPin, IconTrash } from "./icons";
@@ -288,6 +289,64 @@ function OverlayCheck({ label, checked, onChange, sub }) {
   );
 }
 
+function MapInfoRow({ label, value }) {
+  return (
+    <div className="flex items-baseline justify-between gap-2 py-[3px]">
+      <span className="text-[11px] text-[#6b7280] shrink-0">{label}</span>
+      <span className="text-[11px] font-mono text-[#111827] text-right truncate">{value}</span>
+    </div>
+  );
+}
+
+function MapInfoBlock({ layer, mapSize, view, placesInfo, status }) {
+  const active = getLayer(layer);
+  const counts = useMemo(() => {
+    const c = { nation: 0, capital: 0, city: 0, town: 0 };
+    for (const p of placesInfo) {
+      if (c[p.kind] != null) c[p.kind] += 1;
+    }
+    return c;
+  }, [placesInfo]);
+  const center =
+    view && mapSize?.W
+      ? `${Math.abs(latFromPixel(view.y, mapSize.H)).toFixed(1)}°${latFromPixel(view.y, mapSize.H) >= 0 ? "N" : "S"}, ${Math.abs(lngFromX(view.x, mapSize.W)).toFixed(1)}°${lngFromX(view.x, mapSize.W) >= 0 ? "E" : "W"}`
+      : "—";
+  return (
+    <div>
+      <div className="text-[15px] font-bold text-[#111827]">Urth Atlas</div>
+      <div className="text-[12px] text-[#6b7280] mt-0.5">The East Pacific · urthmaps.com</div>
+      <div className="mt-2.5 rounded-lg border border-[#e5e7eb] bg-[#f9fafb] px-2.5 py-1 divide-y divide-[#eef0f2]">
+        <MapInfoRow label="Layer" value={active.label} />
+        <MapInfoRow
+          label="Image"
+          value={mapSize ? `${mapSize.W}×${mapSize.H} px` : "…"}
+        />
+        <MapInfoRow label="Projection" value="Equirect. 75°N–75°S" />
+        <MapInfoRow
+          label="Zoom"
+          value={view?.z != null ? view.z.toFixed(2) : "—"}
+        />
+        <MapInfoRow label="Center" value={center} />
+        <MapInfoRow
+          label="Markers"
+          value={`${counts.nation} nat · ${counts.capital + counts.city + counts.town} setl`}
+        />
+        <MapInfoRow
+          label="Scale"
+          value={`${KM_PER_PX.toFixed(3)} km/px · ${KM2_PER_PX2.toFixed(2)} km²/px`}
+        />
+      </div>
+      <div className="mt-2 text-[11px] font-mono text-zinc-400">
+        {status === "loading"
+          ? "loading map…"
+          : status === "blocked"
+            ? "placeholder grid shown"
+            : "map live • infinite horizontal"}
+      </div>
+    </div>
+  );
+}
+
 export default function Sidebar({
   open,
   layer,
@@ -316,6 +375,8 @@ export default function Sidebar({
   mapSize,
   cursor,
   result,
+  view,
+  placesInfo = [],
   onCopy,
   onShare,
   onSaveResult,
@@ -345,18 +406,13 @@ export default function Sidebar({
       />
       <aside className="w-[340px] shrink-0 bg-white border-r border-[#e5e7eb] flex flex-col z-[1000] shadow-[2px_0_8px_rgba(0,0,0,0.04)] overflow-y-auto max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-[1050] max-md:w-[85vw] max-md:max-w-[340px] max-md:border-r-0 max-md:shadow-2xl">
       <Section title="Map Info">
-        <div className="text-[15px] font-bold text-[#111827]">Urth Atlas</div>
-        <div className="text-[12px] text-[#6b7280] mt-0.5">The East Pacific</div>
-        <div className="text-[11px] text-[#6b7280] mt-2 leading-5">
-          urthmaps.com • {KM2_PER_PX2.toFixed(2)} km²/px • {KM_PER_PX.toFixed(3)} km/px
-        </div>
-        <div className="mt-2 text-[11px] font-mono text-zinc-400">
-          {status === "loading"
-            ? "loading map…"
-            : status === "blocked"
-              ? "placeholder grid shown"
-              : "map live • infinite horizontal"}
-        </div>
+        <MapInfoBlock
+          layer={layer}
+          mapSize={mapSize}
+          view={view}
+          placesInfo={placesInfo}
+          status={status}
+        />
       </Section>
 
       <Section title="Base Layer">

@@ -425,6 +425,8 @@ export default function App() {
           mapSize={mapSize}
           cursor={cursor}
           result={result}
+          view={view}
+          placesInfo={places}
           onCopy={onCopy}
           onShare={onShare}
           onSaveResult={onSaveResult}

@@ -58,6 +58,14 @@ export const BASE_LAYERS = [
     chip: "bg-gradient-to-br from-sky-400 to-blue-600",
   },
   {
+    id: "timezones",
+    label: "Time Zones",
+    sub: "Time zone boundaries",
+    url: `${MAP_BASE}/timezones.png`,
+    fallbackUrl: `${MAP_BASE_RAW}/timezones.png`,
+    chip: "bg-gradient-to-br from-violet-400 via-purple-500 to-indigo-700",
+  },
+  {
     id: "blank",
     label: "Blank",
     sub: "Coastlines only",
