@@ -62,6 +62,29 @@ function Divider() {
   return <div className="h-px bg-[#0e7490]/15 my-2" />;
 }
 
+function BetaDisclaimer() {
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+      <div className="text-[10px] font-bold tracking-widest uppercase text-amber-700 mb-1">
+        Beta — unverified results
+      </div>
+      <p className="text-[11px] leading-4 text-amber-900">
+        These results are for reference only, and should not be used in any
+        official capacity (such as on your wiki). For a proper conversion, use{" "}
+        <a
+          href="https://urthmaps.com/docs#area"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold underline hover:text-amber-700"
+        >
+          our online tool
+        </a>
+        .
+      </p>
+    </div>
+  );
+}
+
 function CopyShare({ onCopy, onShare, text, shareState }) {
   return (
     <div className="mt-2.5 flex gap-1.5">
@@ -312,7 +335,7 @@ export default function MeasurementPanel({
               <Row label="mi from origin" value={`${cursor.miX.toFixed(1)}, ${cursor.miY.toFixed(1)} mi`} />
               <Row label="Map size" value={mapSize ? `${mapSize.W}×${mapSize.H}` : "…"} />
               <div className="mt-2 pt-2 border-t border-zinc-200 text-[10px] text-zinc-500 leading-3">
-                lat = 90° − (y/H)·180° · km = px·{KM_PER_PX.toFixed(4)} = {MI_PER_PX.toFixed(4)} mi · lon·cosφ
+                lat = (y/H)·150° − 75° · km = px·{KM_PER_PX.toFixed(4)} = {MI_PER_PX.toFixed(4)} mi · lon·cosφ
               </div>
             </div>
           ) : (
@@ -346,6 +369,8 @@ export default function MeasurementPanel({
             onShare={(st) => onShare({ ...st, pts: points })}
           />
         )}
+
+        {result && <BetaDisclaimer />}
 
         {!result && (
           <div className="text-[12px] text-zinc-400 leading-5">
