@@ -61,8 +61,11 @@ export const BASE_LAYERS = [
     id: "timezones",
     label: "Time Zones",
     sub: "Time zone boundaries",
-    url: `${MAP_BASE}/timezones.png`,
-    fallbackUrl: `${MAP_BASE_RAW}/timezones.png`,
+    // Local crop of the upstream export, re-windowed to the base 11232x7525
+    // grid (dateline overlap trimmed, coastline-verified to ~4px). The raw
+    // upstream file is 11860px wide and would misalign pins/measurements.
+    url: `${import.meta.env.BASE_URL}timezones.webp`,
+    fallbackUrl: `${import.meta.env.BASE_URL}timezones.png`,
     chip: "bg-gradient-to-br from-violet-400 via-purple-500 to-indigo-700",
   },
   {
