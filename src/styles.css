@@ -3,13 +3,13 @@
 @theme {
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
-  --font-display: "Sail", "Inter", system-ui, sans-serif;
 }
 
 .urth-logo {
-  font-family: var(--font-display);
+  font-family: "Bell MT", "Bell MT Bold", Georgia, "Times New Roman", serif;
+  font-weight: 700;
   color: #0e7490;
-  font-size: 26px;
+  font-size: 22px;
   line-height: 1;
   letter-spacing: 0.01em;
   white-space: nowrap;
