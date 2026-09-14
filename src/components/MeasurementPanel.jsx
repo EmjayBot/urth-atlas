@@ -321,6 +321,10 @@ export default function MeasurementPanel({
           "Select a tool to start measuring. Nothing is recorded until you click."}
       </div>
 
+      <div className="mt-3">
+        <BetaDisclaimer />
+      </div>
+
       <div className="mt-3 space-y-4">
         {/* Cursor */}
         <section>
@@ -369,8 +373,6 @@ export default function MeasurementPanel({
             onShare={(st) => onShare({ ...st, pts: points })}
           />
         )}
-
-        {result && <BetaDisclaimer />}
 
         {!result && (
           <div className="text-[12px] text-zinc-400 leading-5">
