@@ -536,10 +536,90 @@ export default function MapView({
     };
   }, [showGrid, showPixelGrid, mapSize]);
 
+  // ---- Viewport-culled world copies -----------------------------------------
+  // Data overlays + markers each span up to 5 world copies (5×84MP decodes).
+  // Only ~2 copies ever intersect the viewport, so groups keep copies for
+  // viewport ±1 and add/prune on view changes: identical rest pixels, far
+  // less memory + per-frame compositing. Adds happen continuously during
+  // motion (no pop-in); pruning waits for settle.
+  const mapSizeRef = useRefLatest(mapSize);
+  const overlayOpacityRef = useRefLatest(overlayOpacity);
+  const markersRef = useRef(null); // { grp, url } | null
+
+  const copyRange = () => {
+    const map = mapRef.current;
+    const ms = mapSizeRef.current;
+    if (!map || !ms?.W) return null;
+    const b = map.getBounds();
+    const lo = Math.min(b.getWest(), b.getEast());
+    const hi = Math.max(b.getWest(), b.getEast());
+    const half = IS_LOW_MEM ? 1 : HALF_COPIES;
+    return {
+      W: ms.W,
+      H: ms.H,
+      iMin: Math.max(-half, Math.floor(lo / ms.W) - 1),
+      iMax: Math.min(half, Math.floor(hi / ms.W) + 1),
+    };
+  };
+
+  const syncCopies = (grp, url, optsFn, prune) => {
+    const r = copyRange();
+    if (!r || !grp || !url) return;
+    const have = new Set();
+    grp.getLayers().forEach((l) => {
+      if (l._copyI != null) have.add(l._copyI);
+    });
+    for (let i = r.iMin; i <= r.iMax; i++) {
+      if (have.has(i)) continue;
+      const ov = L.imageOverlay(url, [[0, i * r.W], [r.H, (i + 1) * r.W]], optsFn());
+      ov._copyI = i;
+      grp.addLayer(ov);
+    }
+    if (prune) {
+      grp.getLayers().forEach((l) => {
+        if (l._copyI != null && (l._copyI < r.iMin || l._copyI > r.iMax))
+          grp.removeLayer(l);
+      });
+    }
+  };
+
+  const overlayTileOpts = () => ({
+    opacity: (overlayOpacityRef.current ?? 70) / 100,
+    interactive: false,
+    bubblingMouseEvents: false,
+    zIndex: 2,
+    className: "urth-data-overlay",
+  });
+  const markerTileOpts = () => ({
+    interactive: false,
+    bubblingMouseEvents: false,
+    zIndex: 5,
+    className: "urth-markers-tile",
+  });
+  const flagMarkerTiles = (grp) => {
+    grp.getLayers().forEach((l) => {
+      const el = l.getElement?.();
+      if (el) {
+        el.decoding = "async";
+        el.draggable = false;
+      }
+    });
+  };
+
+  const syncAllCoverage = (prune) => {
+    Object.values(overlayGroupsRef.current).forEach((e) => {
+      if (e?.grp && e.url) syncCopies(e.grp, e.url, overlayTileOpts, prune);
+    });
+    const m = markersRef.current;
+    if (m?.grp && m.url) {
+      syncCopies(m.grp, m.url, markerTileOpts, prune);
+      flagMarkerTiles(m.grp);
+    }
+  };
+
   // ---- Data overlays (stackable semi-transparent rasters) --------------------
-  // One layer group per enabled overlay id; groups persist across renders and
-  // are only added/removed on membership change, so dragging the opacity
-  // slider never reloads tiles. Groups rebuild if the base size changes.
+  // One group per enabled id; groups persist and only gain/lose world copies
+  // via syncAllCoverage, so toggling/opacity never reload tiles.
   const overlayGroupsRef = useRef({});
   const overlaySizeRef = useRef(null);
   useEffect(() => {
@@ -550,7 +630,7 @@ export default function MapView({
     const groups = overlayGroupsRef.current;
     if (overlaySizeRef.current !== sizeKey) {
       for (const id of Object.keys(groups)) {
-        groups[id].remove();
+        groups[id].grp.remove();
         delete groups[id];
       }
       overlaySizeRef.current = sizeKey;
@@ -558,38 +638,35 @@ export default function MapView({
     const wanted = new Set(dataOverlays ?? []);
     for (const id of Object.keys(groups)) {
       if (!wanted.has(id)) {
-        groups[id].remove();
+        groups[id].grp.remove();
         delete groups[id];
       }
     }
     let canceled = false;
     for (const id of wanted) {
-      if (groups[id]) continue;
+      if (groups[id]?.url) continue;
       const def = getLayer(id);
       if (!def?.overlay) continue;
-      const grp = L.layerGroup();
-      groups[id] = grp;
-      grp.addTo(map);
+      if (!groups[id]) {
+        const grp = L.layerGroup();
+        groups[id] = { grp, url: null };
+        grp.addTo(map);
+      }
       loadLayer(def)
         .then(({ url }) => {
-          if (canceled || overlayGroupsRef.current[id] !== grp) return;
-          for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
-            L.imageOverlay(url, [[0, i * W], [H, (i + 1) * W]], {
-              opacity: (overlayOpacity ?? 70) / 100,
-              interactive: false,
-              bubblingMouseEvents: false,
-              zIndex: 2,
-              className: "urth-data-overlay",
-            }).addTo(grp);
-          }
+          if (canceled || !overlayGroupsRef.current[id]) return;
+          overlayGroupsRef.current[id].url = url;
+          syncCopies(groups[id].grp, url, overlayTileOpts, true);
         })
         .catch(() => {
-          if (overlayGroupsRef.current[id] === grp) {
-            grp.remove();
+          const e = overlayGroupsRef.current[id];
+          if (e) {
+            e.grp.remove();
             delete overlayGroupsRef.current[id];
           }
         });
     }
+    syncAllCoverage(true);
     return () => {
       canceled = true;
     };
@@ -599,8 +676,8 @@ export default function MapView({
   // Overlay opacity applies to mounted tiles without reloading them.
   useEffect(() => {
     const o = (overlayOpacity ?? 70) / 100;
-    Object.values(overlayGroupsRef.current).forEach((grp) => {
-      grp.getLayers().forEach((l) => {
+    Object.values(overlayGroupsRef.current).forEach((e) => {
+      e.grp.getLayers().forEach((l) => {
         if (l.setOpacity) l.setOpacity(o);
       });
     });
@@ -610,38 +687,18 @@ export default function MapView({
   // Not needed for first paint — mounts after idle so the base map gets
   // bandwidth + decode time first. Served as PNG (source of truth) since the
   // fine text/lines showed softness complaints under WebP in some browsers.
+  // Copies are viewport-culled via syncAllCoverage like data overlays.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapSize?.W || !showMarkers) return;
     let canceled = false;
-    let grp = null;
     const mount = (url) => {
-      if (canceled || grp) return;
-      const { W, H } = mapSize;
-      grp = L.layerGroup();
-      for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
-        L.imageOverlay(
-          url,
-          [
-            [0, i * W],
-            [H, (i + 1) * W],
-          ],
-          {
-            interactive: false,
-            bubblingMouseEvents: false,
-            zIndex: 5,
-            className: "urth-markers-tile",
-          }
-        ).addTo(grp);
-      }
+      if (canceled || markersRef.current) return;
+      const grp = L.layerGroup();
+      markersRef.current = { grp, url };
       grp.addTo(map);
-      grp.getLayers().forEach((l) => {
-        const el = l.getElement?.();
-        if (el) {
-          el.decoding = "async";
-          el.draggable = false;
-        }
-      });
+      syncCopies(grp, url, markerTileOpts, true);
+      flagMarkerTiles(grp);
     };
     const start = () => {
       if (canceled) return;
@@ -655,16 +712,45 @@ export default function MapView({
       return () => {
         canceled = true;
         cancelIdleCallback(id);
-        if (grp) grp.remove();
+        markersRef.current?.grp.remove();
+        markersRef.current = null;
       };
     }
     const t = setTimeout(start, 800);
     return () => {
       canceled = true;
       clearTimeout(t);
-      if (grp) grp.remove();
+      markersRef.current?.grp.remove();
+      markersRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showMarkers, mapSize]);
+
+  // ---- Coverage tracking (add on move, prune on settle) -----------------------
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    let raf = 0;
+    const onMove = () => {
+      if (!raf) {
+        raf = requestAnimationFrame(() => {
+          raf = 0;
+          syncAllCoverage(false);
+        });
+      }
+    };
+    const onSettled = () => syncAllCoverage(true);
+    map.on("move", onMove);
+    map.on("moveend", onSettled);
+    map.on("zoomend", onSettled);
+    return () => {
+      map.off("move", onMove);
+      map.off("moveend", onSettled);
+      map.off("zoomend", onSettled);
+      if (raf) cancelAnimationFrame(raf);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ---- Coordinate labels (on true graticule intersections) -------------------
   useEffect(() => {
