@@ -717,13 +717,11 @@ export default function MapView({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !focus || !mapSize?.W) return;
-    if (focus.type === "nation" || focus.type === "city") {
-      const ll = placeLatLngRef.current?.[focus.name];
-      if (ll) {
-        map.setView(ll, -0.25);
-        const mk = placeMarkersRef.current?.[focus.name];
-        if (mk) mk.openPopup();
-      }
+    if (focus.name && placeLatLngRef.current?.[focus.name]) {
+      const ll = placeLatLngRef.current[focus.name];
+      map.setView(ll, -0.25);
+      const mk = placeMarkersRef.current?.[focus.name];
+      if (mk) mk.openPopup();
     } else if (focus.type === "coord") {
       const { a, b } = focus;
       let x = a;
@@ -863,7 +861,7 @@ export default function MapView({
       const latlng = [p.y, p.x];
       placeLatLngRef.current[p.name] = latlng;
       const href = p.href ? fullWikiUrl(p.href) : null;
-      const kindLabel = p.kind === "city" ? "City" : "Nation";
+      const kindLabel = p.kind.charAt(0).toUpperCase() + p.kind.slice(1);
       const lat = latFromPixel(p.y, H);
       const lng = lngFromX(p.x, W);
       const latStr = `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? "N" : "S"}`;
@@ -886,19 +884,22 @@ export default function MapView({
         (href
           ? `<a class="atlas-popup-link" href="${href}" target="_blank" rel="noopener noreferrer">Learn more on TEPwiki <span aria-hidden="true">↗</span></a>`
           : `<div class="atlas-popup-missing">No TEPwiki page linked yet</div>`);
-      if (p.kind === "city") {
+      // Settlement tiers (names already printed on the map layer, so no
+      // text labels here — tier reads from marker size/ring).
+      const SETTLEMENT_STYLE = {
+        capital: { radius: 5, weight: 2, fillColor: "#f59e0b" },
+        city: { radius: 3, weight: 1.5, fillColor: "#f59e0b" },
+        town: { radius: 2, weight: 1, fillColor: "#a8a29e" },
+      };
+      if (p.kind !== "nation") {
+        const st = SETTLEMENT_STYLE[p.kind] ?? SETTLEMENT_STYLE.city;
         const mk = L.circleMarker(latlng, {
-          radius: 3,
+          radius: st.radius,
           color: "#ffffff",
-          weight: 1.5,
-          fillColor: "#f59e0b",
+          weight: st.weight,
+          fillColor: st.fillColor,
           fillOpacity: 0.95,
         }).addTo(grp);
-        mk.bindTooltip(p.name, {
-          direction: "top",
-          offset: [0, -5],
-          className: "atlas-tooltip",
-        });
         mk.bindPopup(popup);
         mk.on("click", (e) => L.DomEvent.stopPropagation(e));
         placeMarkersRef.current[p.name] = mk;

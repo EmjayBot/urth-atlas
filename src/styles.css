@@ -308,6 +308,15 @@ body {
   background: #fef3c7;
   color: #b45309;
 }
+.atlas-popup-kind-capital {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #f59e0b;
+}
+.atlas-popup-kind-town {
+  background: #f5f5f4;
+  color: #57534e;
+}
 .atlas-popup-coords {
   font-family: var(--font-mono);
   font-size: 10px;

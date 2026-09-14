@@ -35,12 +35,13 @@ jobs:
             const patch = JSON.parse(m[1]);
 
             // Validate shape: { "Name": { kind, href, x, y } }
+            const KINDS = new Set(["nation", "capital", "city", "town"]);
             const clean = {};
             for (const [name, v] of Object.entries(patch)) {
               if (name.startsWith("_")) continue;
               if (
                 v && typeof v === "object" &&
-                (v.kind === "nation" || v.kind === "city") &&
+                KINDS.has(v.kind) &&
                 typeof v.href === "string" &&
                 Number.isFinite(v.x) && Number.isFinite(v.y)
               ) {

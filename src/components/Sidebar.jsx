@@ -12,7 +12,9 @@ const VISIBLE_LAYERS = IS_LOW_MEM
 
 const KINDS = [
   { id: "nation", label: "Nation" },
+  { id: "capital", label: "Capital" },
   { id: "city", label: "City" },
+  { id: "town", label: "Town" },
 ];
 
 function Section({ title, children, defaultOpen = true }) {
@@ -421,6 +423,7 @@ export default function Sidebar({
           label="City & region markers"
           checked={showMarkers}
           onChange={setShowMarkers}
+          sub="Capitals, cities & towns"
         />
         <OverlayCheck
           label="Nation markers"
