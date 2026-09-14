@@ -17,13 +17,19 @@ import {
   shortExtract,
 } from "../lib/wiki";
 import CylinderView from "./CylinderView";
+import { IS_LOW_MEM } from "../lib/device";
 
 const PICK_COLOR = "#0e7490";
 // Stability: 5 world copies (i in -2..2) is enough to fill ultra-wide screens
 // at max zoom-out. The old 21 copies of 11232x7525 images (~7GB decoded)
 // caused major jank / OOMs. Overlays reuse the same window.
-const WORLD_COPIES = 5;
-const HALF_COPIES = 2;
+// Mobile / low-memory devices get 3 copies: each 84MP decode is ~336MB and
+// mobile Safari jetsams the tab long before 5 copies finish decoding.
+const WORLD_COPIES = IS_LOW_MEM ? 3 : 5;
+const HALF_COPIES = IS_LOW_MEM ? 1 : 2;
+// Cloud texture size: full on desktop, quarter-pixel on low-memory devices.
+const CLOUD_W = IS_LOW_MEM ? 1024 : 2048;
+const CLOUD_H = IS_LOW_MEM ? 512 : 1024;
 
 // Zoom levels: -3 = "all the way out" (whole flat map fits the screen).
 // Beyond -3 is the easter egg: keep zooming and the repeating map reads as a
@@ -117,7 +123,9 @@ export default function MapView({
 
     const map = L.map(container, {
       crs: L.CRS.Simple,
-      minZoom: ABSOLUTE_MIN_ZOOM,
+      // Low-memory devices stop at the full-world view: no cylinder mode,
+      // which would decode even more tiles while hidden behind the scene.
+      minZoom: IS_LOW_MEM ? NORMAL_MIN_ZOOM : ABSOLUTE_MIN_ZOOM,
       maxZoom: 6,
       zoomSnap: 0.25,
       zoomDelta: 0.5,
@@ -127,8 +135,10 @@ export default function MapView({
       doubleClickZoom: false,
       attributionControl: false,
       preferCanvas: true,
-      zoomAnimation: true,
-      fadeAnimation: true,
+      // Per-frame scaling of 84MP tiles during pinch-zoom is what kills
+      // mobile GPUs — snap instead of animating on low-memory devices.
+      zoomAnimation: !IS_LOW_MEM,
+      fadeAnimation: !IS_LOW_MEM,
       markerZoomAnimation: true,
       trackResize: true,
       wheelPxPerZoomLevel: 90,
@@ -355,7 +365,8 @@ export default function MapView({
   }, []);
 
   // ---- Cylinder easter egg (hides the flat Leaflet map) -----------------------
-  const cylinder = zoomLevel !== null && zoomLevel <= CYLINDER_ZOOM;
+  // Disabled on low-memory devices (can't zoom that far out anyway).
+  const cylinder = !IS_LOW_MEM && zoomLevel !== null && zoomLevel <= CYLINDER_ZOOM;
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -534,12 +545,17 @@ export default function MapView({
     let canceled = false;
     const gen = () => {
       if (canceled) return;
-      const base = makeCloudTexture(2048, 1024, { coverage: cov, seed: 20260913 });
+      const base = makeCloudTexture(CLOUD_W, CLOUD_H, { coverage: cov, seed: 20260913 });
       if (canceled) return;
+      // Low-memory devices skip the second sheet (half the textures + passes).
+      if (IS_LOW_MEM) {
+        if (!canceled) setCloudUrls({ base, wisp: null, cov });
+        return;
+      }
       // Yield between the two heavy passes so pan/zoom stays smooth.
       setTimeout(() => {
         if (canceled) return;
-        const wisp = makeCloudTexture(2048, 1024, {
+        const wisp = makeCloudTexture(CLOUD_W, CLOUD_H, {
           coverage: Math.max(0.3, cov - 0.1),
           softness: 0.24,
           seed: 770213,
@@ -584,15 +600,17 @@ export default function MapView({
       });
       overlays.push({ ov, cls: "urth-cloud" });
       grp.addLayer(ov);
-      const wisp = L.imageOverlay(wispUrl, bounds, {
-        opacity: Math.min(1, baseOpacity * 0.55),
-        interactive: false,
-        bubblingMouseEvents: false,
-        className: "urth-cloud-sheet",
-        zIndex: 4,
-      });
-      overlays.push({ ov: wisp, cls: "urth-cloud-wisp" });
-      grp.addLayer(wisp);
+      if (wispUrl) {
+        const wisp = L.imageOverlay(wispUrl, bounds, {
+          opacity: Math.min(1, baseOpacity * 0.55),
+          interactive: false,
+          bubblingMouseEvents: false,
+          className: "urth-cloud-sheet",
+          zIndex: 4,
+        });
+        overlays.push({ ov: wisp, cls: "urth-cloud-wisp" });
+        grp.addLayer(wisp);
+      }
     }
     grp.addTo(map);
     // Bring clouds above the base tiles but below markers/popups.

@@ -1,8 +1,14 @@
 import { useMemo, useState } from "react";
 import { BASE_LAYERS, KM_PER_PX, MI_PER_PX, KM2_PER_PX2 } from "../lib/scale";
 import { searchPlaces } from "../lib/places";
+import { IS_LOW_MEM } from "../lib/device";
 import MeasurementPanel from "./MeasurementPanel";
 import { IconChevron, IconPin, IconTrash } from "./icons";
+
+// Satellite (+ its cloud layer) is disabled on low-memory devices.
+const VISIBLE_LAYERS = IS_LOW_MEM
+  ? BASE_LAYERS.filter((l) => l.id !== "satellite")
+  : BASE_LAYERS;
 
 const KINDS = [
   { id: "nation", label: "Nation" },
@@ -312,7 +318,7 @@ export default function Sidebar({
 
       <Section title="Base Layer">
         <div className="space-y-1">
-          {BASE_LAYERS.map((l) => (
+          {VISIBLE_LAYERS.map((l) => (
             <label
               key={l.id}
               className="flex items-center gap-2.5 py-1 select-none cursor-pointer group"
@@ -361,13 +367,15 @@ export default function Sidebar({
           onChange={setShowPixelGrid}
         />
         <OverlayCheck label="Coordinates" checked={showCoords} onChange={setShowCoords} />
-        <OverlayCheck
-          label="Clouds"
-          checked={showClouds}
-          onChange={setShowClouds}
-          sub="Zoomed-out satellite view"
-        />
-        {showClouds && (
+        {!IS_LOW_MEM && (
+          <OverlayCheck
+            label="Clouds"
+            checked={showClouds}
+            onChange={setShowClouds}
+            sub="Zoomed-out satellite view"
+          />
+        )}
+        {showClouds && !IS_LOW_MEM && (
           <div className="ml-6 mt-1 mb-2 rounded-lg border border-[#e5e7eb] bg-[#f9fafb] p-2.5 space-y-2.5">
             <div>
               <div className="flex items-center justify-between text-[10px] font-bold tracking-[0.14em] uppercase text-[#6b7280] mb-1">

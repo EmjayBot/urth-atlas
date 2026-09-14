@@ -1,4 +1,5 @@
 import { IconPlus, IconMinus, IconCompass, IconTrash } from "./icons";
+import { IS_LOW_MEM } from "../lib/device";
 
 const TOOL_LABELS = [
   { id: "measure", label: "Measure" },
@@ -51,27 +52,29 @@ export default function MapControls({
         </button>
       </div>
 
-      {/* Bottom-left: layer toggle pill */}
-      <div className="absolute bottom-3 left-3 z-[1000]">
-        <div className="bg-white rounded-md shadow-[0_1px_3px_rgba(0,0,0,0.1)] border border-[#d1d5db] p-0.5 flex">
-          {[
-            { id: "map", label: "Map" },
-            { id: "satellite", label: "Satellite" },
-          ].map((v) => (
-            <button
-              key={v.id}
-              onClick={() => setLayer(v.id)}
-              className={`h-7 px-3.5 rounded text-[12px] font-semibold uppercase tracking-wide transition-all ${
-                layer === v.id
-                  ? "bg-[#0e7490] text-white"
-                  : "text-zinc-600 hover:text-zinc-900"
-              }`}
-            >
-              {v.label}
-            </button>
-          ))}
+      {/* Bottom-left: layer toggle pill (hidden on mobile: base map only) */}
+      {!IS_LOW_MEM && (
+        <div className="absolute bottom-3 left-3 z-[1000]">
+          <div className="bg-white rounded-md shadow-[0_1px_3px_rgba(0,0,0,0.1)] border border-[#d1d5db] p-0.5 flex">
+            {[
+              { id: "map", label: "Map" },
+              { id: "satellite", label: "Satellite" },
+            ].map((v) => (
+              <button
+                key={v.id}
+                onClick={() => setLayer(v.id)}
+                className={`h-7 px-3.5 rounded text-[12px] font-semibold uppercase tracking-wide transition-all ${
+                  layer === v.id
+                    ? "bg-[#0e7490] text-white"
+                    : "text-zinc-600 hover:text-zinc-900"
+                }`}
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Mobile tool bar */}
       <div className="md:hidden absolute top-3 left-3 right-[64px] z-[1000] flex gap-1.5">

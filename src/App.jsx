@@ -10,6 +10,7 @@ import { measureDistance, measurePath, measureArea } from "./lib/measure";
 import { parseUrl, writeUrl, shareLink } from "./lib/url";
 import { mergePlaces } from "./lib/places";
 import { num } from "./lib/format";
+import { IS_LOW_MEM } from "./lib/device";
 
 const initial = parseUrl();
 const LOCAL_KEY = "urth-atlas.places.local.v2";
@@ -30,7 +31,12 @@ export default function App() {
   const [cursor, setCursor] = useState(null);
   const [mapSize, setMapSize] = useState(null);
   const [status, setStatus] = useState("loading");
-  const [layer, setLayer] = useState(initial.layer ?? "map");
+  const [layer, setLayerRaw] = useState(
+    initial.layer === "satellite" && IS_LOW_MEM ? "map" : (initial.layer ?? "map")
+  );
+  // Satellite is disabled on low-memory devices (3MB + extra decodes crash
+  // mobile tabs) — any attempt to select it falls back to the base map.
+  const setLayer = (l) => setLayerRaw(l === "satellite" && IS_LOW_MEM ? "map" : l);
   const [opacity, setOpacity] = useState(100);
   const [showScale, setShowScale] = useState(true);
   const [showGrid, setShowGrid] = useState(true);
