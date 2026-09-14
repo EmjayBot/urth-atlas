@@ -145,7 +145,10 @@ export default function App() {
     const start = () => {
       if (canceled) return;
       warm("timezones.webp");
-      if (!IS_LOW_MEM) warm("satellite.webp");
+      if (!IS_LOW_MEM) {
+        warm("satellite.webp");
+        warm("TEPmap.svg");
+      }
     };
     if (typeof requestIdleCallback === "function") {
       const id = requestIdleCallback(start, { timeout: 4000 });

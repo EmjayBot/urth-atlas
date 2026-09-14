@@ -683,6 +683,50 @@ export default function MapView({
     });
   }, [overlayOpacity]);
 
+  // ---- TEPmap easter egg: revealed under the base layer at 0% opacity ------
+  // Mounted once (never torn down on opacity drags), rebuilt only if the
+  // base size changes. Desktop preloads it idle; phones fetch on first dip
+  // below 100% so it never taxes first paint.
+  const tepRef = useRef(null);
+  const tepSizeRef = useRef(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapSize?.W) return;
+    const { W, H } = mapSize;
+    const sizeKey = `${W}x${H}`;
+    if (tepSizeRef.current !== sizeKey) {
+      tepRef.current?.grp.remove();
+      tepRef.current = null;
+      tepSizeRef.current = sizeKey;
+    }
+    if ((opacity ?? 100) >= 100 && !tepRef.current) return () => {};
+    if (tepRef.current) return () => {};
+    let canceled = false;
+    const url = `${import.meta.env.BASE_URL}TEPmap.svg`;
+    const probe = new Image();
+    probe.onload = () => {
+      if (canceled || tepRef.current || !mapRef.current) return;
+      const grp = L.layerGroup();
+      for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
+        L.imageOverlay(url, [[0, i * W], [H, (i + 1) * W]], {
+          opacity: 1,
+          interactive: false,
+          bubblingMouseEvents: false,
+          zIndex: 0,
+          className: "urth-tep-underlay",
+        }).addTo(grp);
+      }
+      grp.addTo(mapRef.current);
+      tepRef.current = { grp };
+    };
+    probe.onerror = () => {};
+    probe.src = url;
+    return () => {
+      canceled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapSize, opacity]);
+
   // ---- City & subnational markers overlay (idle-deferred) ----------------------
   // Not needed for first paint — mounts after idle so the base map gets
   // bandwidth + decode time first. Served as PNG (source of truth) since the
@@ -975,9 +1019,9 @@ export default function MapView({
   // Settlement tiers (names already printed on the map layer, so no text
   // labels here — tier reads from marker size/ring).
   const SETTLEMENT_STYLE = {
-    capital: { radius: 4, weight: 1.5, fillColor: "#f59e0b" },
-    city: { radius: 2.5, weight: 1.25, fillColor: "#f59e0b" },
-    town: { radius: 1.5, weight: 1, fillColor: "#a8a29e" },
+    capital: { radius: 3, weight: 1, fillColor: "#f59e0b" },
+    city: { radius: 2, weight: 1, fillColor: "#f59e0b" },
+    town: { radius: 1.25, weight: 1, fillColor: "#a8a29e" },
   };
   useEffect(() => {
     const map = mapRef.current;
