@@ -8,7 +8,7 @@ import {
   getLayer,
 } from "../lib/scale";
 import { wrapX, wrapY, latFromPixel, lngFromX, pixelFromLat, pixelFromLng } from "../lib/geo";
-import { loadLayer, makeFallbackGrid, makeCloudTexture } from "../lib/imageCache";
+import { loadLayer, makeFallbackGrid } from "../lib/imageCache";
 import {
   fullWikiUrl,
   wikiTitleFor,
@@ -27,9 +27,6 @@ const PICK_COLOR = "#0e7490";
 // mobile Safari jetsams the tab long before 5 copies finish decoding.
 const WORLD_COPIES = IS_LOW_MEM ? 3 : 5;
 const HALF_COPIES = IS_LOW_MEM ? 1 : 2;
-// Cloud texture size: full on desktop, quarter-pixel on low-memory devices.
-const CLOUD_W = IS_LOW_MEM ? 1024 : 2048;
-const CLOUD_H = IS_LOW_MEM ? 512 : 1024;
 
 // Zoom levels: -3 = "all the way out" (whole flat map fits the screen).
 // Beyond -3 is the easter egg: keep zooming and the repeating map reads as a
@@ -37,9 +34,6 @@ const CLOUD_H = IS_LOW_MEM ? 512 : 1024;
 const NORMAL_MIN_ZOOM = -3;
 const CYLINDER_ZOOM = -3.5;
 const ABSOLUTE_MIN_ZOOM = -7;
-// Google-Earth style: clouds only read as real at whole-world zooms.
-// Shown at or beyond CLOUD_MAX_ZOOM, never once zoomed in or in cylinder.
-const CLOUD_MAX_ZOOM = -2;
 
 function useRefLatest(value) {
   const ref = useRef(value);
@@ -75,12 +69,9 @@ export default function MapView({
   showGrid,
   showPixelGrid,
   showCoords,
-  showClouds,
   showMarkers,
   onContextMenu,
   onPopupAction,
-  cloudOpacity = 58,
-  cloudDensity = "normal",
 }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
@@ -364,9 +355,8 @@ export default function MapView({
     map.on("moveend", onMoveEnd);
     map.on("zoomend", updateScale);
 
-    // During pan/zoom gestures, hide the expensive overlay sheets (clouds,
-    // markers) so each frame composites ~half the pixels. They fade back
-    // the moment motion ends — rest quality is untouched.
+    // During pan/zoom gestures, hide the expensive marker sheets so each
+    // frame composites fewer pixels. They fade back the moment motion ends.
     const motionOn = () => map.getContainer().classList.add("urth-in-motion");
     const motionOff = () => map.getContainer().classList.remove("urth-in-motion");
     map.on("movestart", motionOn);
@@ -543,120 +533,6 @@ export default function MapView({
       grp.remove();
     };
   }, [showGrid, showPixelGrid, mapSize]);
-
-  // ---- Cloud layer (satellite view only) --------------------------------------
-  // Two depth-stacked sheets: a soft base deck + a faint fast cirrus wisp
-  // layer for parallax. GPU transform drift (no layout thrash), textures
-  // memoised in imageCache. Density presets map to FBM coverage.
-  // Google-Earth style gating: only at whole-world zooms (CLOUD_MAX_ZOOM and
-  // out, above cylinder mode). Textures generate off the critical path
-  // (idle-deferred) and stay cached, so zooming back out is instant.
-  const cloudsAllowed =
-    layer === "satellite" &&
-    showClouds &&
-    zoomLevel !== null &&
-    zoomLevel <= CLOUD_MAX_ZOOM &&
-    zoomLevel > CYLINDER_ZOOM;
-  const [cloudUrls, setCloudUrls] = useState(null);
-  useEffect(() => {
-    if (layer !== "satellite" || !showClouds) {
-      setCloudUrls(null);
-      return;
-    }
-    // Keep the cache while zoomed in / in cylinder so returning is instant.
-    if (!cloudsAllowed) return;
-    const cov =
-      cloudDensity === "light" ? 0.44 : cloudDensity === "stormy" ? 0.6 : 0.54;
-    if (cloudUrls && cloudUrls.cov === cov) return;
-    let canceled = false;
-    const gen = () => {
-      if (canceled) return;
-      const base = makeCloudTexture(CLOUD_W, CLOUD_H, { coverage: cov, seed: 20260913 });
-      if (canceled) return;
-      // Low-memory devices skip the second sheet (half the textures + passes).
-      if (IS_LOW_MEM) {
-        if (!canceled) setCloudUrls({ base, wisp: null, cov });
-        return;
-      }
-      // Yield between the two heavy passes so pan/zoom stays smooth.
-      setTimeout(() => {
-        if (canceled) return;
-        const wisp = makeCloudTexture(CLOUD_W, CLOUD_H, {
-          coverage: Math.max(0.3, cov - 0.1),
-          softness: 0.24,
-          seed: 770213,
-          alpha: 150,
-        });
-        if (!canceled) setCloudUrls({ base, wisp, cov });
-      }, 30);
-    };
-    if (typeof requestIdleCallback === "function") {
-      const id = requestIdleCallback(gen, { timeout: 1500 });
-      return () => {
-        canceled = true;
-        cancelIdleCallback(id);
-      };
-    }
-    const t = setTimeout(gen, 600);
-    return () => {
-      canceled = true;
-      clearTimeout(t);
-    };
-  }, [layer, showClouds, cloudDensity, cloudsAllowed, cloudUrls]);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapSize?.W || !cloudsAllowed || !cloudUrls) return;
-    const grp = L.layerGroup({ interactive: false });
-    const { W, H } = mapSize;
-    const { base: baseUrl, wisp: wispUrl } = cloudUrls;
-    const baseOpacity = (cloudOpacity ?? 58) / 100;
-    const overlays = [];
-    for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
-      const bounds = [
-        [0, i * W],
-        [H, (i + 1) * W],
-      ];
-      const ov = L.imageOverlay(baseUrl, bounds, {
-        opacity: baseOpacity,
-        interactive: false,
-        bubblingMouseEvents: false,
-        className: "urth-cloud-sheet",
-        zIndex: 3,
-      });
-      overlays.push({ ov, cls: "urth-cloud" });
-      grp.addLayer(ov);
-      if (wispUrl) {
-        const wisp = L.imageOverlay(wispUrl, bounds, {
-          opacity: Math.min(1, baseOpacity * 0.55),
-          interactive: false,
-          bubblingMouseEvents: false,
-          className: "urth-cloud-sheet",
-          zIndex: 4,
-        });
-        overlays.push({ ov: wisp, cls: "urth-cloud-wisp" });
-        grp.addLayer(wisp);
-      }
-    }
-    grp.addTo(map);
-    // Bring clouds above the base tiles but below markers/popups.
-    grp.getLayers().forEach((l) => {
-      const el = l.getElement?.();
-      if (el) {
-        el.style.pointerEvents = "none";
-      }
-    });
-    overlays.forEach(({ ov, cls }) => {
-      const el = ov.getElement();
-      if (el) {
-        el.classList.add(cls);
-        el.draggable = false;
-      }
-    });
-    return () => {
-      grp.remove();
-    };
-  }, [cloudsAllowed, cloudOpacity, cloudUrls, mapSize]);
 
   // ---- City & subnational markers overlay (idle-deferred) ----------------------
   // Not needed for first paint — mounts after idle so the base map gets

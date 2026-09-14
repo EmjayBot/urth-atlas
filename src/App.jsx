@@ -51,9 +51,6 @@ export default function App() {
   const [showGrid, setShowGrid] = useState(true);
   const [showPixelGrid, setShowPixelGrid] = useState(false);
   const [showCoords, setShowCoords] = useState(false);
-  const [showClouds, setShowClouds] = useState(true);
-  const [cloudOpacity, setCloudOpacity] = useState(58);
-  const [cloudDensity, setCloudDensity] = useState("normal");
   const [showMarkers, setShowMarkers] = useState(true);
   const [showNations, setShowNations] = useState(initial.nations ?? true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -414,12 +411,6 @@ export default function App() {
           setShowPixelGrid={setShowPixelGrid}
           showCoords={showCoords}
           setShowCoords={setShowCoords}
-          showClouds={showClouds}
-          setShowClouds={setShowClouds}
-          cloudOpacity={cloudOpacity}
-          setCloudOpacity={setCloudOpacity}
-          cloudDensity={cloudDensity}
-          setCloudDensity={setCloudDensity}
           showMarkers={showMarkers}
           setShowMarkers={setShowMarkers}
           showNations={showNations}
@@ -482,9 +473,6 @@ export default function App() {
             showGrid={showGrid}
             showPixelGrid={showPixelGrid}
             showCoords={showCoords}
-            showClouds={showClouds}
-            cloudOpacity={cloudOpacity}
-            cloudDensity={cloudDensity}
             showMarkers={showMarkers}
             onContextMenu={(p) =>
               setCtx({

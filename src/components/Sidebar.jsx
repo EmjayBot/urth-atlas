@@ -294,12 +294,6 @@ export default function Sidebar({
   setShowPixelGrid,
   showCoords,
   setShowCoords,
-  showClouds,
-  setShowClouds,
-  cloudOpacity = 58,
-  setCloudOpacity = () => {},
-  cloudDensity = "normal",
-  setCloudDensity = () => {},
   showMarkers,
   setShowMarkers,
   showNations,
@@ -408,56 +402,6 @@ export default function Sidebar({
           onChange={setShowPixelGrid}
         />
         <OverlayCheck label="Coordinates" checked={showCoords} onChange={setShowCoords} />
-        {!IS_LOW_MEM && (
-          <OverlayCheck
-            label="Clouds"
-            checked={showClouds}
-            onChange={setShowClouds}
-            sub="Zoomed-out satellite view"
-          />
-        )}
-        {showClouds && !IS_LOW_MEM && (
-          <div className="ml-6 mt-1 mb-2 rounded-lg border border-[#e5e7eb] bg-[#f9fafb] p-2.5 space-y-2.5">
-            <div>
-              <div className="flex items-center justify-between text-[10px] font-bold tracking-[0.14em] uppercase text-[#6b7280] mb-1">
-                <span>Cloud opacity</span>
-                <span className="font-mono">{cloudOpacity}%</span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={90}
-                value={cloudOpacity}
-                onChange={(e) => setCloudOpacity(Number(e.target.value))}
-                className="w-full accent-[#0e7490] cursor-pointer"
-              />
-            </div>
-            <div>
-              <div className="text-[10px] font-bold tracking-[0.14em] uppercase text-[#6b7280] mb-1">
-                Cover
-              </div>
-              <div className="flex gap-1 rounded-md bg-white p-1 border border-[#e5e7eb]">
-                {[
-                  { id: "light", label: "Light" },
-                  { id: "normal", label: "Realistic" },
-                  { id: "stormy", label: "Stormy" },
-                ].map((d) => (
-                  <button
-                    key={d.id}
-                    onClick={() => setCloudDensity(d.id)}
-                    className={`flex-1 h-6 rounded text-[11px] font-bold uppercase transition-all ${
-                      cloudDensity === d.id
-                        ? "bg-white shadow-sm text-[#111827] border border-[#d1d5db]"
-                        : "text-zinc-500 hover:text-zinc-800"
-                    }`}
-                  >
-                    {d.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
         <OverlayCheck
           label="City & region markers"
           checked={showMarkers}
