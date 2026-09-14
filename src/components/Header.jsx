@@ -25,7 +25,7 @@ function Header({
       <div className="flex items-center gap-2 shrink-0">
         <IconGlobe width={20} height={20} className="text-[#0e7490]" />
         <span className="urth-logo hidden sm:inline" aria-label="Urth Atlas">
-          URTH ATLAS
+          Urth Atlas
         </span>
       </div>
 
