@@ -867,7 +867,9 @@ export default function MapView({
       const latStr = `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? "N" : "S"}`;
       const lngStr = `${Math.abs(lng).toFixed(1)}°${lng >= 0 ? "E" : "W"}`;
       const hemi = lat >= 0 ? "Northern hemisphere" : "Southern hemisphere";
-      const nearest = nearestOf(p);
+      // Nearest neighbour only for settlements — nation pins are hand-placed
+      // region labels, so a distance between them is misleading.
+      const nearest = p.kind === "nation" ? null : nearestOf(p);
       const esc = (s) =>
         String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
       const wikiTitle = wikiTitleFor(p);
@@ -880,6 +882,7 @@ export default function MapView({
         `<div class="atlas-popup-wiki" hidden></div>` +
         `<div class="atlas-popup-actions">` +
         `<button class="atlas-popup-btn" data-act="copy" data-name="${esc(p.name)}" data-x="${p.x}" data-y="${p.y}" data-lat="${lat}" data-lng="${lng}">Copy location</button>` +
+        `<button class="atlas-popup-btn atlas-popup-btn-danger" data-act="remove" data-name="${esc(p.name)}" data-x="${p.x}" data-y="${p.y}" title="Remove this marker">Remove</button>` +
         `</div>` +
         (href
           ? `<a class="atlas-popup-link" href="${href}" target="_blank" rel="noopener noreferrer">Learn more on TEPwiki <span aria-hidden="true">↗</span></a>`

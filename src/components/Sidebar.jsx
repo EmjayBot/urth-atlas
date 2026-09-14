@@ -43,6 +43,9 @@ function PinsSection({
   target,
   setTarget,
   local,
+  shared,
+  removed,
+  onUndoRemove,
   sharedStatus,
   sharedCount,
   onCreate,
@@ -62,6 +65,13 @@ function PinsSection({
   }, [local]);
   const matches = useMemo(() => searchPlaces(allPlaces, q, 6), [allPlaces, q]);
   const localCount = Object.keys(local).length;
+  // Shared names marked for community removal (still present upstream,
+  // not re-added locally).
+  const pendingRemovals = useMemo(
+    () => Object.keys(removed ?? {}).filter((n) => shared?.[n] && !local[n]),
+    [removed, shared, local]
+  );
+  const pendingCount = localCount + pendingRemovals.length;
 
   const pick = (n) => {
     const p = allPlaces.find((x) => x.name === n);
@@ -134,7 +144,7 @@ function PinsSection({
         </button>
       </div>
 
-      {localCount > 0 && (
+      {pendingCount > 0 && (
         <>
           <input
             value={q}
@@ -190,23 +200,49 @@ function PinsSection({
           <div className="flex gap-1.5">
             <button
               onClick={onSubmit}
-              disabled={localCount === 0}
+              disabled={pendingCount === 0}
               className="flex-1 h-8 rounded-md bg-emerald-600 text-white text-[12px] font-semibold flex items-center justify-center gap-1.5 disabled:opacity-40 hover:bg-emerald-700 transition-colors"
             >
               <IconPin width={13} height={13} /> Submit to map
+              {pendingCount > 0 && ` (${pendingCount})`}
             </button>
             <button
               onClick={onClear}
-              disabled={localCount === 0}
+              disabled={pendingCount === 0}
               className="h-8 px-3 rounded-md bg-white border border-[#d1d5db] text-zinc-600 text-[12px] font-semibold disabled:opacity-40 hover:bg-[#f9fafb] transition-colors"
             >
               Clear
             </button>
           </div>
+          {pendingRemovals.length > 0 && (
+            <div className="rounded-md border border-red-200 bg-red-50/60">
+              <div className="px-2.5 pt-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-red-500">
+                Pending removal ({pendingRemovals.length})
+              </div>
+              {pendingRemovals.map((n) => (
+                <div
+                  key={n}
+                  className="flex items-center gap-2 px-2.5 py-1.5 border-b border-red-100 last:border-0"
+                >
+                  <span className="w-2 h-2 rounded-full shrink-0 bg-red-400" />
+                  <span className="text-[12px] text-zinc-700 truncate flex-1 line-through">
+                    {n}
+                  </span>
+                  <button
+                    onClick={() => onUndoRemove(n)}
+                    title="Keep this place"
+                    className="h-6 px-2 rounded text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50 border border-emerald-200 shrink-0"
+                  >
+                    Undo
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </>
       )}
 
-      {localCount === 0 && (
+      {pendingCount === 0 && (
         <div className="text-[12px] text-[#6b7280]">
           No pins yet — add one above.
           {sharedStatus === "ok" && (
@@ -286,6 +322,9 @@ export default function Sidebar({
   target,
   setTarget,
   local,
+  shared,
+  removed,
+  onUndoRemove,
   sharedStatus,
   sharedCount,
   onCreate,
@@ -486,6 +525,9 @@ export default function Sidebar({
           target={target}
           setTarget={setTarget}
           local={local}
+          shared={shared}
+          removed={removed}
+          onUndoRemove={onUndoRemove}
           sharedStatus={sharedStatus}
           sharedCount={sharedCount}
           onCreate={onCreate}

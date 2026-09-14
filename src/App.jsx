@@ -14,10 +14,19 @@ import { IS_LOW_MEM } from "./lib/device";
 
 const initial = parseUrl();
 const LOCAL_KEY = "urth-atlas.places.local.v2";
+const REMOVED_KEY = "urth-atlas.places.removed.v1";
 
 function loadLocal() {
   try {
     return JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function loadRemoved() {
+  try {
+    return JSON.parse(localStorage.getItem(REMOVED_KEY) || "{}");
   } catch {
     return {};
   }
@@ -59,6 +68,8 @@ export default function App() {
   const [shared, setShared] = useState({});
   const [sharedStatus, setSharedStatus] = useState("loading");
   const [local, setLocal] = useState(loadLocal);
+  // Community removal marks: shared names hidden locally until submitted.
+  const [removed, setRemoved] = useState(loadRemoved);
   const [target, setTarget] = useState(null);
 
   const mapRef = useRef(null);
@@ -70,6 +81,12 @@ export default function App() {
       localStorage.setItem(LOCAL_KEY, JSON.stringify(local));
     } catch {}
   }, [local]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(REMOVED_KEY, JSON.stringify(removed));
+    } catch {}
+  }, [removed]);
 
   // Load shared community places.
   useEffect(() => {
@@ -97,7 +114,7 @@ export default function App() {
     };
   }, []);
 
-  const places = useMemo(() => mergePlaces(shared, local), [shared, local]);
+  const places = useMemo(() => mergePlaces(shared, local, removed), [shared, local, removed]);
 
   const stateRef = useRef({ mode, points, showNations, view, layer });
   useEffect(() => {
@@ -202,6 +219,13 @@ export default function App() {
     const clean = name.trim();
     if (!clean) return;
     setLocal((l) => ({ ...l, [clean]: { kind, href: href || `/wiki/${clean.replace(/ /g, "_")}` } }));
+    // Re-adding clears any pending community removal for the same name.
+    setRemoved((r) => {
+      if (!r[clean]) return r;
+      const next = { ...r };
+      delete next[clean];
+      return next;
+    });
     setTarget({ name: clean, kind, href: href || `/wiki/${clean.replace(/ /g, "_")}` });
     showToast(`Now click where ${clean} is`);
   };
@@ -216,21 +240,45 @@ export default function App() {
     setTarget(null);
   };
 
+  // Local-only pins vanish immediately; shared markers become removal marks
+  // (hidden locally, submitted to the community map as null tombstones).
   const removePlace = (name) => {
+    let wasLocal = false;
     setLocal((l) => {
+      if (!l[name]) return l;
+      wasLocal = true;
       const next = { ...l };
       delete next[name];
       return next;
     });
-    showToast(`Removed ${name}`);
+    if (wasLocal) {
+      showToast(`Removed ${name}`);
+      return;
+    }
+    setRemoved((r) => ({ ...r, [name]: true }));
+    showToast(`Marked ${name} for removal — submit to apply`);
+  };
+
+  const undoRemove = (name) => {
+    setRemoved((r) => {
+      if (!r[name]) return r;
+      const next = { ...r };
+      delete next[name];
+      return next;
+    });
+    showToast(`Kept ${name}`);
   };
 
   // Build a PR-ready diff of local changes vs shared, open a GitHub issue.
-  // The map-update workflow auto-merges these into positions.json on deploy.
+  // The map-update workflow auto-merges these into positions.json on deploy
+  // (additions/edits as objects, removals as null tombstones).
   const submitChanges = () => {
     const diff = {};
     for (const [name, v] of Object.entries(local)) {
       diff[name] = { kind: v.kind, href: v.href, x: v.x, y: v.y };
+    }
+    for (const name of Object.keys(removed)) {
+      if (!local[name] && shared[name]) diff[name] = null;
     }
     if (!Object.keys(diff).length) {
       showToast("No local changes to submit");
@@ -251,6 +299,7 @@ export default function App() {
 
   const clearLocal = () => {
     setLocal({});
+    setRemoved({});
     setTarget(null);
     showToast("Cleared local places");
   };
@@ -288,13 +337,15 @@ export default function App() {
     showToast("Click a second point");
   };
 
-  // Leaflet popup quick action (Copy location).
+  // Leaflet popup quick actions (Copy location / Remove marker).
   const onPopupAction = (act, p) => {
     if (!p) return;
     if (act === "copy") {
       const lat = p.lat != null ? `${Math.abs(p.lat).toFixed(2)}°${p.lat >= 0 ? "N" : "S"}` : "";
       const lng = p.lng != null ? `${Math.abs(p.lng).toFixed(2)}°${p.lng >= 0 ? "E" : "W"}` : "";
       onCopy(`${p.name} — X ${(+p.x).toFixed(0)}, Y ${(+p.y).toFixed(0)} (${lat}, ${lng})`);
+    } else if (act === "remove") {
+      removePlace(p.name);
     }
   };
 
@@ -305,6 +356,12 @@ export default function App() {
       ...l,
       [name]: { kind: "city", href: "", x: +pt.x.toFixed(1), y: +pt.y.toFixed(1) },
     }));
+    setRemoved((r) => {
+      if (!r[name]) return r;
+      const next = { ...r };
+      delete next[name];
+      return next;
+    });
     showToast(`Pinned ${name}`);
   };
 
@@ -385,6 +442,9 @@ export default function App() {
           target={target}
           setTarget={setTarget}
           local={local}
+          shared={shared}
+          removed={removed}
+          onUndoRemove={undoRemove}
           sharedStatus={sharedStatus}
           sharedCount={Object.keys(shared).length}
           onCreate={createPlace}

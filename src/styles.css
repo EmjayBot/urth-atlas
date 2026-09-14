@@ -422,6 +422,14 @@ body {
 .atlas-popup-btn-primary:hover {
   background-color: #083f4f;
 }
+.atlas-popup-btn-danger {
+  flex: 0 0 auto;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+.atlas-popup-btn-danger:hover {
+  background: #fef2f2;
+}
 
 /* Popup pane sits under our toolbar z-indexes */
 .leaflet-popup-pane {

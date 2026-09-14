@@ -26,11 +26,13 @@ export function placeLatLng(place, mapSize) {
 }
 
 // Merge shared (community) + local (edits) place maps into an array of
-// place objects. Local wins on name collision.
-export function mergePlaces(shared = {}, local = {}) {
+// place objects. Local wins on name collision. Names in `removed` (community
+// removal marks, pending submit) are hidden unless re-added locally.
+export function mergePlaces(shared = {}, local = {}, removed = {}) {
   const byName = new Map();
   for (const [name, v] of Object.entries(shared)) {
     if (typeof v !== "object" || v === null) continue;
+    if (removed[name] && !local[name]) continue;
     byName.set(name, { name, ...v });
   }
   for (const [name, v] of Object.entries(local)) {

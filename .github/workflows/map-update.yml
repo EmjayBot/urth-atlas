@@ -34,11 +34,17 @@ jobs:
             }
             const patch = JSON.parse(m[1]);
 
-            // Validate shape: { "Name": { kind, href, x, y } }
+            // Validate shape: { "Name": { kind, href, x, y } }.
+            // A null value is a removal tombstone: delete that name.
             const KINDS = new Set(["nation", "capital", "city", "town"]);
             const clean = {};
+            const removed = [];
             for (const [name, v] of Object.entries(patch)) {
               if (name.startsWith("_")) continue;
+              if (v === null) {
+                removed.push(name);
+                continue;
+              }
               if (
                 v && typeof v === "object" &&
                 KINDS.has(v.kind) &&
@@ -48,7 +54,7 @@ jobs:
                 clean[name] = { kind: v.kind, href: v.href, x: Math.round(v.x), y: Math.round(v.y) };
               }
             }
-            if (!Object.keys(clean).length) {
+            if (!Object.keys(clean).length && !removed.length) {
               core.setFailed("No valid place entries in issue body");
               return;
             }
@@ -58,8 +64,9 @@ jobs:
             const cur = JSON.parse(fs.readFileSync(file, "utf8"));
             const next = { ...cur };
             for (const [name, v] of Object.entries(clean)) next[name] = v;
+            for (const name of removed) delete next[name];
             fs.writeFileSync(file, JSON.stringify(next, null, 2) + "\n");
-            core.setOutput("applied", Object.keys(clean).join(", "));
+            core.setOutput("applied", [...Object.keys(clean), ...removed.map((n) => `-${n}`)].join(", "));
             core.setOutput("file_changed", "true");
 
       - name: Commit and push
