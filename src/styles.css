@@ -206,8 +206,8 @@ body {
   position: absolute;
   left: 0;
   top: 0;
-  font-family: var(--font-sans);
-  font-size: 12px;
+  font-family: "Bell MT", "Bell MT Bold", Georgia, "Times New Roman", serif;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.02em;
   color: #0f172a;
