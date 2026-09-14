@@ -55,6 +55,8 @@ export default function MapView({
   status,
   setStatus,
   layer,
+  dataOverlays = [],
+  overlayOpacity = 70,
   showNations,
   places,
   initialView,
@@ -534,6 +536,76 @@ export default function MapView({
     };
   }, [showGrid, showPixelGrid, mapSize]);
 
+  // ---- Data overlays (stackable semi-transparent rasters) --------------------
+  // One layer group per enabled overlay id; groups persist across renders and
+  // are only added/removed on membership change, so dragging the opacity
+  // slider never reloads tiles. Groups rebuild if the base size changes.
+  const overlayGroupsRef = useRef({});
+  const overlaySizeRef = useRef(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapSize?.W) return;
+    const { W, H } = mapSize;
+    const sizeKey = `${W}x${H}`;
+    const groups = overlayGroupsRef.current;
+    if (overlaySizeRef.current !== sizeKey) {
+      for (const id of Object.keys(groups)) {
+        groups[id].remove();
+        delete groups[id];
+      }
+      overlaySizeRef.current = sizeKey;
+    }
+    const wanted = new Set(dataOverlays ?? []);
+    for (const id of Object.keys(groups)) {
+      if (!wanted.has(id)) {
+        groups[id].remove();
+        delete groups[id];
+      }
+    }
+    let canceled = false;
+    for (const id of wanted) {
+      if (groups[id]) continue;
+      const def = getLayer(id);
+      if (!def?.overlay) continue;
+      const grp = L.layerGroup();
+      groups[id] = grp;
+      grp.addTo(map);
+      loadLayer(def)
+        .then(({ url }) => {
+          if (canceled || overlayGroupsRef.current[id] !== grp) return;
+          for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
+            L.imageOverlay(url, [[0, i * W], [H, (i + 1) * W]], {
+              opacity: (overlayOpacity ?? 70) / 100,
+              interactive: false,
+              bubblingMouseEvents: false,
+              zIndex: 2,
+              className: "urth-data-overlay",
+            }).addTo(grp);
+          }
+        })
+        .catch(() => {
+          if (overlayGroupsRef.current[id] === grp) {
+            grp.remove();
+            delete overlayGroupsRef.current[id];
+          }
+        });
+    }
+    return () => {
+      canceled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataOverlays, mapSize]);
+
+  // Overlay opacity applies to mounted tiles without reloading them.
+  useEffect(() => {
+    const o = (overlayOpacity ?? 70) / 100;
+    Object.values(overlayGroupsRef.current).forEach((grp) => {
+      grp.getLayers().forEach((l) => {
+        if (l.setOpacity) l.setOpacity(o);
+      });
+    });
+  }, [overlayOpacity]);
+
   // ---- City & subnational markers overlay (idle-deferred) ----------------------
   // Not needed for first paint — mounts after idle so the base map gets
   // bandwidth + decode time first. Served as PNG (source of truth) since the
@@ -976,6 +1048,13 @@ export default function MapView({
           <div className="bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-medium px-3 py-1.5 rounded-full shadow">
             Map image unreachable — showing placeholder grid. Measurements still
             work but scale is not calibrated.
+          </div>
+        </div>
+      )}
+      {activeLayer.stale && status !== "loading" && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[950] pointer-events-none">
+          <div className="bg-amber-50/95 border border-amber-200 text-amber-800 text-[11px] font-medium px-3 py-1.5 rounded-full shadow">
+            {activeLayer.label} data may be out of date
           </div>
         </div>
       )}

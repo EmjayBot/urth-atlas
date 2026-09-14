@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { BASE_LAYERS, getLayer, KM_PER_PX, MI_PER_PX, KM2_PER_PX2 } from "../lib/scale";
+import { BASE_MAPS, DATA_OVERLAYS, getLayer, KM_PER_PX, MI_PER_PX, KM2_PER_PX2 } from "../lib/scale";
 import { searchPlaces } from "../lib/places";
 import { latFromPixel, lngFromX } from "../lib/geo";
 import { IS_LOW_MEM } from "../lib/device";
@@ -8,8 +8,8 @@ import { IconChevron, IconPin, IconTrash } from "./icons";
 
 // Satellite (+ its cloud layer) is disabled on low-memory devices.
 const VISIBLE_LAYERS = IS_LOW_MEM
-  ? BASE_LAYERS.filter((l) => l.id !== "satellite")
-  : BASE_LAYERS;
+  ? BASE_MAPS.filter((l) => l.id !== "satellite")
+  : BASE_MAPS;
 
 const KINDS = [
   { id: "nation", label: "Nation" },
@@ -351,6 +351,10 @@ export default function Sidebar({
   open,
   layer,
   setLayer,
+  dataOverlays = [],
+  onToggleOverlay = () => {},
+  overlayOpacity = 70,
+  setOverlayOpacity = () => {},
   opacity,
   setOpacity,
   showScale,
@@ -430,8 +434,16 @@ export default function Sidebar({
                 className="w-4 h-4 accent-[#0e7490] cursor-pointer"
               />
               <span className="flex flex-col leading-tight">
-                <span className="text-[13px] text-[#111827] group-hover:text-[#0e7490] transition-colors">
+                <span className="text-[13px] text-[#111827] group-hover:text-[#0e7490] transition-colors flex items-center gap-1.5">
                   {l.label}
+                  {l.stale && (
+                    <span
+                      title="This layer's data may be out of date"
+                      className="text-[9px] font-bold uppercase tracking-[0.1em] text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-1.5 py-px"
+                    >
+                      Out of date
+                    </span>
+                  )}
                 </span>
                 <span className="text-[11px] text-[#6b7280]">{l.sub}</span>
               </span>
@@ -454,6 +466,68 @@ export default function Sidebar({
               className="w-full accent-[#0e7490] cursor-pointer"
             />
           </div>
+        </div>
+      </Section>
+
+      <Section title="Data Overlays">
+        <div className="space-y-1">
+          {DATA_OVERLAYS.map((l) => {
+            const on = dataOverlays.includes(l.id);
+            return (
+              <label
+                key={l.id}
+                className="flex items-center gap-2.5 py-1 select-none cursor-pointer group"
+              >
+                <input
+                  type="checkbox"
+                  checked={on}
+                  onChange={() => onToggleOverlay(l.id)}
+                  className="w-4 h-4 rounded accent-[#0e7490] cursor-pointer"
+                />
+                <span className={`relative w-9 h-9 rounded-lg overflow-hidden shrink-0 border ${l.chip}`}>
+                  {on && (
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/25 text-white text-[14px] font-bold">
+                      ✓
+                    </span>
+                  )}
+                </span>
+                <span className="flex flex-col leading-tight">
+                  <span className="text-[13px] text-[#111827] group-hover:text-[#0e7490] transition-colors flex items-center gap-1.5">
+                    {l.label}
+                    {l.stale && (
+                      <span
+                        title="This layer's data may be out of date"
+                        className="text-[9px] font-bold uppercase tracking-[0.1em] text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-1.5 py-px"
+                      >
+                        Out of date
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-[11px] text-[#6b7280]">{l.sub}</span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+        <div className="mt-3 pt-3 border-t border-[#e5e7eb]">
+          <div className="flex items-center justify-between text-[10px] font-bold tracking-[0.14em] uppercase text-[#6b7280] mb-1">
+            <span>Overlay opacity</span>
+            <span className="font-mono">{overlayOpacity}%</span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={overlayOpacity}
+            onChange={(e) => setOverlayOpacity(Number(e.target.value))}
+            disabled={dataOverlays.length === 0}
+            className="w-full accent-[#0e7490] cursor-pointer disabled:opacity-40"
+          />
+          {IS_LOW_MEM && (
+            <div className="mt-1.5 text-[11px] text-[#6b7280]">
+              One overlay at a time on this device.
+            </div>
+          )}
         </div>
       </Section>
 

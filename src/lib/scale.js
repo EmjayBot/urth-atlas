@@ -29,6 +29,8 @@ export const BASE_LAYERS = [
     id: "topo",
     label: "Topographic",
     sub: "Elevation & relief",
+    stale: true,
+    overlay: true,
     url: `${MAP_BASE}/topo.png`,
     fallbackUrl: `${MAP_BASE_RAW}/topo.png`,
     chip: "bg-gradient-to-br from-emerald-200 via-lime-400 to-amber-700",
@@ -37,6 +39,8 @@ export const BASE_LAYERS = [
     id: "climate",
     label: "Climate",
     sub: "Climate zones",
+    stale: true,
+    overlay: true,
     url: `${MAP_BASE}/climate.png`,
     fallbackUrl: `${MAP_BASE_RAW}/climate.png`,
     chip: "bg-gradient-to-br from-yellow-200 via-orange-400 to-rose-600",
@@ -45,6 +49,8 @@ export const BASE_LAYERS = [
     id: "currents",
     label: "Ocean Currents",
     sub: "Surface circulation",
+    stale: true,
+    overlay: true,
     url: `${MAP_BASE}/currents.png`,
     fallbackUrl: `${MAP_BASE_RAW}/currents.png`,
     chip: "bg-gradient-to-br from-blue-400 via-cyan-300 to-indigo-500",
@@ -53,6 +59,7 @@ export const BASE_LAYERS = [
     id: "hydro",
     label: "Hydrology",
     sub: "Rivers & basins",
+    overlay: true,
     url: `${MAP_BASE}/hydro.png`,
     fallbackUrl: `${MAP_BASE_RAW}/hydro.png`,
     chip: "bg-gradient-to-br from-sky-400 to-blue-600",
@@ -61,6 +68,7 @@ export const BASE_LAYERS = [
     id: "timezones",
     label: "Time Zones",
     sub: "Time zone boundaries",
+    overlay: true,
     // Local crop of the upstream export, re-windowed to the base 11232x7525
     // grid (dateline overlap trimmed, coastline-verified to ~4px). The raw
     // upstream file is 11860px wide and would misalign pins/measurements.
@@ -83,6 +91,10 @@ export const MAP_URL = BASE_LAYERS[0].url;
 export function getLayer(id) {
   return BASE_LAYERS.find((l) => l.id === id) ?? BASE_LAYERS[0];
 }
+
+// Base maps are mutually exclusive; data overlays stack on top of them.
+export const BASE_MAPS = BASE_LAYERS.filter((l) => !l.overlay);
+export const DATA_OVERLAYS = BASE_LAYERS.filter((l) => l.overlay);
 
 // World constants (calibrated to the full-resolution urth.png export).
 // 1 image pixel = sqrt(6.34126) km.

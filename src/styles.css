@@ -173,10 +173,12 @@ body {
 /* During pan/zoom gestures, marker sheets fade out so each frame composites
    fewer pixels; they fade back on moveend/zoomend. Rest quality is
    untouched. */
-.urth-markers-tile {
+.urth-markers-tile,
+.urth-data-overlay {
   transition: opacity 0.25s ease;
 }
-.urth-in-motion .urth-markers-tile {
+.urth-in-motion .urth-markers-tile,
+.urth-in-motion .urth-data-overlay {
   opacity: 0 !important;
 }
 

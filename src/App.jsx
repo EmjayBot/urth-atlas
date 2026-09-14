@@ -11,6 +11,7 @@ import { parseUrl, writeUrl, shareLink } from "./lib/url";
 import { mergePlaces } from "./lib/places";
 import { num } from "./lib/format";
 import { IS_LOW_MEM } from "./lib/device";
+import { DATA_OVERLAYS } from "./lib/scale";
 
 const initial = parseUrl();
 const LOCAL_KEY = "urth-atlas.places.local.v2";
@@ -40,12 +41,30 @@ export default function App() {
   const [cursor, setCursor] = useState(null);
   const [mapSize, setMapSize] = useState(null);
   const [status, setStatus] = useState("loading");
-  const [layer, setLayerRaw] = useState(
-    initial.layer === "satellite" && IS_LOW_MEM ? "map" : (initial.layer ?? "map")
-  );
+  const [layer, setLayerRaw] = useState(() => {
+    if (initial.layer === "satellite" && IS_LOW_MEM) return "map";
+    // Old links may name a data overlay as the base layer — those now stack
+    // over the base map instead (see initialOverlay below).
+    if (initial.layer && DATA_OVERLAYS.some((l) => l.id === initial.layer)) return "map";
+    return initial.layer ?? "map";
+  });
   // Satellite is disabled on low-memory devices (3MB + extra decodes crash
   // mobile tabs) — any attempt to select it falls back to the base map.
   const setLayer = (l) => setLayerRaw(l === "satellite" && IS_LOW_MEM ? "map" : l);
+  // Stackable data overlays (topo/climate/...). Old shared links that used
+  // one as the base layer migrate to base map + overlay on.
+  const initialOverlay =
+    initial.layer && DATA_OVERLAYS.some((l) => l.id === initial.layer) ? [initial.layer] : [];
+  const [dataOverlays, setDataOverlays] = useState(initialOverlay);
+  const [overlayOpacity, setOverlayOpacity] = useState(70);
+  const toggleDataOverlay = (id) => {
+    setDataOverlays((cur) => {
+      if (cur.includes(id)) return cur.filter((x) => x !== id);
+      // One overlay at a time on phones: each is another 5×84MP decode.
+      if (IS_LOW_MEM) return [id];
+      return [...cur, id];
+    });
+  };
   const [opacity, setOpacity] = useState(100);
   const [showScale, setShowScale] = useState(true);
   const [showGrid, setShowGrid] = useState(true);
@@ -108,6 +127,37 @@ export default function App() {
       });
     return () => {
       alive = false;
+    };
+  }, []);
+
+  // Idle-preload the heavy local layers (timezones + satellite) so switching
+  // to them later is instant — bytes AND decode are warmed, which is what
+  // made the old layer show through while zooming mid-switch. Satellite is
+  // skipped on low-memory devices where it's disabled anyway.
+  useEffect(() => {
+    let canceled = false;
+    const warm = (name) => {
+      const img = new Image();
+      img.decoding = "async";
+      img.src = `${import.meta.env.BASE_URL}${name}`;
+      if (img.decode) img.decode().catch(() => {});
+    };
+    const start = () => {
+      if (canceled) return;
+      warm("timezones.webp");
+      if (!IS_LOW_MEM) warm("satellite.webp");
+    };
+    if (typeof requestIdleCallback === "function") {
+      const id = requestIdleCallback(start, { timeout: 4000 });
+      return () => {
+        canceled = true;
+        cancelIdleCallback(id);
+      };
+    }
+    const t = setTimeout(start, 2500);
+    return () => {
+      canceled = true;
+      clearTimeout(t);
     };
   }, []);
 
@@ -401,6 +451,10 @@ export default function App() {
           setOpen={setSidebarOpen}
           layer={layer}
           setLayer={setLayer}
+          dataOverlays={dataOverlays}
+          onToggleOverlay={toggleDataOverlay}
+          overlayOpacity={overlayOpacity}
+          setOverlayOpacity={setOverlayOpacity}
           opacity={opacity}
           setOpacity={setOpacity}
           showScale={showScale}
@@ -459,6 +513,8 @@ export default function App() {
             status={status}
             setStatus={setStatus}
             layer={layer}
+            dataOverlays={dataOverlays}
+            overlayOpacity={overlayOpacity}
             showNations={showNations}
             places={places}
             initialView={initial.at ? { at: initial.at, z: initial.z } : null}
