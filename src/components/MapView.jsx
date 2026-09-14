@@ -975,9 +975,9 @@ export default function MapView({
   // Settlement tiers (names already printed on the map layer, so no text
   // labels here — tier reads from marker size/ring).
   const SETTLEMENT_STYLE = {
-    capital: { radius: 5, weight: 2, fillColor: "#f59e0b" },
-    city: { radius: 3, weight: 1.5, fillColor: "#f59e0b" },
-    town: { radius: 2, weight: 1, fillColor: "#a8a29e" },
+    capital: { radius: 4, weight: 1.5, fillColor: "#f59e0b" },
+    city: { radius: 2.5, weight: 1.25, fillColor: "#f59e0b" },
+    town: { radius: 1.5, weight: 1, fillColor: "#a8a29e" },
   };
   useEffect(() => {
     const map = mapRef.current;
