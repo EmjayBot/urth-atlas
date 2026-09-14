@@ -106,8 +106,12 @@ export default function MapView({
   const rafRef = useRef(0);
   const lastCursorRef = useRef(0);
 
+  // Base opacity has a dead zone: the slider reads 100→50 with the map fully
+  // solid, and only fades the tiles out across 50→0 (revealing what's under).
+  const effectiveBaseOpacity = (v) => (v >= 50 ? 1 : Math.max(0, v) / 50);
+
   const applyOpacity = () => {
-    imagesRef.current.forEach((ov) => ov.setOpacity(opacity / 100));
+    imagesRef.current.forEach((ov) => ov.setOpacity(effectiveBaseOpacity(opacity)));
   };
 
   // ---- Map creation -------------------------------------------------------
@@ -408,7 +412,7 @@ export default function MapView({
 
   useEffect(() => {
     if (mapRef.current && mapSize?.W) {
-      imagesRef.current.forEach((ov) => ov.setOpacity(opacity / 100));
+      imagesRef.current.forEach((ov) => ov.setOpacity(effectiveBaseOpacity(opacity)));
     }
   }, [opacity, mapSize?.W]);
 
