@@ -26,7 +26,7 @@ function Section({ title, children, defaultOpen = true }) {
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-[#f9fafb] transition-colors"
       >
-        <span className="text-[12px] font-bold tracking-[0.14em] text-[#6b7280] uppercase">
+        <span className="urth-side-title text-[12px] font-bold tracking-[0.14em] text-[#6b7280] uppercase">
           {title}
         </span>
         <IconChevron
@@ -313,7 +313,7 @@ function MapInfoBlock({ layer, mapSize, view, placesInfo, status }) {
       : "—";
   return (
     <div>
-      <div className="text-[15px] font-bold text-[#111827]">Urth Atlas</div>
+      <div className="urth-side-title text-[15px] font-bold text-[#111827]">Urth Atlas</div>
       <div className="text-[12px] text-[#6b7280] mt-0.5">The East Pacific · urthmaps.com</div>
       <div className="mt-2.5 rounded-lg border border-[#e5e7eb] bg-[#f9fafb] px-2.5 py-1 divide-y divide-[#eef0f2]">
         <MapInfoRow label="Layer" value={active.label} />

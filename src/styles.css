@@ -16,6 +16,18 @@
   user-select: none;
 }
 
+/* Sidebar typography: titles in MS Reference Sans Serif, body copy in
+   Franklin Gothic Bold (system fonts — Segoe UI–based fallbacks elsewhere).
+   Monospace readouts keep JetBrains Mono via their own classes.
+   Header wordmark (.urth-logo, Bell MT) is intentionally untouched. */
+aside {
+  font-family: "Franklin Gothic Bold", "Franklin Gothic Medium", "Franklin Gothic Book", "Segoe UI", sans-serif;
+}
+aside .urth-side-title,
+aside h3 {
+  font-family: "MS Reference Sans Serif", "Segoe UI", Tahoma, sans-serif;
+}
+
 html,
 body,
 #root {
