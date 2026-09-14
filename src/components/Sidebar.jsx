@@ -469,7 +469,7 @@ export default function Sidebar({
         </div>
       </Section>
 
-      <Section title="Data Overlays">
+      <Section title="Thematic Layers">
         <div className="space-y-1">
           {DATA_OVERLAYS.map((l) => {
             const on = dataOverlays.includes(l.id);
@@ -484,13 +484,6 @@ export default function Sidebar({
                   onChange={() => onToggleOverlay(l.id)}
                   className="w-4 h-4 rounded accent-[#0e7490] cursor-pointer"
                 />
-                <span className={`relative w-9 h-9 rounded-lg overflow-hidden shrink-0 border ${l.chip}`}>
-                  {on && (
-                    <span className="absolute inset-0 flex items-center justify-center bg-black/25 text-white text-[14px] font-bold">
-                      ✓
-                    </span>
-                  )}
-                </span>
                 <span className="flex flex-col leading-tight">
                   <span className="text-[13px] text-[#111827] group-hover:text-[#0e7490] transition-colors flex items-center gap-1.5">
                     {l.label}
