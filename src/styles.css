@@ -3,6 +3,33 @@
 @theme {
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-display: "Nabla", "Inter", system-ui, sans-serif;
+}
+
+/* Nabla is a color font — flatten its palette to globe-teal so the wordmark
+   reads as one color while keeping Nabla's dimensional letterforms. */
+@font-palette-values --urth-teal {
+  font-family: "Nabla";
+  override-colors:
+    0 #083f4f,
+    1 #0e7490,
+    2 #1287a3,
+    3 #0e7490,
+    4 #083f4f,
+    5 #0e7490,
+    6 #1287a3,
+    7 #0e7490;
+}
+
+.urth-logo {
+  font-family: var(--font-display);
+  font-palette: --urth-teal;
+  color: #0e7490;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  user-select: none;
 }
 
 html,

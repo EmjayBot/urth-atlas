@@ -452,7 +452,7 @@ export default function Sidebar({
         </div>
 
         <div className="mt-3 pt-3 border-t border-[#e5e7eb]">
-          <div className="mt-3">
+          <div className="mt-3 opacity-55 hover:opacity-100 transition-opacity">
             <div className="flex items-center justify-between text-[10px] font-bold tracking-[0.14em] uppercase text-[#6b7280] mb-1">
               <span>Opacity</span>
               <span className="font-mono">{opacity}%</span>
