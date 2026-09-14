@@ -734,23 +734,100 @@ export default function MapView({
     };
   }, [points, hover, mode, mapSize]);
 
-  // ---- Wiki nations layer ---------------------------------------------------
-  // Built once per places/mapSize (NOT per zoom — zoom only toggles a CSS
-  // class, so zoom gestures don't rebuild markers). Labels repeat per world
-  // copy so they survive horizontal wrapping. Text labels stay visible down
-  // to the full-world zoom (NORMAL_MIN_ZOOM), not just zoom >= 0.
+  // ---- Places layer ---------------------------------------------------------
+  // Nations (text labels) and settlements (tiered dots) are separate Leaflet
+  // groups with independent sidebar toggles — hiding nation labels must not
+  // hide capitals/cities/towns. Both register key-scoped entries into the
+  // shared refs used by search focus + popups.
   const placeMarkersRef = useRef({});
   const placeLatLngRef = useRef({});
+  const forgetKeys = (keys) => {
+    for (const k of keys) {
+      delete placeMarkersRef.current[k];
+      delete placeLatLngRef.current[k];
+    }
+  };
+
+  const buildPlacePopup = (p, W, H, nearest) => {
+    const kind = p.kind ?? "city";
+    const kindLabel = kind.charAt(0).toUpperCase() + kind.slice(1);
+    const lat = latFromPixel(p.y, H);
+    const lng = lngFromX(p.x, W);
+    const latStr = `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? "N" : "S"}`;
+    const lngStr = `${Math.abs(lng).toFixed(1)}°${lng >= 0 ? "E" : "W"}`;
+    const hemi = lat >= 0 ? "Northern hemisphere" : "Southern hemisphere";
+    const href = p.href ? fullWikiUrl(p.href) : null;
+    const esc = (s) =>
+      String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+    const wikiTitle = wikiTitleFor(p);
+    return (
+      `<div class="atlas-popup" data-wiki="${esc(wikiTitle)}"><div class="atlas-popup-head">` +
+      `<span class="atlas-popup-title">${p.name}</span>` +
+      `<span class="atlas-popup-kind atlas-popup-kind-${kind}">${kindLabel}</span></div>` +
+      `<div class="atlas-popup-coords">${latStr}, ${lngStr} · ${hemi}</div>` +
+      `<div class="atlas-popup-coords">X ${p.x.toFixed(0)} · Y ${p.y.toFixed(0)}${nearest ? ` · Nearest: ${nearest}` : ""}</div>` +
+      `<div class="atlas-popup-wiki" hidden></div>` +
+      `<div class="atlas-popup-actions">` +
+      `<button class="atlas-popup-btn" data-act="copy" data-name="${esc(p.name)}" data-x="${p.x}" data-y="${p.y}" data-lat="${lat}" data-lng="${lng}">Copy location</button>` +
+      `<button class="atlas-popup-btn atlas-popup-btn-danger" data-act="remove" data-name="${esc(p.name)}" data-x="${p.x}" data-y="${p.y}" title="Remove this marker">Remove</button>` +
+      `</div>` +
+      (href
+        ? `<a class="atlas-popup-link" href="${href}" target="_blank" rel="noopener noreferrer">Learn more on TEPwiki <span aria-hidden="true">↗</span></a>`
+        : `<div class="atlas-popup-missing">No TEPwiki page linked yet</div>`)
+    );
+  };
+
+  // ---- Nations (text labels, one per world copy) ------------------------------
+  // Built once per places/mapSize (NOT per zoom — zoom only toggles a CSS
+  // class, so zoom gestures don't rebuild markers). Text labels stay visible
+  // down to the full-world zoom (NORMAL_MIN_ZOOM), not just zoom >= 0.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapSize?.W || !showNations) return;
     const grp = L.layerGroup();
-    placeMarkersRef.current = {};
-    placeLatLngRef.current = {};
-    const pls = placesRef.current;
+    const { W } = mapSize;
+    const keys = [];
+    placesRef.current.forEach((p) => {
+      if (p.kind !== "nation" || p.x == null || p.y == null) return;
+      const latlng = [p.y, p.x];
+      placeLatLngRef.current[p.name] = latlng;
+      const popup = buildPlacePopup(p, mapSize.W, mapSize.H, null);
+      for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
+        const icon = L.divIcon({
+          className: "urth-nation-text",
+          html: `<span class="urth-nation-text-name">${p.name}</span>`,
+          iconSize: null,
+        });
+        const mk = L.marker([p.y, p.x + i * W], { icon, riseOnHover: true }).addTo(grp);
+        mk.bindPopup(popup);
+        mk.on("click", (e) => L.DomEvent.stopPropagation(e));
+        if (i === 0) placeMarkersRef.current[p.name] = mk;
+      }
+      keys.push(p.name);
+    });
+    grp.addTo(map);
+    return () => {
+      grp.remove();
+      forgetKeys(keys);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showNations, mapSize, places]);
+
+  // ---- Settlements (tiered dots; names live on the map layer itself) ---------
+  // Settlement tiers (names already printed on the map layer, so no text
+  // labels here — tier reads from marker size/ring).
+  const SETTLEMENT_STYLE = {
+    capital: { radius: 5, weight: 2, fillColor: "#f59e0b" },
+    city: { radius: 3, weight: 1.5, fillColor: "#f59e0b" },
+    town: { radius: 2, weight: 1, fillColor: "#a8a29e" },
+  };
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapSize?.W || !showMarkers) return;
+    const grp = L.layerGroup();
     const { W, H } = mapSize;
-    const placed = pls.filter((q) => q.x != null && q.y != null);
-    // Nearest placed neighbour per nation (latitude-corrected km).
+    const placed = placesRef.current.filter((q) => q.x != null && q.y != null);
+    // Nearest placed neighbour per settlement (latitude-corrected km).
     const nearestOf = (p) => {
       let best = null;
       const cos = Math.cos((latFromPixel(p.y, H) * Math.PI) / 180);
@@ -763,79 +840,32 @@ export default function MapView({
         ? `${best.name} · ${(best.dPx * KM_PER_PX).toLocaleString(void 0, { maximumFractionDigits: 0 })} km`
         : null;
     };
-    pls.forEach((p) => {
-      if (p.x == null || p.y == null) return;
+    const keys = [];
+    placesRef.current.forEach((p) => {
+      if (p.kind === "nation" || p.x == null || p.y == null) return;
       const latlng = [p.y, p.x];
       placeLatLngRef.current[p.name] = latlng;
-      const href = p.href ? fullWikiUrl(p.href) : null;
-      const kindLabel = p.kind.charAt(0).toUpperCase() + p.kind.slice(1);
-      const lat = latFromPixel(p.y, H);
-      const lng = lngFromX(p.x, W);
-      const latStr = `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? "N" : "S"}`;
-      const lngStr = `${Math.abs(lng).toFixed(1)}°${lng >= 0 ? "E" : "W"}`;
-      const hemi = lat >= 0 ? "Northern hemisphere" : "Southern hemisphere";
-      // Nearest neighbour only for settlements — nation pins are hand-placed
-      // region labels, so a distance between them is misleading.
-      const nearest = p.kind === "nation" ? null : nearestOf(p);
-      const esc = (s) =>
-        String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
-      const wikiTitle = wikiTitleFor(p);
-      const popup =
-        `<div class="atlas-popup" data-wiki="${esc(wikiTitle)}"><div class="atlas-popup-head">` +
-        `<span class="atlas-popup-title">${p.name}</span>` +
-        `<span class="atlas-popup-kind atlas-popup-kind-${p.kind}">${kindLabel}</span></div>` +
-        `<div class="atlas-popup-coords">${latStr}, ${lngStr} · ${hemi}</div>` +
-        `<div class="atlas-popup-coords">X ${p.x.toFixed(0)} · Y ${p.y.toFixed(0)}${nearest ? ` · Nearest: ${nearest}` : ""}</div>` +
-        `<div class="atlas-popup-wiki" hidden></div>` +
-        `<div class="atlas-popup-actions">` +
-        `<button class="atlas-popup-btn" data-act="copy" data-name="${esc(p.name)}" data-x="${p.x}" data-y="${p.y}" data-lat="${lat}" data-lng="${lng}">Copy location</button>` +
-        `<button class="atlas-popup-btn atlas-popup-btn-danger" data-act="remove" data-name="${esc(p.name)}" data-x="${p.x}" data-y="${p.y}" title="Remove this marker">Remove</button>` +
-        `</div>` +
-        (href
-          ? `<a class="atlas-popup-link" href="${href}" target="_blank" rel="noopener noreferrer">Learn more on TEPwiki <span aria-hidden="true">↗</span></a>`
-          : `<div class="atlas-popup-missing">No TEPwiki page linked yet</div>`);
-      // Settlement tiers (names already printed on the map layer, so no
-      // text labels here — tier reads from marker size/ring).
-      const SETTLEMENT_STYLE = {
-        capital: { radius: 5, weight: 2, fillColor: "#f59e0b" },
-        city: { radius: 3, weight: 1.5, fillColor: "#f59e0b" },
-        town: { radius: 2, weight: 1, fillColor: "#a8a29e" },
-      };
-      if (p.kind !== "nation") {
-        const st = SETTLEMENT_STYLE[p.kind] ?? SETTLEMENT_STYLE.city;
-        const mk = L.circleMarker(latlng, {
-          radius: st.radius,
-          color: "#ffffff",
-          weight: st.weight,
-          fillColor: st.fillColor,
-          fillOpacity: 0.95,
-        }).addTo(grp);
-        mk.bindPopup(popup);
-        mk.on("click", (e) => L.DomEvent.stopPropagation(e));
-        placeMarkersRef.current[p.name] = mk;
-      } else {
-        // One label per world copy so wrapping never loses them.
-        for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
-          const icon = L.divIcon({
-            className: "urth-nation-text",
-            html: `<span class="urth-nation-text-name">${p.name}</span>`,
-            iconSize: null,
-          });
-          const mk = L.marker([p.y, p.x + i * W], { icon, riseOnHover: true }).addTo(grp);
-          mk.bindPopup(popup);
-          mk.on("click", (e) => L.DomEvent.stopPropagation(e));
-          if (i === 0) placeMarkersRef.current[p.name] = mk;
-        }
-      }
+      const popup = buildPlacePopup(p, W, H, nearestOf(p));
+      const st = SETTLEMENT_STYLE[p.kind] ?? SETTLEMENT_STYLE.city;
+      const mk = L.circleMarker(latlng, {
+        radius: st.radius,
+        color: "#ffffff",
+        weight: st.weight,
+        fillColor: st.fillColor,
+        fillOpacity: 0.95,
+      }).addTo(grp);
+      mk.bindPopup(popup);
+      mk.on("click", (e) => L.DomEvent.stopPropagation(e));
+      placeMarkersRef.current[p.name] = mk;
+      keys.push(p.name);
     });
     grp.addTo(map);
     return () => {
       grp.remove();
-      placeMarkersRef.current = {};
-      placeLatLngRef.current = {};
+      forgetKeys(keys);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showNations, mapSize, places]);
+  }, [showMarkers, mapSize, places]);
 
   // Nation-text visibility follows zoom via CSS (no layer rebuild).
   useEffect(() => {

@@ -182,10 +182,18 @@ function PinsSection({
                   className={`w-2 h-2 rounded-full shrink-0 ${p.kind === "city" ? "bg-amber-500" : "bg-[#0e7490]"}`}
                 />
                 <span className="text-[12px] text-zinc-700 truncate flex-1">{p.name}</span>
-                {p.x != null && (
+                {p.x != null ? (
                   <span className="text-[9px] text-zinc-400 font-mono shrink-0">
                     {Math.round(p.x)},{Math.round(p.y)}
                   </span>
+                ) : (
+                  <button
+                    onClick={() => pick(p.name)}
+                    title="Click on the map to place it"
+                    className="h-5 px-1.5 rounded text-[10px] font-bold uppercase text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 shrink-0"
+                  >
+                    Not placed
+                  </button>
                 )}
                 <button
                   onClick={() => onRemove(p.name)}
