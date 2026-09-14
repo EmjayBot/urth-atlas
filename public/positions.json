@@ -36,5 +36,23 @@
     "href": "/wiki/Packilvania",
     "x": 7787,
     "y": 5415
+  },
+  "Christie Island": {
+    "kind": "nation",
+    "href": "/wiki/Christie_Island",
+    "x": 5603,
+    "y": 4574
+  },
+  "South Hills": {
+    "kind": "nation",
+    "href": "/wiki/South_Hills",
+    "x": 5141,
+    "y": 4886
+  },
+  "Astryon": {
+    "kind": "city",
+    "href": "/wiki/Astryon",
+    "x": 8158,
+    "y": 4379
   }
 }
