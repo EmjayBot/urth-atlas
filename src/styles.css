@@ -366,7 +366,7 @@ body {
 .atlas-popup-wiki {
   display: flex;
   gap: 8px;
-  align-items: flex-start;
+  align-items: center;
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid #f4f4f5;
