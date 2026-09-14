@@ -111,6 +111,7 @@ export default function MapView({
   }, [initialView]);
 
   const rafRef = useRef(0);
+  const lastCursorRef = useRef(0);
 
   const applyOpacity = () => {
     imagesRef.current.forEach((ov) => ov.setOpacity(opacity / 100));
@@ -127,18 +128,23 @@ export default function MapView({
       // which would decode even more tiles while hidden behind the scene.
       minZoom: IS_LOW_MEM ? NORMAL_MIN_ZOOM : ABSOLUTE_MIN_ZOOM,
       maxZoom: 6,
-      zoomSnap: 0.25,
+      // Fluid motion tuning (zero quality impact — end frames identical):
+      // - zoomSnap 0: continuous wheel/pinch zoom instead of stepped snaps.
+      // - fadeAnimation off: skips cross-fading giant layers during zooms
+      //   (each frame composited once, not twice).
+      // - softer inertia: longer, smoother pan glide.
+      zoomSnap: 0,
       zoomDelta: 0.5,
       inertia: true,
-      inertiaDeceleration: 3000,
-      inertiaMaxSpeed: 2200,
+      inertiaDeceleration: 2000,
+      inertiaMaxSpeed: 2600,
       doubleClickZoom: false,
       attributionControl: false,
       preferCanvas: true,
       // Per-frame scaling of 84MP tiles during pinch-zoom is what kills
       // mobile GPUs — snap instead of animating on low-memory devices.
       zoomAnimation: !IS_LOW_MEM,
-      fadeAnimation: !IS_LOW_MEM,
+      fadeAnimation: false,
       markerZoomAnimation: true,
       trackResize: true,
       wheelPxPerZoomLevel: 90,
@@ -236,7 +242,13 @@ export default function MapView({
       };
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = requestAnimationFrame(() => {
-        onCursorRef.current(payload);
+        // Status-bar readout at ~12Hz is plenty — full-rate React renders
+        // every mousemove frame just steal from pan/zoom smoothness.
+        const now = performance.now();
+        if (now - (lastCursorRef.current || 0) > 80) {
+          lastCursorRef.current = now;
+          onCursorRef.current(payload);
+        }
         const m = modeRef.current;
         if ((m && m !== "none") || calibTargetRef.current) setHover(pt);
       });
@@ -352,11 +364,25 @@ export default function MapView({
     map.on("moveend", onMoveEnd);
     map.on("zoomend", updateScale);
 
+    // During pan/zoom gestures, hide the expensive overlay sheets (clouds,
+    // markers) so each frame composites ~half the pixels. They fade back
+    // the moment motion ends — rest quality is untouched.
+    const motionOn = () => map.getContainer().classList.add("urth-in-motion");
+    const motionOff = () => map.getContainer().classList.remove("urth-in-motion");
+    map.on("movestart", motionOn);
+    map.on("zoomstart", motionOn);
+    map.on("moveend", motionOff);
+    map.on("zoomend", motionOff);
+
     return () => {
       canceled = true;
       container.removeEventListener("contextmenu", onContextMenu, true);
       container.removeEventListener("click", onPopupClick);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      map.off("movestart", motionOn);
+      map.off("zoomstart", motionOn);
+      map.off("moveend", motionOff);
+      map.off("zoomend", motionOff);
       map.remove();
       mapRef.current = null;
       imagesRef.current = [];
@@ -652,7 +678,12 @@ export default function MapView({
             [0, i * W],
             [H, (i + 1) * W],
           ],
-          { interactive: false, bubblingMouseEvents: false, zIndex: 5 }
+          {
+            interactive: false,
+            bubblingMouseEvents: false,
+            zIndex: 5,
+            className: "urth-markers-tile",
+          }
         ).addTo(grp);
       }
       grp.addTo(map);

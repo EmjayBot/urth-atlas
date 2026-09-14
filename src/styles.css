@@ -170,17 +170,63 @@ body {
   background: radial-gradient(circle, rgba(30, 120, 200, 0.2), transparent 70%);
 }
 
-/* Slowly drifting clouds over the satellite layer */
+/* During pan/zoom gestures, overlay sheets fade out so each frame composites
+   roughly half the pixels; they fade back on moveend/zoomend. Rest quality
+   is untouched. */
+.urth-cloud-sheet,
+.urth-markers-tile {
+  transition: opacity 0.25s ease;
+}
+.urth-in-motion .urth-cloud-sheet,
+.urth-in-motion .urth-markers-tile {
+  opacity: 0 !important;
+}
+
+/* Google-Earth vibe: gentle grade on the satellite base tiles */
+.urth-sat-base {
+  filter: saturate(1.18) contrast(1.06) brightness(1.02);
+}
+.urth-base-tile {
+  transform: translateZ(0);
+}
+
+/* Realistic drifting clouds over the satellite layer. GPU-only transforms
+   (no margin/layout), two depths for parallax. */
+.urth-cloud-sheet {
+  pointer-events: none !important;
+  mix-blend-mode: normal;
+}
 .urth-cloud {
-  animation: urth-cloud-drift 70s ease-in-out infinite alternate;
-  will-change: margin-left;
+  animation: urth-cloud-drift 110s ease-in-out infinite alternate;
+  will-change: transform;
+  filter: drop-shadow(0 6px 14px rgba(15, 30, 60, 0.22)) brightness(1.02);
+}
+.urth-cloud-wisp {
+  animation: urth-cloud-drift-wisp 70s ease-in-out infinite alternate;
+  will-change: transform;
+  filter: blur(0.4px) brightness(1.04);
+  mix-blend-mode: screen;
 }
 @keyframes urth-cloud-drift {
   from {
-    margin-left: 0;
+    transform: translate3d(0, 0, 0);
   }
   to {
-    margin-left: -90px;
+    transform: translate3d(-110px, 8px, 0);
+  }
+}
+@keyframes urth-cloud-drift-wisp {
+  from {
+    transform: translate3d(30px, -6px, 0);
+  }
+  to {
+    transform: translate3d(-140px, 6px, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .urth-cloud,
+  .urth-cloud-wisp {
+    animation: none;
   }
 }
 
