@@ -1014,7 +1014,9 @@ export default function MapView({
 
   const buildPlacePopup = (p, W, H, nearest) => {
     const kind = p.kind ?? "city";
-    const kindLabel = kind.charAt(0).toUpperCase() + kind.slice(1);
+    // Territories keep kind "nation" in data but read as Territory.
+    const isTerr = kind === "nation" && typeof p.territory === "string" && p.territory.trim();
+    const kindLabel = isTerr ? "Territory" : kind.charAt(0).toUpperCase() + kind.slice(1);
     const lat = latFromPixel(p.y, H);
     const lng = lngFromX(p.x, W);
     const latStr = `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? "N" : "S"}`;
