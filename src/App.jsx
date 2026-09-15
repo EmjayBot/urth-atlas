@@ -354,7 +354,7 @@ export default function App() {
     const diff = {};
     for (const [name, v] of Object.entries(local)) {
       diff[name] = { kind: v.kind, href: v.href, x: v.x, y: v.y };
-      // Preserve territory designations so submissions never wipe the label
+      // Preserve territory flags so submissions never wipe the styling
       // (the map-update workflow also carries it over when omitted).
       if (typeof v.territory === "string" && v.territory.trim()) {
         const { x, y, ...rest } = diff[name];

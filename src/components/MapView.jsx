@@ -1024,12 +1024,10 @@ export default function MapView({
     const esc = (s) =>
       String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
     const wikiTitle = wikiTitleFor(p);
-    const terr = typeof p.territory === "string" && p.territory.trim() ? esc(p.territory.trim()) : "";
     return (
       `<div class="atlas-popup" data-wiki="${esc(wikiTitle)}"><div class="atlas-popup-head">` +
       `<span class="atlas-popup-title">${p.name}</span>` +
       `<span class="atlas-popup-kind atlas-popup-kind-${kind}">${kindLabel}</span></div>` +
-      (terr ? `<div class="atlas-popup-terr">${terr}</div>` : "") +
       `<div class="atlas-popup-coords">${latStr}, ${lngStr} · ${hemi}</div>` +
       `<div class="atlas-popup-coords">X ${p.x.toFixed(0)} · Y ${p.y.toFixed(0)}${nearest ? ` · Nearest: ${nearest}` : ""}</div>` +
       `<div class="atlas-popup-wiki" hidden></div>` +
@@ -1058,17 +1056,13 @@ export default function MapView({
       const latlng = [p.y, p.x];
       placeLatLngRef.current[p.name] = latlng;
       const popup = buildPlacePopup(p, mapSize.W, mapSize.H, null);
-      const terr =
-        typeof p.territory === "string" && p.territory.trim()
-          ? `<span class="urth-nation-text-terr">${p.territory
-              .trim()
-              .replace(/&/g, "&amp;")
-              .replace(/</g, "&lt;")}</span>`
-          : "";
+      // Territories render their name in the subnational style (Bell MT Bold
+      // Italic) instead of the nation style — no extra sub-line.
+      const isTerr = typeof p.territory === "string" && p.territory.trim();
       for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
         const icon = L.divIcon({
           className: "urth-nation-text",
-          html: `<span class="urth-nation-text-name">${p.name}</span>${terr}`,
+          html: `<span class="urth-nation-text-name${isTerr ? " terr" : ""}">${p.name}</span>`,
           iconSize: null,
         });
         const mk = L.marker([p.y, p.x + i * W], { icon, riseOnHover: true }).addTo(grp);

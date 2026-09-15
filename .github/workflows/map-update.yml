@@ -36,8 +36,9 @@ jobs:
 
             // Validate shape: { "Name": { kind, href, x, y, territory? } }.
             // A null value is a removal tombstone: delete that name.
-            // territory is an optional designation string (e.g. territories);
-            // it is preserved verbatim so community updates never wipe it.
+            // territory is an optional flag string marking territories
+            // (subnational pin style); it is preserved verbatim so
+            // community updates never wipe it.
             const KINDS = new Set(["nation", "capital", "city", "town"]);
             const clean = {};
             const removed = [];
@@ -77,8 +78,8 @@ jobs:
             const next = { ...cur };
             const appliedAdds = [];
             for (const [name, v] of Object.entries(clean)) {
-              // Carry over the territory designation when the patch omits it,
-              // so community updates to a territory never wipe the label.
+              // Carry over the territory flag when the patch omits it,
+              // so community updates to a territory never wipe the styling.
               // Rebuilt in canonical key order for a stable comparison.
               let entry = v;
               if (!("territory" in v) && typeof next[name]?.territory === "string") {

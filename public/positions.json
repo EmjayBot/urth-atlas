@@ -1,5 +1,5 @@
 {
-  "_comment": "Community place registry. Each key is a place name; value is { kind: 'nation'|'city', href: '/wiki/...', x, y } where x/y are map pixels (CRS.Simple). Nations that are territories carry an optional 'territory' designation string shown under the pin. Merged automatically from GitHub issues titled 'Map update: ...' by .github/workflows/map-update.yml.",
+  "_comment": "Community place registry. Each key is a place name; value is { kind: 'nation'|'city', href: '/wiki/...', x, y } where x/y are map pixels (CRS.Simple). Nations that are territories carry an optional 'territory' flag string; flagged pins render in the subnational (Bell MT Bold Italic) style. Merged automatically from GitHub issues titled 'Map update: ...' by .github/workflows/map-update.yml.",
   "_version": 3,
   "Free Pax States": {
     "kind": "nation",
