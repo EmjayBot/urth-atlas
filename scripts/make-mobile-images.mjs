@@ -19,9 +19,12 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..", "public");
 // Base map carries the visual detail: 4096px (11MP, ~45MB decoded) stays
 // far below phone decode/memory limits while looking sharp at phone zooms.
 // Line/dot overlays get 3072px — plenty for vector-ish art.
+//
+// Sources are the PNG masters, NOT the lossy full-res webps — downscaling
+// from an already-compressed webp bakes generation loss into every edge.
 const JOBS = [
-  { src: "blank-political.webp", out: "blank-political-mobile.webp", width: 4096 },
-  { src: "timezones.webp", out: "timezones-mobile.webp", width: 3072 },
+  { src: "blank-political.png", out: "blank-political-mobile.webp", width: 4096 },
+  { src: "timezones.png", out: "timezones-mobile.webp", width: 3072 },
   // Markers overlay carries alpha — webp preserves it.
   { src: "cities-subnational-markers.png", out: "cities-subnational-markers-mobile.webp", width: 3072 },
 ];

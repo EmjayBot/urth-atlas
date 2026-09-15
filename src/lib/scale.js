@@ -20,7 +20,7 @@ export const BASE_LAYERS = [
     // 2048px variant for low-memory devices (see scripts/make-mobile-images.mjs).
     // fullW/fullH keep the app in full-res pixel coordinates — Leaflet
     // stretches the small image across the full bounds.
-    mobileUrl: `${import.meta.env.BASE_URL}blank-political-mobile.webp`,
+    mobileUrl: `${import.meta.env.BASE_URL}blank-political-mobile.webp?v=2`,
     chip: "bg-gradient-to-br from-sky-300 via-sky-600 to-cyan-800",
   },
   {
@@ -80,7 +80,7 @@ export const BASE_LAYERS = [
     // upstream file is 11860px wide and would misalign pins/measurements.
     url: `${import.meta.env.BASE_URL}timezones.webp`,
     fallbackUrl: `${import.meta.env.BASE_URL}timezones.png`,
-    mobileUrl: `${import.meta.env.BASE_URL}timezones-mobile.webp`,
+    mobileUrl: `${import.meta.env.BASE_URL}timezones-mobile.webp?v=2`,
     chip: "bg-gradient-to-br from-violet-400 via-purple-500 to-indigo-700",
   },
   {
@@ -122,7 +122,7 @@ export function resolveLayer(id) {
 
 // Markers overlay (full-res PNG + downscaled mobile webp with alpha).
 export const MARKERS_URL = `${import.meta.env.BASE_URL}cities-subnational-markers.png`;
-export const MARKERS_MOBILE_URL = `${import.meta.env.BASE_URL}cities-subnational-markers-mobile.webp`;
+export const MARKERS_MOBILE_URL = `${import.meta.env.BASE_URL}cities-subnational-markers-mobile.webp?v=2`;
 
 // Base maps are mutually exclusive; data overlays stack on top of them.
 export const BASE_MAPS = BASE_LAYERS.filter((l) => !l.overlay);
