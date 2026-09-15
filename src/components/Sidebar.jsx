@@ -64,6 +64,7 @@ function PinsSection({
   const [name, setName] = useState("");
   const [kind, setKind] = useState("nation");
   const [href, setHref] = useState("");
+  const [territory, setTerritory] = useState(false);
 
   const allPlaces = useMemo(() => {
     const arr = [];
@@ -132,6 +133,19 @@ function PinsSection({
           spellCheck={false}
           className="w-full h-9 px-3 rounded-md bg-[#f9fafb] border border-[#e5e7eb] focus:bg-white focus:border-[#0e7490] outline-none text-[13px] placeholder:text-zinc-400"
         />
+        {kind === "nation" && (
+          <label className="flex items-center gap-2.5 py-1 select-none cursor-pointer">
+            <input
+              type="checkbox"
+              checked={territory}
+              onChange={(e) => setTerritory(e.target.checked)}
+              className="w-4 h-4 rounded accent-[#0e7490] cursor-pointer"
+            />
+            <span className="text-[13px] text-[#111827]">
+              Territory <span className="text-[11px] text-[#6b7280]">— subnational pin style</span>
+            </span>
+          </label>
+        )}
         <button
           onClick={() => {
             if (name.trim()) {
@@ -139,9 +153,11 @@ function PinsSection({
                 name,
                 kind,
                 href: href.trim() ? `/wiki/${href.trim().replace(/ /g, "_")}` : "",
+                territory: kind === "nation" && territory ? "Territory" : undefined,
               });
               setName("");
               setHref("");
+              setTerritory(false);
             }
           }}
           disabled={!name.trim()}

@@ -293,10 +293,17 @@ export default function App() {
   };
 
   // ---- Place creation / positioning --------------------------------------
-  const createPlace = ({ name, kind, href }) => {
+  const createPlace = ({ name, kind, href, territory }) => {
     const clean = name.trim();
     if (!clean) return;
-    setLocal((l) => ({ ...l, [clean]: { kind, href: href || `/wiki/${clean.replace(/ /g, "_")}` } }));
+    setLocal((l) => ({
+      ...l,
+      [clean]: {
+        kind,
+        href: href || `/wiki/${clean.replace(/ /g, "_")}`,
+        ...(territory ? { territory } : {}),
+      },
+    }));
     // Re-adding clears any pending community removal for the same name.
     setRemoved((r) => {
       if (!r[clean]) return r;
