@@ -37,6 +37,10 @@ export default function App() {
   const [mode, setMode] = useState(initial.mode ?? "none");
   const [units, setUnits] = useState("both");
   const [points, setPoints] = useState(initial.pts ?? []);
+  // Locked = measurement finalized (Finish / double-click / Enter). While
+  // locked, map clicks are ignored so the result can't be accidentally
+  // extended — Resume or Clear (or Esc) unlocks.
+  const [locked, setLocked] = useState(false);
   const [hover, setHover] = useState(null);
   const [cursor, setCursor] = useState(null);
   const [mapSize, setMapSize] = useState(null);
@@ -166,10 +170,10 @@ export default function App() {
 
   const places = useMemo(() => mergePlaces(shared, local, removed), [shared, local, removed]);
 
-  const stateRef = useRef({ mode, points, showNations, view, layer });
+  const stateRef = useRef({ mode, points, locked, showNations, view, layer });
   useEffect(() => {
-    stateRef.current = { mode, points, showNations, view, layer };
-  }, [mode, points, showNations, view, layer]);
+    stateRef.current = { mode, points, locked, showNations, view, layer };
+  }, [mode, points, locked, showNations, view, layer]);
 
   // Persist deep-link state (debounced for view/pan events).
   useEffect(() => {
@@ -204,13 +208,28 @@ export default function App() {
   }, [mode, points, mapSize]);
 
   const selectTool = (m) => {
+    // Clicking the active tool again toggles it off (unsticks the map).
+    if (m === mode) {
+      setMode("none");
+      setPoints([]);
+      setLocked(false);
+      return;
+    }
     setMode(m);
     setPoints([]);
+    setLocked(false);
+  };
+
+  // Callers validate there is a result to show (MapView checks counts
+  // locally because App state is stale at click time; Enter checks stateRef).
+  const lockMeasurement = () => {
+    setLocked(true);
   };
 
   const clearAll = () => {
     setPoints([]);
     setMode("none");
+    setLocked(false);
   };
 
   const onCopy = (text) => {
@@ -424,16 +443,26 @@ export default function App() {
       if (k === "m") selectTool("measure");
       else if (k === "a") selectTool("area");
       else if (k === "p") selectTool("path");
-      else if (k === "escape") {
+      else if (k === "enter") {
+        // Finish the in-progress measurement (same as Finish button).
+        const s = stateRef.current;
+        if (!s.locked) {
+          if (s.mode === "measure" && s.points.length >= 2) setLocked(true);
+          else if (s.mode === "path" && s.points.length >= 2) setLocked(true);
+          else if (s.mode === "area" && s.points.length >= 3) setLocked(true);
+        }
+      } else if (k === "escape") {
         if (target) setTarget(null);
         else if (ctx) setCtx(null);
+        else if (locked) clearAll();
+        else if (points.length > 0) setPoints((p) => p.slice(0, -1));
         else clearAll();
       } else if (k === "+" || k === "=") mapRef.current?.zoomIn();
       else if (k === "-") mapRef.current?.zoomOut();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [target, ctx]);
+  }, [target, ctx, locked, points.length]);
 
   return (
     <div className="w-full h-[100dvh] flex flex-col bg-[#e5e3df] text-zinc-800 font-sans overflow-hidden">
@@ -479,6 +508,9 @@ export default function App() {
           setUnits={setUnits}
           points={points}
           setPoints={setPoints}
+          locked={locked}
+          onLock={lockMeasurement}
+          onResume={() => setLocked(false)}
           mapSize={mapSize}
           cursor={cursor}
           result={result}
@@ -508,6 +540,8 @@ export default function App() {
             mode={mode}
             points={points}
             setPoints={setPoints}
+            locked={locked}
+            onLock={lockMeasurement}
             hover={hover}
             setHover={setHover}
             onCursor={setCursor}

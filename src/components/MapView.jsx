@@ -47,6 +47,8 @@ export default function MapView({
   mode,
   points,
   setPoints,
+  locked = false,
+  onLock = () => {},
   hover,
   setHover,
   onCursor,
@@ -86,6 +88,8 @@ export default function MapView({
 
   const modeRef = useRefLatest(mode);
   const pointsRef = useRefLatest(points);
+  const lockedRef = useRefLatest(locked);
+  const onLockRef = useRefLatest(onLock);
   const hoverRef = useRefLatest(hover);
   const layerRef = useRefLatest(layer);
   const placesRef = useRefLatest(places);
@@ -268,17 +272,35 @@ export default function MapView({
       }
       const m = modeRef.current;
       if (!m || m === "none") return;
+      // Finalized measurements ignore clicks until Resume/Clear (or Esc).
+      if (lockedRef.current) return;
       const pts = pointsRef.current;
       if (m === "measure") {
-        setPoints(pts.length >= 2 ? [pt] : [...pts, pt]);
+        if (pts.length >= 2) {
+          // Already complete — ignore stray clicks instead of restarting.
+          return;
+        }
+        const next = [...pts, pt];
+        setPoints(next);
+        // Two-point measure completes itself on the second click.
+        if (next.length >= 2) onLockRef.current?.();
       } else {
         setPoints([...pts, pt]);
       }
     };
 
     const onDblClick = (e) => {
-      if (modeRef.current === "area" && pointsRef.current.length >= 2) {
+      // Double-click finishes path/area. Leaflet fires two 'click' events
+      // before 'dblclick', so the second click lands as a near-duplicate
+      // vertex — drop it, then finalize if the shape has a result.
+      const m = modeRef.current;
+      if ((m === "path" || m === "area") && !lockedRef.current) {
         e.originalEvent?.preventDefault();
+        const pts = pointsRef.current.slice(0, -1);
+        setPoints(pts);
+        const done =
+          (m === "path" && pts.length >= 2) || (m === "area" && pts.length >= 3);
+        if (done) onLockRef.current?.();
       }
     };
 
@@ -859,7 +881,8 @@ export default function MapView({
     if (!map || !mapSize?.W) return;
     const grp = L.layerGroup();
     const pts = points;
-    const hv = hover;
+    // Finalized shapes stop tracking the cursor and render solid.
+    const hv = locked ? null : hover;
 
     pts.forEach((p, i) => {
       const mk = L.circleMarker([p.y, p.x], {
@@ -938,7 +961,7 @@ export default function MapView({
     return () => {
       grp.remove();
     };
-  }, [points, hover, mode, mapSize]);
+  }, [points, hover, mode, locked, mapSize]);
 
   // ---- Places layer ---------------------------------------------------------
   // Nations (text labels) and settlements (tiered dots) are separate Leaflet

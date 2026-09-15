@@ -12,9 +12,9 @@ import {
 } from "./icons";
 
 const TOOLS = [
-  { id: "measure", label: "Measure", icon: IconRuler, hint: "Click 2 points. Flat-map km + miles + NM, plus the if-Urth-were-spherical figure." },
-  { id: "area", label: "Area", icon: IconArea, hint: "Click vertices, then double-click or press Finish to close." },
-  { id: "path", label: "Path", icon: IconPath, hint: "Click waypoints. Flat-map totals, plus the if-Urth-were-spherical figure." },
+  { id: "measure", label: "Measure", icon: IconRuler, hint: "Click 2 points — it finishes itself. Click the active tool again (or Esc) to exit." },
+  { id: "area", label: "Area", icon: IconArea, hint: "Click vertices, then Finish, double-click, or Enter. Esc removes the last point." },
+  { id: "path", label: "Path", icon: IconPath, hint: "Click waypoints, then Finish, double-click, or Enter. Esc removes the last point." },
 ];
 
 function ActionButton({ onClick, icon: Icon, label }) {
@@ -258,14 +258,30 @@ export default function MeasurementPanel({
   setUnits,
   points,
   setPoints,
+  locked = false,
+  onLock = () => {},
+  onResume = () => {},
   mapSize,
   cursor,
   result,
   onCopy,
   onShare,
 }) {
-  const clear = () => setPoints([]);
-  const undo = () => setPoints((p) => p.slice(0, -1));
+  const clear = () => {
+    onResume();
+    setPoints([]);
+  };
+  const undo = () => {
+    // Editing a finalized shape resumes the draft (unlocks) so further
+    // clicks work again.
+    onResume();
+    setPoints((p) => p.slice(0, -1));
+  };
+  // Path/area stay open until finalized; measure completes on 2nd click.
+  const finishable =
+    !locked &&
+    ((mode === "path" && points.length >= 2) ||
+      (mode === "area" && points.length >= 3));
 
   return (
     <div>
@@ -274,9 +290,27 @@ export default function MeasurementPanel({
           Measurements
         </h3>
         <div className="flex items-center gap-1.5">
+          {finishable && (
+            <button
+              onClick={onLock}
+              title="Finish (Enter or double-click)"
+              className="h-8 px-3 rounded-full bg-[#0e7490] text-white text-[12px] font-semibold hover:bg-[#0c5a70] transition-colors"
+            >
+              Finish
+            </button>
+          )}
+          {locked && mode !== "none" && (
+            <button
+              onClick={onResume}
+              title="Resume adding points"
+              className="h-8 px-3 rounded-full bg-white border border-zinc-200 text-zinc-700 text-[12px] font-semibold hover:border-zinc-300 transition-colors"
+            >
+              Resume
+            </button>
+          )}
           {points.length > 0 && (
             <>
-              <ActionButton onClick={undo} icon={IconUndo} label="Undo last point" />
+              <ActionButton onClick={undo} icon={IconUndo} label="Undo last point (Esc)" />
               <ActionButton onClick={clear} icon={IconTrash} label="Clear all" />
             </>
           )}

@@ -376,6 +376,9 @@ export default function Sidebar({
   setUnits,
   points,
   setPoints,
+  locked = false,
+  onLock = () => {},
+  onResume = () => {},
   mapSize,
   cursor,
   result,
@@ -555,6 +558,9 @@ export default function Sidebar({
           setUnits={setUnits}
           points={points}
           setPoints={setPoints}
+          locked={locked}
+          onLock={onLock}
+          onResume={onResume}
           mapSize={mapSize}
           cursor={cursor}
           result={result}
