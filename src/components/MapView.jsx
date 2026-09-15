@@ -521,9 +521,7 @@ export default function MapView({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapSize?.W) return;
-    // Phones never mount the underlay: rasterizing the vector SVG across the
-    // full world is another memory spike with zero benefit at phone zooms.
-    if (IS_LOW_MEM) return () => {};
+    const grp = L.layerGroup();
     const { W, H } = mapSize;
 
     const gridForCopy = (step, color, weight, offsetX) => {
@@ -751,6 +749,9 @@ export default function MapView({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapSize?.W) return;
+    // Phones never mount the underlay: rasterizing the vector SVG across the
+    // full world is another memory spike with zero benefit at phone zooms.
+    if (IS_LOW_MEM) return () => {};
     const { W, H } = mapSize;
     const sizeKey = `${W}x${H}`;
     if (tepSizeRef.current !== sizeKey) {
@@ -1052,24 +1053,24 @@ export default function MapView({
     const grp = L.layerGroup();
     const { W } = mapSize;
     const keys = [];
-      placesRef.current.forEach((p) => {
-        if (p.kind !== "nation" || p.x == null || p.y == null) return;
-        const latlng = [p.y, p.x];
-        placeLatLngRef.current[p.name] = latlng;
-        const popup = buildPlacePopup(p, mapSize.W, mapSize.H, null);
-        const terr =
-          typeof p.territory === "string" && p.territory.trim()
-            ? `<span class="urth-nation-text-terr">${p.territory
-                .trim()
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")}</span>`
-            : "";
-        for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
-          const icon = L.divIcon({
-            className: "urth-nation-text",
-            html: `<span class="urth-nation-text-name">${p.name}</span>${terr}`,
-            iconSize: null,
-          });
+    placesRef.current.forEach((p) => {
+      if (p.kind !== "nation" || p.x == null || p.y == null) return;
+      const latlng = [p.y, p.x];
+      placeLatLngRef.current[p.name] = latlng;
+      const popup = buildPlacePopup(p, mapSize.W, mapSize.H, null);
+      const terr =
+        typeof p.territory === "string" && p.territory.trim()
+          ? `<span class="urth-nation-text-terr">${p.territory
+              .trim()
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")}</span>`
+          : "";
+      for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
+        const icon = L.divIcon({
+          className: "urth-nation-text",
+          html: `<span class="urth-nation-text-name">${p.name}</span>${terr}`,
+          iconSize: null,
+        });
         const mk = L.marker([p.y, p.x + i * W], { icon, riseOnHover: true }).addTo(grp);
         mk.bindPopup(popup);
         mk.on("click", (e) => L.DomEvent.stopPropagation(e));
