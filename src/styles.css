@@ -241,9 +241,35 @@ body {
   cursor: pointer;
   text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 4px #fff, 0 0 5px #fff;
 }
-.urth-nation-text:hover .urth-nation-text-name {
+/* Territory designation under the nation name (territories only) */
+.urth-nation-text-terr {
+  position: absolute;
+  left: 0;
+  top: 7px;
+  font-family: "Bell MT", "Bell MT Bold", Georgia, "Times New Roman", serif;
+  font-size: 11px;
+  font-weight: 700;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  color: #0f172a;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  cursor: pointer;
+  text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 4px #fff, 0 0 5px #fff;
+}
+.urth-nation-text:hover .urth-nation-text-name,
+.urth-nation-text:hover .urth-nation-text-terr {
   color: #0e7490;
   text-decoration: underline;
+}
+/* Territory designation line inside nation popups */
+.atlas-popup-terr {
+  font-family: "Bell MT", "Bell MT Bold", Georgia, "Times New Roman", serif;
+  font-size: 12px;
+  font-weight: 700;
+  font-style: italic;
+  color: #0e7490;
+  margin-top: 1px;
 }
 
 /* Coordinate grid labels */

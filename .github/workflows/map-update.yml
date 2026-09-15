@@ -34,8 +34,10 @@ jobs:
             }
             const patch = JSON.parse(m[1]);
 
-            // Validate shape: { "Name": { kind, href, x, y } }.
+            // Validate shape: { "Name": { kind, href, x, y, territory? } }.
             // A null value is a removal tombstone: delete that name.
+            // territory is an optional designation string (e.g. territories);
+            // it is preserved verbatim so community updates never wipe it.
             const KINDS = new Set(["nation", "capital", "city", "town"]);
             const clean = {};
             const removed = [];
@@ -52,7 +54,14 @@ jobs:
                 typeof v.href === "string" &&
                 Number.isFinite(v.x) && Number.isFinite(v.y)
               ) {
-                clean[name] = { kind: v.kind, href: v.href, x: Math.round(v.x), y: Math.round(v.y) };
+                // Canonical key order (kind, href, territory, x, y) so the
+                // change comparison below isn't fooled by key ordering.
+                clean[name] = { kind: v.kind, href: v.href };
+                if (typeof v.territory === "string" && v.territory.trim()) {
+                  clean[name].territory = v.territory.trim().slice(0, 80);
+                }
+                clean[name].x = Math.round(v.x);
+                clean[name].y = Math.round(v.y);
               }
             }
             if (!Object.keys(clean).length && !removed.length) {
@@ -68,8 +77,15 @@ jobs:
             const next = { ...cur };
             const appliedAdds = [];
             for (const [name, v] of Object.entries(clean)) {
-              if (JSON.stringify(next[name]) !== JSON.stringify(v)) {
-                next[name] = v;
+              // Carry over the territory designation when the patch omits it,
+              // so community updates to a territory never wipe the label.
+              // Rebuilt in canonical key order for a stable comparison.
+              let entry = v;
+              if (!("territory" in v) && typeof next[name]?.territory === "string") {
+                entry = { kind: v.kind, href: v.href, territory: next[name].territory, x: v.x, y: v.y };
+              }
+              if (JSON.stringify(next[name]) !== JSON.stringify(entry)) {
+                next[name] = entry;
                 appliedAdds.push(name);
               }
             }

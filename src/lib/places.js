@@ -2,6 +2,8 @@
 // positions.json (community) merged with the user's local edits. Each
 // place is `{ name, kind: "nation"|"city", href, x, y }` where x/y are
 // map pixels (CRS.Simple) and may be absent until the place is placed.
+// Nations that are territories may carry an optional `territory`
+// designation string, shown under the map pin.
 
 export function searchPlaces(places, query, limit = 8) {
   const q = normalize(query.trim());

@@ -1,5 +1,5 @@
 {
-  "_comment": "Community place registry. Each key is a place name; value is { kind: 'nation'|'city', href: '/wiki/...', x, y } where x/y are map pixels (CRS.Simple). Merged automatically from GitHub issues titled 'Map update: ...' by .github/workflows/map-update.yml.",
+  "_comment": "Community place registry. Each key is a place name; value is { kind: 'nation'|'city', href: '/wiki/...', x, y } where x/y are map pixels (CRS.Simple). Nations that are territories carry an optional 'territory' designation string shown under the pin. Merged automatically from GitHub issues titled 'Map update: ...' by .github/workflows/map-update.yml.",
   "_version": 3,
   "Free Pax States": {
     "kind": "nation",
@@ -10,12 +10,14 @@
   "Hoopland": {
     "kind": "nation",
     "href": "/wiki/Hoopland",
+    "territory": "Territory",
     "x": 7906,
     "y": 4948
   },
   "Tarseen": {
     "kind": "nation",
     "href": "/wiki/Tarseen",
+    "territory": "Territory",
     "x": 8219,
     "y": 4896
   },
@@ -28,6 +30,7 @@
   "East Gemica": {
     "kind": "nation",
     "href": "/wiki/East_Gemica",
+    "territory": "Territory",
     "x": 9631,
     "y": 3323
   },

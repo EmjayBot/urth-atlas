@@ -6,6 +6,11 @@ import {
   KM_PER_PX,
   MI_PER_KM,
   getLayer,
+  resolveLayer,
+  FULL_W,
+  FULL_H,
+  MARKERS_URL,
+  MARKERS_MOBILE_URL,
 } from "../lib/scale";
 import { wrapX, wrapY, latFromPixel, lngFromX, pixelFromLat, pixelFromLng } from "../lib/geo";
 import { loadLayer, makeFallbackGrid } from "../lib/imageCache";
@@ -213,9 +218,19 @@ export default function MapView({
       onMapReadyRef.current(map);
     };
 
-    const def = getLayer(layerRef.current);
+    const def = resolveLayer(layerRef.current);
+    if (!def) {
+      if (canceled) return;
+      const url = makeFallbackGrid(FALLBACK_W, FALLBACK_H);
+      finishLoad(url, FALLBACK_W, FALLBACK_H, "blocked");
+      return;
+    }
+    // Mobile serves a downscaled image stretched over full-res bounds, so
+    // pins, wrap, and measurements match desktop exactly.
     loadLayer(def)
-      .then(({ url, w, h }) => finishLoad(url, w, h, "ok"))
+      .then(({ url, w, h }) =>
+        finishLoad(url, def.mobile ? FULL_W : w, def.mobile ? FULL_H : h, "ok")
+      )
       .catch(() => {
         if (canceled) return;
         const url = makeFallbackGrid(FALLBACK_W, FALLBACK_H);
@@ -451,14 +466,28 @@ export default function MapView({
       });
       return;
     }
-    const def = getLayer(layer);
+    const def = resolveLayer(layer);
     let canceled = false;
     setStatus("loading");
+    if (!def) {
+      // Layer has no mobile-safe variant (e.g. remote full-res overlay id in
+      // a shared link) — show the placeholder grid instead of decoding 84MP.
+      const url = makeFallbackGrid(FALLBACK_W, FALLBACK_H);
+      imagesRef.current.forEach((ov) => ov.setUrl(url));
+      loadedLayerRef.current = layer;
+      applyOpacity();
+      setStatus("blocked");
+      return () => {
+        canceled = true;
+      };
+    }
     loadLayer(def)
       .then(({ url, w, h }) => {
         if (canceled) return;
-        if (w !== mapSize.W || h !== mapSize.H) {
-          setMapSize({ W: w, H: h });
+        const W = def.mobile ? FULL_W : w;
+        const H = def.mobile ? FULL_H : h;
+        if (W !== mapSize.W || H !== mapSize.H) {
+          setMapSize({ W, H });
         }
         imagesRef.current.forEach((ov) => ov.setUrl(url));
         loadedLayerRef.current = layer;
@@ -492,7 +521,9 @@ export default function MapView({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapSize?.W) return;
-    const grp = L.layerGroup();
+    // Phones never mount the underlay: rasterizing the vector SVG across the
+    // full world is another memory spike with zero benefit at phone zooms.
+    if (IS_LOW_MEM) return () => {};
     const { W, H } = mapSize;
 
     const gridForCopy = (step, color, weight, offsetX) => {
@@ -671,7 +702,9 @@ export default function MapView({
     let canceled = false;
     for (const id of wanted) {
       if (groups[id]?.url) continue;
-      const def = getLayer(id);
+      const def = resolveLayer(id);
+      // Null on low-memory devices = remote full-res overlay with no mobile
+      // variant. Skipping beats decoding 84MP and killing the tab.
       if (!def?.overlay) continue;
       if (!groups[id]) {
         const grp = L.layerGroup();
@@ -772,7 +805,8 @@ export default function MapView({
     };
     const start = () => {
       if (canceled) return;
-      const png = `${import.meta.env.BASE_URL}cities-subnational-markers.png`;
+      // Downscaled markers on phones (same 84MP-decode problem as base).
+      const png = IS_LOW_MEM ? MARKERS_MOBILE_URL : MARKERS_URL;
       loadLayer({ url: png, fallbackUrl: png })
         .then(({ url }) => mount(url))
         .catch(() => mount(png));
@@ -989,10 +1023,12 @@ export default function MapView({
     const esc = (s) =>
       String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
     const wikiTitle = wikiTitleFor(p);
+    const terr = typeof p.territory === "string" && p.territory.trim() ? esc(p.territory.trim()) : "";
     return (
       `<div class="atlas-popup" data-wiki="${esc(wikiTitle)}"><div class="atlas-popup-head">` +
       `<span class="atlas-popup-title">${p.name}</span>` +
       `<span class="atlas-popup-kind atlas-popup-kind-${kind}">${kindLabel}</span></div>` +
+      (terr ? `<div class="atlas-popup-terr">${terr}</div>` : "") +
       `<div class="atlas-popup-coords">${latStr}, ${lngStr} · ${hemi}</div>` +
       `<div class="atlas-popup-coords">X ${p.x.toFixed(0)} · Y ${p.y.toFixed(0)}${nearest ? ` · Nearest: ${nearest}` : ""}</div>` +
       `<div class="atlas-popup-wiki" hidden></div>` +
@@ -1016,17 +1052,24 @@ export default function MapView({
     const grp = L.layerGroup();
     const { W } = mapSize;
     const keys = [];
-    placesRef.current.forEach((p) => {
-      if (p.kind !== "nation" || p.x == null || p.y == null) return;
-      const latlng = [p.y, p.x];
-      placeLatLngRef.current[p.name] = latlng;
-      const popup = buildPlacePopup(p, mapSize.W, mapSize.H, null);
-      for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
-        const icon = L.divIcon({
-          className: "urth-nation-text",
-          html: `<span class="urth-nation-text-name">${p.name}</span>`,
-          iconSize: null,
-        });
+      placesRef.current.forEach((p) => {
+        if (p.kind !== "nation" || p.x == null || p.y == null) return;
+        const latlng = [p.y, p.x];
+        placeLatLngRef.current[p.name] = latlng;
+        const popup = buildPlacePopup(p, mapSize.W, mapSize.H, null);
+        const terr =
+          typeof p.territory === "string" && p.territory.trim()
+            ? `<span class="urth-nation-text-terr">${p.territory
+                .trim()
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")}</span>`
+            : "";
+        for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
+          const icon = L.divIcon({
+            className: "urth-nation-text",
+            html: `<span class="urth-nation-text-name">${p.name}</span>${terr}`,
+            iconSize: null,
+          });
         const mk = L.marker([p.y, p.x + i * W], { icon, riseOnHover: true }).addTo(grp);
         mk.bindPopup(popup);
         mk.on("click", (e) => L.DomEvent.stopPropagation(e));
@@ -1194,9 +1237,9 @@ export default function MapView({
             <div className="text-[12px] font-semibold tracking-wide uppercase text-zinc-600">
               Loading {activeLayer.label}
             </div>
-            <div className="text-[11px] text-zinc-400 font-mono mt-1">
-              Fetching full-resolution world map
-            </div>
+              <div className="text-[11px] text-zinc-400 font-mono mt-1">
+                {IS_LOW_MEM ? "Fetching mobile world map" : "Fetching full-resolution world map"}
+              </div>
           </div>
         </div>
       )}

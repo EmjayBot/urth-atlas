@@ -58,7 +58,13 @@ export default function App() {
   // Stackable data overlays (topo/climate/...). Old shared links that used
   // one as the base layer migrate to base map + overlay on.
   const initialOverlay =
-    initial.layer && DATA_OVERLAYS.some((l) => l.id === initial.layer) ? [initial.layer] : [];
+    initial.layer && DATA_OVERLAYS.some((l) => l.id === initial.layer)
+      ? // Phones drop remote full-res overlays from shared links (no mobile
+        // variant = 84MP decode = dead tab). Timezones has one, so it survives.
+        IS_LOW_MEM
+        ? DATA_OVERLAYS.filter((l) => l.id === initial.layer && l.mobileUrl).map((l) => l.id)
+        : [initial.layer]
+      : [];
   const [dataOverlays, setDataOverlays] = useState(initialOverlay);
   const [overlayOpacity, setOverlayOpacity] = useState(70);
   const toggleDataOverlay = (id) => {
@@ -138,7 +144,10 @@ export default function App() {
   // to them later is instant — bytes AND decode are warmed, which is what
   // made the old layer show through while zooming mid-switch. Satellite is
   // skipped on low-memory devices where it's disabled anyway.
+  // Phones skip warming entirely: even a background 84MP decode can kill
+  // the tab, and the mobile variants they actually use load on demand.
   useEffect(() => {
+    if (IS_LOW_MEM) return;
     let canceled = false;
     const warm = (name) => {
       const img = new Image();
@@ -345,6 +354,12 @@ export default function App() {
     const diff = {};
     for (const [name, v] of Object.entries(local)) {
       diff[name] = { kind: v.kind, href: v.href, x: v.x, y: v.y };
+      // Preserve territory designations so submissions never wipe the label
+      // (the map-update workflow also carries it over when omitted).
+      if (typeof v.territory === "string" && v.territory.trim()) {
+        const { x, y, ...rest } = diff[name];
+        diff[name] = { ...rest, territory: v.territory.trim(), x, y };
+      }
     }
     for (const name of Object.keys(removed)) {
       if (!local[name] && shared[name]) diff[name] = null;

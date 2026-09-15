@@ -7,9 +7,15 @@ import MeasurementPanel from "./MeasurementPanel";
 import { IconChevron, IconPin, IconTrash } from "./icons";
 
 // Satellite (+ its cloud layer) is disabled on low-memory devices.
+// Phones additionally only get layers with downscaled mobile variants —
+// an 84MP decode kills mobile browser tabs.
 const VISIBLE_LAYERS = IS_LOW_MEM
-  ? BASE_MAPS.filter((l) => l.id !== "satellite")
+  ? BASE_MAPS.filter((l) => l.mobileUrl)
   : BASE_MAPS;
+// Same for thematic overlays: remote full-res layers need a desktop browser.
+const VISIBLE_OVERLAYS = IS_LOW_MEM
+  ? DATA_OVERLAYS.filter((l) => l.mobileUrl)
+  : DATA_OVERLAYS;
 
 const KINDS = [
   { id: "nation", label: "Nation" },
@@ -474,7 +480,7 @@ export default function Sidebar({
 
       <Section title="Thematic Layers">
         <div className="space-y-1">
-          {DATA_OVERLAYS.map((l) => {
+          {VISIBLE_OVERLAYS.map((l) => {
             const on = dataOverlays.includes(l.id);
             return (
               <label
@@ -521,7 +527,8 @@ export default function Sidebar({
           />
           {IS_LOW_MEM && (
             <div className="mt-1.5 text-[11px] text-[#6b7280]">
-              One overlay at a time on this device.
+              One overlay at a time on this device. Full-resolution layers
+              need a desktop browser.
             </div>
           )}
         </div>

@@ -1,3 +1,5 @@
+import { IS_LOW_MEM } from "./device";
+
 export const WIKI_URL = "https://tep.wiki";
 
 // Base map layers from urth-rp/urthmaps (maps/export). All share the same
@@ -15,6 +17,10 @@ export const BASE_LAYERS = [
     sub: "Blank political map",
     url: `${import.meta.env.BASE_URL}blank-political.webp`,
     fallbackUrl: `${import.meta.env.BASE_URL}blank-political.png?v=2`,
+    // 2048px variant for low-memory devices (see scripts/make-mobile-images.mjs).
+    // fullW/fullH keep the app in full-res pixel coordinates — Leaflet
+    // stretches the small image across the full bounds.
+    mobileUrl: `${import.meta.env.BASE_URL}blank-political-mobile.webp`,
     chip: "bg-gradient-to-br from-sky-300 via-sky-600 to-cyan-800",
   },
   {
@@ -74,6 +80,7 @@ export const BASE_LAYERS = [
     // upstream file is 11860px wide and would misalign pins/measurements.
     url: `${import.meta.env.BASE_URL}timezones.webp`,
     fallbackUrl: `${import.meta.env.BASE_URL}timezones.png`,
+    mobileUrl: `${import.meta.env.BASE_URL}timezones-mobile.webp`,
     chip: "bg-gradient-to-br from-violet-400 via-purple-500 to-indigo-700",
   },
   {
@@ -91,6 +98,31 @@ export const MAP_URL = BASE_LAYERS[0].url;
 export function getLayer(id) {
   return BASE_LAYERS.find((l) => l.id === id) ?? BASE_LAYERS[0];
 }
+
+// Full-resolution pixel dimensions shared by all base layers. Mobile
+// variants are stretched across these bounds so coordinates, pins, wrap,
+// and KM_PER_PX math stay identical on both tiers.
+export const FULL_W = 11232;
+export const FULL_H = 7525;
+
+// Resolve a layer to displayable URLs for this device. On low-memory
+// devices, layers with a mobile variant serve the downscaled image
+// (~2.8MP decode instead of ~338MB); layers without one (remote full-res
+// overlays, satellite) resolve to null and must be hidden by callers.
+export function resolveLayer(id) {
+  const def = getLayer(id);
+  if (IS_LOW_MEM) {
+    // Fallback stays on the mobile tier too — falling back to the full-res
+    // file would reintroduce the 84MP decode that crashes phone browsers.
+    if (def.mobileUrl) return { ...def, url: def.mobileUrl, fallbackUrl: def.mobileUrl, mobile: true };
+    return null;
+  }
+  return { ...def, mobile: false };
+}
+
+// Markers overlay (full-res PNG + downscaled mobile webp with alpha).
+export const MARKERS_URL = `${import.meta.env.BASE_URL}cities-subnational-markers.png`;
+export const MARKERS_MOBILE_URL = `${import.meta.env.BASE_URL}cities-subnational-markers-mobile.webp`;
 
 // Base maps are mutually exclusive; data overlays stack on top of them.
 export const BASE_MAPS = BASE_LAYERS.filter((l) => !l.overlay);
