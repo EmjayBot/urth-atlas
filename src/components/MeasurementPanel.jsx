@@ -12,9 +12,9 @@ import {
 } from "./icons";
 
 const TOOLS = [
-  { id: "measure", label: "Measure", icon: IconRuler, hint: "Click 2 points. Shows km + miles + NM, raw & latitude-corrected." },
+  { id: "measure", label: "Measure", icon: IconRuler, hint: "Click 2 points. Flat-map km + miles + NM, plus the if-Urth-were-spherical figure." },
   { id: "area", label: "Area", icon: IconArea, hint: "Click vertices, then double-click or press Finish to close." },
-  { id: "path", label: "Path", icon: IconPath, hint: "Click waypoints. Sums km & miles with cos(φ) correction." },
+  { id: "path", label: "Path", icon: IconPath, hint: "Click waypoints. Flat-map totals, plus the if-Urth-were-spherical figure." },
 ];
 
 function ActionButton({ onClick, icon: Icon, label }) {
@@ -118,7 +118,7 @@ function DistanceCard({ d, units, onCopy, onShare }) {
         <Row label="Straight px" value={`${d.pix.toFixed(1)} px`} bold />
         <Divider />
         <div className="text-[10px] font-bold tracking-widest uppercase text-zinc-500">
-          Raw Euclidean
+          Flat map — Urth is flat (primary)
         </div>
         {(units === "metric" || units === "both") && (
           <Row label="Distance" value={`${num(d.km, 1)} km`} big />
@@ -129,26 +129,26 @@ function DistanceCard({ d, units, onCopy, onShare }) {
         <Row label="Nautical" value={`${num(d.nm, 1)} NM`} />
         <Divider />
         <div className="text-[10px] font-bold tracking-widest uppercase text-zinc-500">
-          Latitude Corrected · cos({d.avgLat.toFixed(1)}°) = {d.cosAvg.toFixed(4)}
+          If Urth were a sphere · cos({d.avgLat.toFixed(1)}°) = {d.cosAvg.toFixed(4)}
         </div>
         {(units === "metric" || units === "both") && (
-          <Row label="Corrected" value={`${num(d.kmCorr, 2)} km`} accent />
+          <Row label="Spherical" value={`${num(d.kmCorr, 2)} km`} accent />
         )}
         {(units === "imperial" || units === "both") && (
-          <Row label={units === "both" ? "" : "Corrected"} value={`${num(d.miCorr, 2)} mi`} accent />
+          <Row label={units === "both" ? "" : "Spherical"} value={`${num(d.miCorr, 2)} mi`} accent />
         )}
-        <Row label="Corr NM" value={`${num(d.nmCorr, 2)} NM`} />
+        <Row label="Spherical NM" value={`${num(d.nmCorr, 2)} NM`} />
         <div className="mt-2 p-2 bg-white rounded-lg border text-[10px] leading-[1.4] text-zinc-600">
           <div className="font-bold text-zinc-800 mb-0.5">Formulas</div>
           <div>pix = √(dx²+dy²)</div>
-          <div>km = pix × {KM_PER_PX.toFixed(4)}</div>
-          <div>km_corr = √((dx·{KM_PER_PX.toFixed(3)}·cosφ)² + (dy·{KM_PER_PX.toFixed(3)})²)</div>
+          <div>km (flat) = pix × {KM_PER_PX.toFixed(4)}</div>
+          <div>km (if spherical) = Σ √((dxᵢ·{KM_PER_PX.toFixed(3)}·cosφᵢ)² + (dyᵢ·{KM_PER_PX.toFixed(3)})²), φ sampled along segment</div>
         </div>
       </div>
       <CopyShare
         onCopy={onCopy}
         onShare={onShare}
-        text={`${num(d.km, 1)} km (${num(d.mi, 1)} mi) • corr ${num(d.kmCorr, 1)} km / ${num(d.miCorr, 1)} mi • ${num(d.nm, 1)} NM`}
+        text={`${num(d.km, 1)} km (${num(d.mi, 1)} mi) • if spherical ${num(d.kmCorr, 1)} km / ${num(d.miCorr, 1)} mi • ${num(d.nm, 1)} NM`}
         shareState={{ mode: "measure", pts: undefined }}
       />
     </ResultCard>
@@ -167,32 +167,32 @@ function PathCard({ r, count, units, onCopy, onShare }) {
       <div className="font-mono text-[12px] space-y-1">
         {(units === "metric" || units === "both") && (
           <>
-            <Row label="Euclidean" value={`${num(r.totalKm, 2)} km`} bold accent />
-            <Row label="Corrected" value={`${num(r.totalKmCorr, 2)} km`} />
+            <Row label="Flat" value={`${num(r.totalKm, 2)} km`} bold accent />
+            <Row label="If spherical" value={`${num(r.totalKmCorr, 2)} km`} />
           </>
         )}
         {(units === "imperial" || units === "both") && (
           <>
-            <Row label="Euclid mi" value={`${num(r.totalMi, 2)} mi`} bold accent />
-            <Row label="Corr mi" value={`${num(r.totalMiCorr, 2)} mi`} />
+            <Row label="Flat mi" value={`${num(r.totalMi, 2)} mi`} bold accent />
+            <Row label="If spherical mi" value={`${num(r.totalMiCorr, 2)} mi`} />
           </>
         )}
-        <Row label="NM corr" value={`${num(r.totalNmCorr, 1)} NM`} />
+        <Row label="Spherical NM" value={`${num(r.totalNmCorr, 1)} NM`} />
         {units === "both" && (
           <>
             <Divider />
             <div className="text-[10px] font-bold tracking-widest uppercase text-zinc-500">
               Both units
             </div>
-            <Row label="Euclid" value={`${num(r.totalKm, 1)} km = ${num(r.totalMi, 1)} mi`} />
-            <Row label="Corr" value={`${num(r.totalKmCorr, 1)} km = ${num(r.totalMiCorr, 1)} mi`} />
+            <Row label="Flat" value={`${num(r.totalKm, 1)} km = ${num(r.totalMi, 1)} mi`} />
+            <Row label="If spherical" value={`${num(r.totalKmCorr, 1)} km = ${num(r.totalMiCorr, 1)} mi`} />
           </>
         )}
       </div>
       <CopyShare
         onCopy={onCopy}
         onShare={onShare}
-        text={`Path ${count} pts: ${num(r.totalKm, 1)} km (${num(r.totalMi, 1)} mi) • corr ${num(r.totalKmCorr, 1)} km`}
+        text={`Path ${count} pts: ${num(r.totalKm, 1)} km (${num(r.totalMi, 1)} mi) • if spherical ${num(r.totalKmCorr, 1)} km`}
         shareState={{ mode: "path", pts: undefined }}
       />
     </ResultCard>
@@ -212,10 +212,10 @@ function AreaCard({ a, count, units, onCopy, onShare }) {
         <Row label="Pixel area" value={`${a.areaPx.toFixed(1)} px²`} bold />
         <Divider />
         {(units === "metric" || units === "both") && (
-          <Row label="Real area" value={`${num(a.areaKm2, 2)} km²`} bold accent />
+          <Row label="Flat area" value={`${num(a.areaKm2, 2)} km²`} bold accent />
         )}
         {(units === "imperial" || units === "both") && (
-          <Row label="Real area" value={`${num(a.areaMi2, 2)} mi²`} bold accent />
+          <Row label="Flat area" value={`${num(a.areaMi2, 2)} mi²`} bold accent />
         )}
         {units === "both" && (
           <div className="text-[12px] font-bold text-center bg-white border rounded-lg py-1.5 my-1 text-[#0e7490]">
@@ -225,20 +225,20 @@ function AreaCard({ a, count, units, onCopy, onShare }) {
         <Row label="Acres" value={`${num(a.acres, 1)} ac`} />
         <Divider />
         <div className="text-[10px] text-zinc-600">
-          Avg lat {a.avgLat.toFixed(1)}°, cos = {a.cosAvg.toFixed(4)}
+          If Urth were a sphere — avg lat {a.avgLat.toFixed(1)}°, cos = {a.cosAvg.toFixed(4)}
         </div>
         {(units === "metric" || units === "both") && (
-          <Row label="Corr km²" value={`${num(a.areaKm2Corr, 2)} km²`} accent />
+          <Row label="Spherical km²" value={`${num(a.areaKm2Corr, 2)} km²`} accent />
         )}
         {(units === "imperial" || units === "both") && (
-          <Row label="Corr mi²" value={`${num(a.areaMi2Corr, 2)} mi²`} accent />
+          <Row label="Spherical mi²" value={`${num(a.areaMi2Corr, 2)} mi²`} accent />
         )}
-        <Row label="Corr acres" value={`${num(a.acresCorr, 1)} ac`} />
+        <Row label="Spherical acres" value={`${num(a.acresCorr, 1)} ac`} />
         <div className="mt-2 p-2 bg-white rounded-lg border text-[10px] leading-[1.4] text-zinc-600">
           <div className="font-bold text-zinc-800 mb-0.5">Formulas</div>
           <div>Shoelace: A = ½|Σ(xᵢyᵢ₊₁ − xᵢ₊₁yᵢ)|</div>
-          <div>km² = px² × {KM2_PER_PX2.toFixed(2)}</div>
-          <div>Corr ≈ km² × cosφ_avg • acres = km² × 247.105</div>
+          <div>km² (flat) = px² × {KM2_PER_PX2.toFixed(2)}</div>
+          <div>If spherical ≈ km² × mean cosφ (vertex + midpoint sampled) • acres = km² × 247.105</div>
         </div>
       </div>
       <CopyShare
@@ -339,7 +339,7 @@ export default function MeasurementPanel({
               <Row label="mi from origin" value={`${cursor.miX.toFixed(1)}, ${cursor.miY.toFixed(1)} mi`} />
               <Row label="Map size" value={mapSize ? `${mapSize.W}×${mapSize.H}` : "…"} />
               <div className="mt-2 pt-2 border-t border-zinc-200 text-[10px] text-zinc-500 leading-3">
-                lat = (y/H)·150° − 75° · km = px·{KM_PER_PX.toFixed(4)} = {MI_PER_PX.toFixed(4)} mi · lon·cosφ
+                lat = (y/H)·150° − 75° · km = px·{KM_PER_PX.toFixed(4)} = {MI_PER_PX.toFixed(4)} mi · spherical-hypothesis only: lon·cosφ
               </div>
             </div>
           ) : (

@@ -18,7 +18,7 @@ function Footer({ status }) {
       </span>
       <span className="hidden xl:inline text-zinc-500">
         Distance: px × {KM_PER_PX.toFixed(4)} km • Area: px² × {KM2_PER_PX2.toFixed(2)} km² •
-        Lon corr ×cosφ • NM = km×0.539957
+        If spherical: lon ×cosφ • NM = km×0.539957
       </span>
       <div className="ml-auto flex items-center gap-2 pl-3 flex-wrap">
         <span className="hidden md:inline text-[10px] text-zinc-400">

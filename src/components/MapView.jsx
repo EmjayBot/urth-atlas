@@ -1033,13 +1033,13 @@ export default function MapView({
     const grp = L.layerGroup();
     const { W, H } = mapSize;
     const placed = placesRef.current.filter((q) => q.x != null && q.y != null);
-    // Nearest placed neighbour per settlement (latitude-corrected km).
+    // Nearest placed neighbour per settlement (flat-map km — Urth is flat,
+    // so no spherical cos(φ) narrowing is applied).
     const nearestOf = (p) => {
       let best = null;
-      const cos = Math.cos((latFromPixel(p.y, H) * Math.PI) / 180);
       for (const q of placed) {
         if (q.name === p.name) continue;
-        const dPx = Math.hypot((q.x - p.x) * cos, q.y - p.y);
+        const dPx = Math.hypot(q.x - p.x, q.y - p.y);
         if (!best || dPx < best.dPx) best = { name: q.name, dPx };
       }
       return best
