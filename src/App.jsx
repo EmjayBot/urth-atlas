@@ -80,7 +80,9 @@ export default function App() {
   const [showGrid, setShowGrid] = useState(true);
   const [showPixelGrid, setShowPixelGrid] = useState(false);
   const [showCoords, setShowCoords] = useState(false);
-  const [showMarkers, setShowMarkers] = useState(true);
+  // City & region markers default off on phones: the stretched overlay
+  // forces an extra resample pass that visibly softens the base map.
+  const [showMarkers, setShowMarkers] = useState(!IS_LOW_MEM);
   const [showNations, setShowNations] = useState(initial.nations ?? true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [saved, setSaved] = useState([]);
