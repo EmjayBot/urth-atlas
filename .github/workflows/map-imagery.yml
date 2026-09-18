@@ -1,0 +1,73 @@
+# Pull map imagery masters from the urthmaps-test source repo.
+#
+# Manual trigger only (for now): Actions > map-imagery > Run workflow.
+# Downloads atlas/*.png from urthmaps-test@main into public/, rebuilds the
+# derived webps (full-res political + mobile variants), and commits anything
+# that changed. The Pages deploy picks it up automatically.
+#
+# Later: add a schedule (e.g. nightly) or a repository_dispatch receiver
+# so it follows the source repo hands-free.
+#
+# Source of truth lives in https://github.com/EmjayBot/urthmaps-test
+# (XCF -> PNG export happens there via its xcf-sync workflow).
+
+name: map-imagery
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: map-imagery
+  cancel-in-progress: false
+
+jobs:
+  pull:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      SRC: https://raw.githubusercontent.com/EmjayBot/urthmaps-test/main/atlas
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download imagery masters
+        run: |
+          for f in cities.png subnational.png blank-political.png national.png ocean.png; do
+            curl -fSL "$SRC/$f" -o "public/$f" || { echo "FAILED: $f"; exit 1; }
+          done
+          ls -la public/*.png
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Rebuild derived webps
+        run: |
+          npm ci
+          npm install --no-save sharp
+          node -e "
+            import('sharp').then(async ({default: sharp}) => {
+              // Full-res political webp (app primary; PNG is the fallback).
+              await sharp('public/blank-political.png')
+                .webp({ quality: 90, effort: 6 })
+                .toFile('public/blank-political.webp');
+              console.log('blank-political.webp rebuilt');
+            });
+          "
+          npm run images:mobile
+
+      - name: Commit imagery
+        run: |
+          git config user.name "map-imagery-bot"
+          git config user.email "map-imagery-bot@users.noreply.github.com"
+          git add public/cities.png public/subnational.png \
+            public/blank-political.png public/blank-political.webp \
+            public/national.png public/ocean.png \
+            public/cities-mobile.webp public/subnational-mobile.webp \
+            public/blank-political-mobile.webp
+          git diff --cached --quiet && echo "Imagery up to date." || {
+            git commit -m "auto: pull map imagery from urthmaps-test"
+            git push
+          }
