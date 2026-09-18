@@ -13,7 +13,9 @@
 
 name: map-imagery
 on:
-  workflow_dispatch:
+  workflow_dispatch:              # manual "Run workflow" button
+  repository_dispatch:            # fired by urthmaps-test after each sync
+    types: [imagery-update]
 
 permissions:
   contents: write
