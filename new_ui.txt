@@ -29,7 +29,7 @@ to the current political export (https://urthmaps.com/maps/export/urth.png).
 markers/scale dashboard) | Base Layer (radio + opacity, dead zone 100-50
 solid, fades 50-0 revealing the TEPmap underlay on desktop) | Thematic
 Layers (stackable data overlays + overlay opacity) | Overlays (scale bar,
-grid, pixel grid, coordinates, city & region markers, nation markers) |
+grid, pixel grid, coordinates, cities, subnational, nation markers) |
 Measurements (tool picker, units, cursor readout, results) | Pins
 (claim notice, add form, lists, submit).
 [Map] Fills remaining space. Bottom-right zoom/recenter, bottom-left
@@ -57,12 +57,12 @@ marked hypothetical. [StatusBar] cursor readout + credits.
 ------------------------------------------------------------
 - Serves downscaled variants stretched over FULL-res coordinates, so
   pins/wrap/measurements match desktop: blank-political-mobile (4096px),
-  timezones-mobile + markers-mobile (3072px). Regenerate with
+  timezones-mobile + cities-mobile + subnational-mobile (3072px). Regenerate with
   `npm run images:mobile` (sharp, PNG masters as sources). Mobile URLs
   carry ?v=2 cache-busting — bump on regeneration.
 - Disabled/hidden on phones: satellite, remote full-res overlays
   (topo/climate/currents/hydro/blank), TEPmap underlay, idle pre-warming.
-  City & region markers default OFF (extra resample pass softens base).
+  Cities + subnational default OFF on phones (each stretched overlay forces an extra resample pass that softens the base).
   Desktop behavior is unaffected by all of the above.
 
 ------------------------------------------------------------
@@ -97,7 +97,32 @@ marked hypothetical. [StatusBar] cursor readout + credits.
   Territory popups badge "Territory".
 
 ------------------------------------------------------------
-7. WHAT NOT TO DO
+7. MAINTAINER MAP UPDATES (hidden mode)
+------------------------------------------------------------
+- Unlock per session by visiting ?maintainer=1 once; the flag lives in
+  sessionStorage (the share-link writer rebuilds the query string, so it
+  is intentionally NOT a persistent URL param). Unlocking reveals the
+  "Map Updates" sidebar section (last).
+- Upload slots are local files only: Political base, Satellite base,
+  Time Zones, Cities, Subnational overlays. Remote CDN overlays update
+  themselves upstream and are not listed. Satellite has no mobile
+  variant (desktop-only layer).
+- Validation: file must decode to exactly 11232x7525 (timezones raw
+  11860-wide exports are rejected — crop first). Slot formats only
+  (webp for map/satellite/timezones, png for cities/subnational).
+- Mobile variants auto-generate in-browser via canvas
+  (4096px base / 3072px overlays, webp) and commit alongside.
+- Auth: maintainer pastes a GitHub PAT (fine-grained: Contents
+  read+write, Pull requests read+write, this repo only; or classic
+  `repo` scope). Token lives in tab memory only, sent solely to
+  api.github.com. Repo coordinates in src/lib/github.js
+  (REPO_OWNER/REPO_NAME) — update on turnover.
+- Submit creates branch map-update/<slot>-<date>, commits both files,
+  and opens a PR: nothing goes live until merged. Merging deploys via
+  the normal Pages workflow.
+
+------------------------------------------------------------
+8. WHAT NOT TO DO
 ------------------------------------------------------------
 - Never restyle the header wordmark (.urth-logo, Bell MT Bold).
 - Never present spherical-corrected figures as ground truth.

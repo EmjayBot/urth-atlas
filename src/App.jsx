@@ -16,6 +16,20 @@ import { DATA_OVERLAYS } from "./lib/scale";
 const initial = parseUrl();
 const LOCAL_KEY = "urth-atlas.places.local.v2";
 const REMOVED_KEY = "urth-atlas.places.removed.v1";
+const MAINTAINER_KEY = "urth-atlas.maintainer";
+
+// Hidden maintainer mode for community turnover: visit ?maintainer=1 once
+// and the Map Updates section unlocks for the session (writeUrl rebuilds
+// the query string on pan, so the flag lives in sessionStorage, not the URL).
+function loadMaintainer() {
+  try {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("maintainer") === "1") sessionStorage.setItem(MAINTAINER_KEY, "1");
+    return sessionStorage.getItem(MAINTAINER_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
 
 function loadLocal() {
   try {
@@ -80,9 +94,10 @@ export default function App() {
   const [showGrid, setShowGrid] = useState(true);
   const [showPixelGrid, setShowPixelGrid] = useState(false);
   const [showCoords, setShowCoords] = useState(false);
-  // City & region markers default off on phones: the stretched overlay
-  // forces an extra resample pass that visibly softens the base map.
-  const [showMarkers, setShowMarkers] = useState(!IS_LOW_MEM);
+  // City & subnational rasters default off on phones: each stretched
+  // overlay forces an extra resample pass that visibly softens the base map.
+  const [showCities, setShowCities] = useState(!IS_LOW_MEM);
+  const [showSubnational, setShowSubnational] = useState(!IS_LOW_MEM);
   const [showNations, setShowNations] = useState(initial.nations ?? true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [saved, setSaved] = useState([]);
@@ -91,6 +106,7 @@ export default function App() {
   const [focus, setFocus] = useState(null);
   const [view, setView] = useState(null);
   const [toast, setToast] = useState(null);
+  const [maintainer] = useState(loadMaintainer);
 
   // Shared community places (public/positions.json) + local edits.
   const [shared, setShared] = useState({});
@@ -520,8 +536,10 @@ export default function App() {
           setShowPixelGrid={setShowPixelGrid}
           showCoords={showCoords}
           setShowCoords={setShowCoords}
-          showMarkers={showMarkers}
-          setShowMarkers={setShowMarkers}
+          showCities={showCities}
+          setShowCities={setShowCities}
+          showSubnational={showSubnational}
+          setShowSubnational={setShowSubnational}
           showNations={showNations}
           setShowNations={setShowNations}
           status={status}
@@ -556,6 +574,7 @@ export default function App() {
           onRemove={removePlace}
           onSubmit={submitChanges}
           onClear={clearLocal}
+          maintainer={maintainer}
         />
 
         <div className="flex-1 relative min-w-0 bg-[#e5e3df] overflow-hidden">
@@ -591,7 +610,8 @@ export default function App() {
             showGrid={showGrid}
             showPixelGrid={showPixelGrid}
             showCoords={showCoords}
-            showMarkers={showMarkers}
+            showCities={showCities}
+            showSubnational={showSubnational}
             onContextMenu={(p) =>
               setCtx({
                 pt: { x: p.x, y: p.y, lat: p.lat, lngDeg: p.lngDeg },

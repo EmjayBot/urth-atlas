@@ -4,6 +4,7 @@ import { searchPlaces } from "../lib/places";
 import { latFromPixel, lngFromX } from "../lib/geo";
 import { IS_LOW_MEM } from "../lib/device";
 import MeasurementPanel from "./MeasurementPanel";
+import MapUpdatePanel from "./MapUpdatePanel";
 import { IconChevron, IconPin, IconTrash } from "./icons";
 
 // Satellite (+ its cloud layer) is disabled on low-memory devices.
@@ -411,8 +412,10 @@ export default function Sidebar({
   setShowPixelGrid,
   showCoords,
   setShowCoords,
-  showMarkers,
-  setShowMarkers,
+  showCities,
+  setShowCities,
+  showSubnational,
+  setShowSubnational,
   showNations,
   setShowNations,
   status,
@@ -447,6 +450,7 @@ export default function Sidebar({
   onRemove,
   onSubmit,
   onClear,
+  maintainer = false,
   setOpen,
 }) {
   if (!open) return null;
@@ -584,10 +588,16 @@ export default function Sidebar({
         />
         <OverlayCheck label="Coordinates" checked={showCoords} onChange={setShowCoords} />
         <OverlayCheck
-          label="City & region markers"
-          checked={showMarkers}
-          onChange={setShowMarkers}
+          label="Cities"
+          checked={showCities}
+          onChange={setShowCities}
           sub="Capitals, cities & towns"
+        />
+        <OverlayCheck
+          label="Subnational"
+          checked={showSubnational}
+          onChange={setShowSubnational}
+          sub="Region names & borders"
         />
         <OverlayCheck
           label="Nation markers"
@@ -664,6 +674,11 @@ export default function Sidebar({
           onClear={onClear}
         />
       </Section>
+      {maintainer && (
+        <Section title="Map Updates">
+          <MapUpdatePanel />
+        </Section>
+      )}
       </aside>
     </>
   );

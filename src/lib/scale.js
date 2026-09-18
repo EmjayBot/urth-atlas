@@ -120,9 +120,12 @@ export function resolveLayer(id) {
   return { ...def, mobile: false };
 }
 
-// Markers overlay (full-res PNG + downscaled mobile webp with alpha).
-export const MARKERS_URL = `${import.meta.env.BASE_URL}cities-subnational-markers.png`;
-export const MARKERS_MOBILE_URL = `${import.meta.env.BASE_URL}cities-subnational-markers-mobile.webp?v=2`;
+// Split marker overlays (desktop serves PNG as source of truth — WebP
+// softened the fine subnational lines in some browsers).
+export const MARKERS_CITIES_URL = `${import.meta.env.BASE_URL}cities.png`;
+export const MARKERS_CITIES_MOBILE_URL = `${import.meta.env.BASE_URL}cities-mobile.webp?v=2`;
+export const MARKERS_SUBNAT_URL = `${import.meta.env.BASE_URL}subnational.png`;
+export const MARKERS_SUBNAT_MOBILE_URL = `${import.meta.env.BASE_URL}subnational-mobile.webp?v=2`;
 
 // Base maps are mutually exclusive; data overlays stack on top of them.
 export const BASE_MAPS = BASE_LAYERS.filter((l) => !l.overlay);

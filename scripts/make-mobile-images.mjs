@@ -25,8 +25,10 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..", "public");
 const JOBS = [
   { src: "blank-political.png", out: "blank-political-mobile.webp", width: 4096 },
   { src: "timezones.png", out: "timezones-mobile.webp", width: 3072 },
-  // Markers overlay carries alpha — webp preserves it.
-  { src: "cities-subnational-markers.png", out: "cities-subnational-markers-mobile.webp", width: 3072 },
+  // Split marker layers (alpha preserved). Desktop serves the PNGs as
+  // source of truth (WebP softened fine lines in some browsers).
+  { src: "cities.png", out: "cities-mobile.webp", width: 3072 },
+  { src: "subnational.png", out: "subnational-mobile.webp", width: 3072 },
 ];
 
 for (const { src, out, width } of JOBS) {

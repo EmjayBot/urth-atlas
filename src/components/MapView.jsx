@@ -9,8 +9,10 @@ import {
   resolveLayer,
   FULL_W,
   FULL_H,
-  MARKERS_URL,
-  MARKERS_MOBILE_URL,
+  MARKERS_CITIES_URL,
+  MARKERS_CITIES_MOBILE_URL,
+  MARKERS_SUBNAT_URL,
+  MARKERS_SUBNAT_MOBILE_URL,
 } from "../lib/scale";
 import { wrapX, wrapY, latFromPixel, lngFromX, pixelFromLat, pixelFromLng } from "../lib/geo";
 import { loadLayer, makeFallbackGrid } from "../lib/imageCache";
@@ -78,7 +80,8 @@ export default function MapView({
   showGrid,
   showPixelGrid,
   showCoords,
-  showMarkers,
+  showCities,
+  showSubnational,
   onContextMenu,
   onPopupAction,
 }) {
@@ -599,7 +602,6 @@ export default function MapView({
   // motion (no pop-in); pruning waits for settle.
   const mapSizeRef = useRefLatest(mapSize);
   const overlayOpacityRef = useRefLatest(overlayOpacity);
-  const markersRef = useRef(null); // { grp, url } | null
 
   const copyRange = () => {
     const map = mapRef.current;
@@ -665,11 +667,12 @@ export default function MapView({
     Object.values(overlayGroupsRef.current).forEach((e) => {
       if (e?.grp && e.url) syncCopies(e.grp, e.url, overlayTileOpts, prune);
     });
-    const m = markersRef.current;
-    if (m?.grp && m.url) {
-      syncCopies(m.grp, m.url, markerTileOpts, prune);
-      flagMarkerTiles(m.grp);
-    }
+    [citiesRef.current, subnatRef.current].forEach((m) => {
+      if (m?.grp && m.url) {
+        syncCopies(m.grp, m.url, markerTileOpts, prune);
+        flagMarkerTiles(m.grp);
+      }
+    });
   };
 
   // ---- Data overlays (stackable semi-transparent rasters) --------------------
@@ -787,49 +790,69 @@ export default function MapView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapSize, opacity]);
 
-  // ---- City & subnational markers overlay (idle-deferred) ----------------------
-  // Not needed for first paint — mounts after idle so the base map gets
+  // ---- Cities + subnational marker overlays (idle-deferred) ------------------
+  // Not needed for first paint — mount after idle so the base map gets
   // bandwidth + decode time first. Served as PNG (source of truth) since the
   // fine text/lines showed softness complaints under WebP in some browsers.
   // Copies are viewport-culled via syncAllCoverage like data overlays.
+  const citiesRef = useRef(null); // { grp, url } | null
+  const subnatRef = useRef(null); // { grp, url } | null
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapSize?.W || !showMarkers) return;
+    if (!map || !mapSize?.W) return;
     let canceled = false;
-    const mount = (url) => {
-      if (canceled || markersRef.current) return;
+    const jobs = [
+      {
+        on: showCities,
+        ref: citiesRef,
+        url: IS_LOW_MEM ? MARKERS_CITIES_MOBILE_URL : MARKERS_CITIES_URL,
+      },
+      {
+        on: showSubnational,
+        ref: subnatRef,
+        url: IS_LOW_MEM ? MARKERS_SUBNAT_MOBILE_URL : MARKERS_SUBNAT_URL,
+      },
+    ];
+    const mount = (job, url) => {
+      if (canceled || job.ref.current) return;
       const grp = L.layerGroup();
-      markersRef.current = { grp, url };
+      job.ref.current = { grp, url };
       grp.addTo(map);
       syncCopies(grp, url, markerTileOpts, true);
       flagMarkerTiles(grp);
     };
     const start = () => {
       if (canceled) return;
-      // Downscaled markers on phones (same 84MP-decode problem as base).
-      const png = IS_LOW_MEM ? MARKERS_MOBILE_URL : MARKERS_URL;
-      loadLayer({ url: png, fallbackUrl: png })
-        .then(({ url }) => mount(url))
-        .catch(() => mount(png));
+      jobs.forEach((job) => {
+        if (!job.on || job.ref.current) return;
+        // Downscaled variants on phones (same 84MP-decode problem as base).
+        loadLayer({ url: job.url, fallbackUrl: job.url })
+          .then(({ url }) => mount(job, url))
+          .catch(() => mount(job, job.url));
+      });
+    };
+    const cleanupRef = (ref) => {
+      ref.current?.grp.remove();
+      ref.current = null;
     };
     if (typeof requestIdleCallback === "function") {
       const id = requestIdleCallback(start, { timeout: 2000 });
       return () => {
         canceled = true;
         cancelIdleCallback(id);
-        markersRef.current?.grp.remove();
-        markersRef.current = null;
+        cleanupRef(citiesRef);
+        cleanupRef(subnatRef);
       };
     }
     const t = setTimeout(start, 800);
     return () => {
       canceled = true;
       clearTimeout(t);
-      markersRef.current?.grp.remove();
-      markersRef.current = null;
+      cleanupRef(citiesRef);
+      cleanupRef(subnatRef);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showMarkers, mapSize]);
+  }, [showCities, showSubnational, mapSize]);
 
   // ---- Coverage tracking (add on move, prune on settle) -----------------------
   useEffect(() => {
@@ -1092,7 +1115,9 @@ export default function MapView({
   };
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapSize?.W || !showMarkers) return;
+    // Community place dots follow the marker overlays: hidden only when
+    // both Cities and Subnational are off.
+    if (!map || !mapSize?.W || (!showCities && !showSubnational)) return;
     const grp = L.layerGroup();
     const { W, H } = mapSize;
     const placed = placesRef.current.filter((q) => q.x != null && q.y != null);
@@ -1134,7 +1159,7 @@ export default function MapView({
       forgetKeys(keys);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showMarkers, mapSize, places]);
+  }, [showCities, showSubnational, mapSize, places]);
 
   // Nation-text visibility follows zoom via CSS (no layer rebuild).
   useEffect(() => {
