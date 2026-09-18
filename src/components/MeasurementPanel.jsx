@@ -66,7 +66,7 @@ function BetaDisclaimer() {
   return (
     <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
       <div className="text-[10px] font-bold tracking-widest uppercase text-amber-700 mb-1">
-        Tested — near-accurate
+        Verified — approximately accurate
       </div>
       <p className="text-[11px] leading-4 text-amber-900">
         These results test as near-accurate and are fine for reference. For

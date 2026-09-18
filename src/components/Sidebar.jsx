@@ -94,15 +94,17 @@ function PinsSection({
           Map claims must be approved
         </div>
         <p className="text-[11px] leading-4 text-amber-900">
-          <span className="font-semibold">DO NOT USE THIS MAP FOR YOUR CLAIMS.{" "}</span>
+          This map can fall behind approvals, so please don&apos;t use it for
+          your claims. The{" "}
           <a
             href="https://urthmaps.com/maps/export/urth.png"
             target="_blank"
             rel="noopener noreferrer"
             className="font-bold underline hover:text-amber-700"
           >
-            CLICK HERE FOR THE MOST UP TO DATE POLITICAL MAP.
-          </a>
+            most up to date political map
+          </a>{" "}
+          lives on urthmaps.com.
         </p>
       </div>
       {target && (
@@ -181,6 +183,9 @@ function PinsSection({
         >
           <IconPin width={13} height={13} /> Add & place
         </button>
+        <p className="text-[11px] leading-4 text-[#6b7280]">
+          Add saves the pin — then click the map where it actually goes.
+        </p>
       </div>
 
       {pendingCount > 0 && (
