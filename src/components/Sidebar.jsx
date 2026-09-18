@@ -266,6 +266,9 @@ function PinsSection({
               Clear
             </button>
           </div>
+          <p className="text-[11px] leading-4 text-[#6b7280]">
+            Submitting opens a GitHub issue — you&apos;ll need a GitHub account.
+          </p>
           {pendingRemovals.length > 0 && (
             <div className="rounded-md border border-red-200 bg-red-50/60">
               <div className="px-2.5 pt-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-red-500">
