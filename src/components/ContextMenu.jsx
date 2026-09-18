@@ -40,7 +40,7 @@ export default function ContextMenu({ pos, pt, onClose, onWhat, onMeasure, onPin
       {adding ? (
         <div className="p-2.5 space-y-2">
           <div className="text-[10px] font-bold uppercase tracking-wide text-[#6b7280]">
-            Add pin
+            Add marker
           </div>
           <input
             autoFocus
@@ -54,7 +54,7 @@ export default function ContextMenu({ pos, pt, onClose, onWhat, onMeasure, onPin
                 onClose();
               }
             }}
-            placeholder="Pin name"
+            placeholder="Marker name"
             spellCheck={false}
             className="w-full h-8 px-2.5 rounded-md bg-[#f9fafb] border border-[#e5e7eb] focus:bg-white focus:border-[#0e7490] outline-none text-[13px] placeholder:text-zinc-400"
           />
@@ -104,7 +104,7 @@ export default function ContextMenu({ pos, pt, onClose, onWhat, onMeasure, onPin
             className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[#f3f4f6] text-left transition-colors"
           >
             <IconPin width={14} height={14} className="text-zinc-400 shrink-0" />
-            <span className="text-[12px] text-[#111827] font-medium">Add pin</span>
+            <span className="text-[12px] text-[#111827] font-medium">Add marker</span>
           </button>
         </>
       )}

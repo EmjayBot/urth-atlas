@@ -98,6 +98,9 @@ export default function App() {
   // overlay forces an extra resample pass that visibly softens the base map.
   const [showCities, setShowCities] = useState(!IS_LOW_MEM);
   const [showSubnational, setShowSubnational] = useState(!IS_LOW_MEM);
+  // Community place dots are cheap vectors — on everywhere by default,
+  // independently togglable so city pins can be hidden without losing rasters.
+  const [showPlaceMarkers, setShowPlaceMarkers] = useState(true);
   const [showNations, setShowNations] = useState(initial.nations ?? true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [saved, setSaved] = useState([]);
@@ -423,7 +426,7 @@ export default function App() {
       if (place && place.x != null && place.y != null) {
         setFocus({ type: p.kind, name: p.name });
       } else {
-        showToast("Not placed yet — add it in the Pins panel");
+        showToast("Not placed yet — add it in the Markers panel");
       }
       if (target) setTarget({ name: p.name, kind: p.kind, href: p.href });
     }
@@ -471,7 +474,7 @@ export default function App() {
       delete next[name];
       return next;
     });
-    showToast(`Pinned ${name}`);
+    showToast(`Marked ${name}`);
   };
 
   // Keyboard shortcuts
@@ -540,6 +543,8 @@ export default function App() {
           setShowCities={setShowCities}
           showSubnational={showSubnational}
           setShowSubnational={setShowSubnational}
+          showPlaceMarkers={showPlaceMarkers}
+          setShowPlaceMarkers={setShowPlaceMarkers}
           showNations={showNations}
           setShowNations={setShowNations}
           status={status}
@@ -612,6 +617,7 @@ export default function App() {
             showCoords={showCoords}
             showCities={showCities}
             showSubnational={showSubnational}
+            showPlaceMarkers={showPlaceMarkers}
             onContextMenu={(p) =>
               setCtx({
                 pt: { x: p.x, y: p.y, lat: p.lat, lngDeg: p.lngDeg },

@@ -82,6 +82,7 @@ export default function MapView({
   showCoords,
   showCities,
   showSubnational,
+  showPlaceMarkers,
   onContextMenu,
   onPopupAction,
 }) {
@@ -1115,9 +1116,9 @@ export default function MapView({
   };
   useEffect(() => {
     const map = mapRef.current;
-    // Community place dots follow the marker overlays: hidden only when
-    // both Cities and Subnational are off.
-    if (!map || !mapSize?.W || (!showCities && !showSubnational)) return;
+    // Community place dots have their own toggle, independent of the
+    // raster marker overlays.
+    if (!map || !mapSize?.W || !showPlaceMarkers) return;
     const grp = L.layerGroup();
     const { W, H } = mapSize;
     const placed = placesRef.current.filter((q) => q.x != null && q.y != null);
@@ -1159,7 +1160,7 @@ export default function MapView({
       forgetKeys(keys);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showCities, showSubnational, mapSize, places]);
+  }, [showPlaceMarkers, mapSize, places]);
 
   // Nation-text visibility follows zoom via CSS (no layer rebuild).
   useEffect(() => {

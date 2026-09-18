@@ -161,7 +161,7 @@ function PinsSection({
               className="w-4 h-4 rounded accent-[#0e7490] cursor-pointer"
             />
             <span className="text-[13px] text-[#111827]">
-              Territory <span className="text-[11px] text-[#6b7280]">— subnational pin style</span>
+              Territory <span className="text-[11px] text-[#6b7280]">— subnational marker style</span>
             </span>
           </label>
         )}
@@ -185,7 +185,7 @@ function PinsSection({
           <IconPin width={13} height={13} /> Add & place
         </button>
         <p className="text-[11px] leading-4 text-[#6b7280]">
-          Add saves the pin — then click the map where it actually goes.
+          Add saves the marker — then click the map where it actually goes.
         </p>
       </div>
 
@@ -194,7 +194,7 @@ function PinsSection({
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Reposition a placed pin…"
+            placeholder="Reposition a placed marker…"
             spellCheck={false}
             className="w-full h-9 px-3 rounded-md bg-[#f9fafb] border border-[#e5e7eb] focus:bg-white focus:border-[#0e7490] outline-none text-[13px] placeholder:text-zinc-400"
           />
@@ -300,7 +300,7 @@ function PinsSection({
 
       {pendingCount === 0 && (
         <div className="text-[12px] text-[#6b7280]">
-          No pins yet — add one above.
+          No markers yet — add one above.
           {sharedStatus === "ok" && (
             <span className="block mt-0.5 text-[11px] text-[#0e7490]">
               {sharedCount} community places shared with you.
@@ -416,6 +416,8 @@ export default function Sidebar({
   setShowCities,
   showSubnational,
   setShowSubnational,
+  showPlaceMarkers,
+  setShowPlaceMarkers,
   showNations,
   setShowNations,
   status,
@@ -600,6 +602,12 @@ export default function Sidebar({
           sub="Region names & borders"
         />
         <OverlayCheck
+          label="Community markers"
+          checked={showPlaceMarkers}
+          onChange={setShowPlaceMarkers}
+          sub="Dots for placed markers"
+        />
+        <OverlayCheck
           label="Nation markers"
           checked={showNations}
           onChange={setShowNations}
@@ -658,7 +666,7 @@ export default function Sidebar({
         </div>
       </Section>
 
-      <Section title="Pins">
+      <Section title="Markers">
         <PinsSection
           target={target}
           setTarget={setTarget}

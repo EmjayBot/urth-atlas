@@ -13,15 +13,15 @@ deployed to GitHub Pages on push to main (base /urth-atlas/).
 - Fonts: header wordmark Bell MT Bold 22px teal (class .urth-logo —
   NEVER restyle: it is the brand). Sidebar section titles MS Reference
   Sans Serif; sidebar body Franklin Gothic Bold (scoped to `aside` only).
-  Mono readouts JetBrains Mono. Nation map pins Bell MT Bold 13px;
-  territory pins Bell MT Bold Italic 12px slate-gray #475569.
+  Mono readouts JetBrains Mono. Nation map markers Bell MT Bold 13px;
+  territory markers Bell MT Bold Italic 12px slate-gray #475569.
 
 ------------------------------------------------------------
 2. LAYOUT
 ------------------------------------------------------------
 [Header - 56px] Menu toggle + globe + "Urth Atlas" wordmark | centered
 search ("Search Urth Atlas") | locate + measure buttons.
-[Claim notice] Lives in the Pins section (amber box, like the measurement
+[Claim notice] Lives in the Markers section (amber box, like the measurement
 disclaimer): claims must be approved, don't use this map for claims, link
 to the current political export (https://urthmaps.com/maps/export/urth.png).
 [Sidebar - 340px] Sections: Map Info (title "Urth Atlas", subtitle
@@ -30,7 +30,7 @@ markers/scale dashboard) | Base Layer (radio + opacity, dead zone 100-50
 solid, fades 50-0 revealing the TEPmap underlay on desktop) | Thematic
 Layers (stackable data overlays + overlay opacity) | Overlays (scale bar,
 grid, pixel grid, coordinates, cities, subnational, nation markers) |
-Measurements (tool picker, units, cursor readout, results) | Pins
+Measurements (tool picker, units, cursor readout, results) | Markers
 (claim notice, add form, lists, submit).
 [Map] Fills remaining space. Bottom-right zoom/recenter, bottom-left
 layer pill (desktop), mobile tool/units bars on small screens.
@@ -80,19 +80,19 @@ marked hypothetical. [StatusBar] cursor readout + credits.
   (https://urthmaps.com/docs#area).
 
 ------------------------------------------------------------
-6. PINS (community places)
+6. MARKERS (community places)
 ------------------------------------------------------------
 - Registry public/positions.json: { kind: nation|capital|city|town,
   href, x, y } in full-res pixels, optional `territory` flag string on
-  nations (renders the subnational pin style). Merged from shared +
+  nations (renders the subnational marker style). Merged from shared +
   local (localStorage) minus removal marks.
 - Add & place flow: form (name, kind buttons, optional wiki page,
-  Territory checkbox for nations) saves the pin, then click the map to
+  Territory checkbox for nations) saves the marker, then click the map to
   position it; Esc cancels. Submit opens a GitHub issue (needs a GitHub
   account) — auto-merged by map-update.yml, which preserves `territory`
   and carries it over when patches omit it.
-- Nation pins are Bell MT text labels with halo (clickable, wiki-enriched
-  popups with flag + summary, Copy/Remove actions). Settlement pins are
+- Nation markers are Bell MT text labels with halo (clickable, wiki-enriched
+  popups with flag + summary, Copy/Remove actions). Settlement markers are
   tiered dots (capital/city/town) + nearest-neighbour flat-km readout.
   Territory popups badge "Territory".
 
