@@ -1,129 +1,109 @@
-URTH ATLAS - SIMPLE UI SPEC
-============================
-Clean map software - inspired by modern maps but own branding only
-Map: https://urthmaps.com/maps/export/urth.png
-Scale: 6.34126 km²/pixel | 1 px = 2.518 km (1.565 mi)
+URTH ATLAS - CURRENT UI SPEC (continuation doc)
+===============================================
+Describes the UI as built. Future work continues from here — do not
+regress the items below. Stack: Vite + React 18 + Leaflet + Tailwind,
+deployed to GitHub Pages on push to main (base /urth-atlas/).
 
 ------------------------------------------------------------
-1. DESIGN PRINCIPLES
+1. DESIGN TOKENS
 ------------------------------------------------------------
-- Simple, clean, no third-party branding
-- Own brand only: "Urth Atlas"
-- Minimal chrome, map is hero
-- Colors: 
-  Primary: #0e7490 (teal-blue)
-  Hover: #0c5a70
-  Light: #e6f4f1
-  Border: #d1d5db / #e5e7eb
-  Text: #111827 primary, #6b7280 secondary
-  Map bg: #e5e3df
-- Font: Inter or system sans, 14px base
-- Radius: 6px (slightly squared, clean)
-- Shadows: 0 1px 3px rgba(0,0,0,0.1) - subtle
+- Colors: Primary #0e7490 (teal-blue), Hover #0c5a70, Light #e6f4f1,
+  Border #d1d5db / #e5e7eb, Text #111827 primary / #6b7280 secondary,
+  Map bg #e5e3df. Radius 6px. Shadows subtle.
+- Fonts: header wordmark Bell MT Bold 22px teal (class .urth-logo —
+  NEVER restyle: it is the brand). Sidebar section titles MS Reference
+  Sans Serif; sidebar body Franklin Gothic Bold (scoped to `aside` only).
+  Mono readouts JetBrains Mono. Nation map pins Bell MT Bold 13px;
+  territory pins Bell MT Bold Italic 12px slate-gray #475569.
 
 ------------------------------------------------------------
 2. LAYOUT
 ------------------------------------------------------------
-[Top Bar - 56px, white, border bottom 1px #e5e7eb]
-- Left: Menu icon (20px) + Globe icon teal + "URTH ATLAS" 16px semibold tracking-wide
-- Center: Search box 440px wide, 38px tall, 6px radius, border 1px #d1d5db
-  Placeholder: "Search Urth Atlas"
-  Focus: border #0e7490, shadow 0 0 0 3px #e6f4f1
-  Inside right: search icon
-- Right: My location (target icon) + Measure (ruler icon) - 36px buttons, hover #f3f4f6
-
-[Left Sidebar - 340px, white, shadow]
-- Collapsible with chevron, default open
-- Section: Map Info
-  Title: Urth Atlas
-  Subtitle: The East Pacific
-  Meta: "urthmaps.com • 6.34126 km²/px • 2.518 km/px"
-- Section: Base Layer
-  Radio: Standard (default - normal Urth.png)
-  Radio: Satellite (filter saturate 1.2 contrast 1.1)
-  Opacity slider 0-100% teal thumb
-- Section: Overlays (checkboxes)
-  [x] Scale bar
-  [x] Grid
-  [ ] Pixel grid
-  [ ] Coordinates
-- Section: Measurements
-  Empty: "No measurements. Right-click map to measure."
-  List: Shows distance with km + mi, delete X
-  Footer: "1 px = 2.518 km (1.565 mi)"
-- Section: Pins
-  "No pins yet - click map to add"
-
-[Main Map - fills remaining space]
-- Wired to https://urthmaps.com/maps/export/urth.png
-- Infinite horizontal: 5 copies side-by-side, wrap logic
-  if lng < -W*0.5 -> +W, if > W*1.5 -> -W
-- Vertical clamped, horizontal infinite
-- Cursor grab/grabbing
-- Placeholder canvas grid if image blocked in preview
-
-[Bottom Right Controls]
-- Zoom: Two white buttons 36px, 6px radius, stacked with 1px gap, border 1px #d1d5db, shadow
-  Top + , Bottom -
-- Below: Compass/Recenter 36px button
-- Hover #f3f4f6
-
-[Bottom Left]
-- Layer toggle pill: White, 6px radius, border, shadow
-  Buttons: Map | Satellite (active teal bg white text)
-- Scale bar next to it: White card, 6px radius, border
-  Graphic line + text "100 km • 62 mi" updates with zoom
-
-[Bottom Status Bar - 28px, #f9fafb, border top 1px #e5e7eb]
-- Left mono 12px: "X: 1234 Y: 567 | 3,106 km E | Lat 12.3° Lng 45.6°"
-- Center: "1:2.5M | 1 px = 2.518 km (1.565 mi)"
-- Right: "© Urth Atlas • 6.34126 km²/px"
+[Header - 56px] Menu toggle + globe + "Urth Atlas" wordmark | centered
+search ("Search Urth Atlas") | locate + measure buttons.
+[Claim notice] Lives in the Pins section (amber box, like the measurement
+disclaimer): claims must be approved, don't use this map for claims, link
+to the current political export (https://urthmaps.com/maps/export/urth.png).
+[Sidebar - 340px] Sections: Map Info (title "Urth Atlas", subtitle
+"TEP Urth · urthmaps.com", live layer/image/projection/zoom/center/
+markers/scale dashboard) | Base Layer (radio + opacity, dead zone 100-50
+solid, fades 50-0 revealing the TEPmap underlay on desktop) | Thematic
+Layers (stackable data overlays + overlay opacity) | Overlays (scale bar,
+grid, pixel grid, coordinates, city & region markers, nation markers) |
+Measurements (tool picker, units, cursor readout, results) | Pins
+(claim notice, add form, lists, submit).
+[Map] Fills remaining space. Bottom-right zoom/recenter, bottom-left
+layer pill (desktop), mobile tool/units bars on small screens.
+[Footer] Scale strip: 1px = 2.518km, 1px2 = 6.34km2, spherical figures
+marked hypothetical. [StatusBar] cursor readout + credits.
 
 ------------------------------------------------------------
-3. INTERACTIONS
+3. MAP + SCALE CANON
 ------------------------------------------------------------
-- Click map: Add pin, repeats across 5 world copies, popup simple white card with X,Y, km, mi
-- Right-click: Simple context menu white 180px, 6px radius, shadow
-  - What's here? (shows coords)
-  - Measure distance
-  - Add pin
-- Measure distance:
-  Click first point blue dot #0e7490, drag shows dashed line + tooltip "312.2 km (194.0 mi)"
-  Second click solidifies, card in sidebar with both units
-  Path: keep clicking sums distance
-  Area: 3+ points double-click closes, shows km² + mi²
-  Math:
-    km/px = sqrt(6.34126) = 2.51819
-    mi/px = 1.56472
-    km²/px = 6.34126
-    mi²/px = 2.44837
-    Corrected for lat: dx_corr = dx * cos(lat), dist = sqrt(dx_corr²+dy²)*2.51819
-    Show both raw and corrected
+- Full-res world 11232x7525 px, Leaflet CRS.Simple, 5 world copies
+  desktop / 3 on low-memory devices, infinite horizontal wrap, clamped
+  vertical. Lat 75N-75S linear in y, lng 360deg across W.
+- Urth is FLAT by canon (hence the cylinder easter egg). Ground truth is
+  uniform Euclidean: 1px = 2.518km (exactly sqrt(50)/2.808), 1px2 =
+  6.34126km2 (exactly 50/2.808^2, from a 4000x2680 @50km2/px export
+  upscaled 2.808x). Spherical cos(phi) figures are a labeled hypothetical
+  ("If Urth were a sphere"), never the primary readout.
+- Graticule is true vectors (20deg meridians, 15deg parallels); pixel
+  grid + coordinate labels are overlays. TEPmap SVG underlay easter egg
+  at 0% base opacity (desktop only).
 
 ------------------------------------------------------------
-4. MEASUREMENT DISPLAY (BOTH UNITS)
+4. MOBILE TIER (IS_LOW_MEM)
 ------------------------------------------------------------
-Always show km + miles together, no branding:
-- Distance: "312.2 km (194.0 mi)" + "168.6 NM" smaller
-- With correction: "298.4 km (185.4 mi) corrected for latitude"
-- Area: "33,228 km² / 12,829 mi² / 8,211,000 acres"
-- Toggle in sidebar: Metric / Imperial / Both (default Both)
+- Serves downscaled variants stretched over FULL-res coordinates, so
+  pins/wrap/measurements match desktop: blank-political-mobile (4096px),
+  timezones-mobile + markers-mobile (3072px). Regenerate with
+  `npm run images:mobile` (sharp, PNG masters as sources). Mobile URLs
+  carry ?v=2 cache-busting — bump on regeneration.
+- Disabled/hidden on phones: satellite, remote full-res overlays
+  (topo/climate/currents/hydro/blank), TEPmap underlay, idle pre-warming.
+  City & region markers default OFF (extra resample pass softens base).
+  Desktop behavior is unaffected by all of the above.
 
 ------------------------------------------------------------
-5. TECHNICAL
+5. MEASUREMENTS (finalize/lock model)
 ------------------------------------------------------------
-- Single file index.html
-- Inline Leaflet CSS
-- Leaflet JS from unpkg
-- Load Urth PNG via Image() crossOrigin, get W,H, create 5 imageOverlays
-- Fallback canvas grid if blocked
-- No demo data, clean start
-- Deploy to urthmaps.com/atlas/ -> wired, infinite, works
+- Tools: Measure (auto-completes on 2nd click), Path, Area. Units
+  metric/imperial/both. Rubber-band hover preview; finalized shapes lock
+  (clicks ignored, preview freezes solid).
+- Finish via Finish button, double-click (pops the duplicate vertex
+  Leaflet fires), or Enter. Clicking the active tool toggles it off.
+  Esc removes the last point (exits when empty/finished). Undo/Clear
+  resume the draft. Copy result / share link / save measurement.
+- Disclaimer: "Verified — approximately accurate" — fine for reference;
+  official wiki use must confirm with the official tool
+  (https://urthmaps.com/docs#area).
 
 ------------------------------------------------------------
-6. WHAT NOT INCLUDED
+6. PINS (community places)
 ------------------------------------------------------------
-- No "Bing", "Google", "HERE" mentions anywhere
-- No Bird's Eye, Streetside branding
-- No third-party logos
-- Simple own UI only: Urth Atlas
+- Registry public/positions.json: { kind: nation|capital|city|town,
+  href, x, y } in full-res pixels, optional `territory` flag string on
+  nations (renders the subnational pin style). Merged from shared +
+  local (localStorage) minus removal marks.
+- Add & place flow: form (name, kind buttons, optional wiki page,
+  Territory checkbox for nations) saves the pin, then click the map to
+  position it; Esc cancels. Submit opens a GitHub issue (needs a GitHub
+  account) — auto-merged by map-update.yml, which preserves `territory`
+  and carries it over when patches omit it.
+- Nation pins are Bell MT text labels with halo (clickable, wiki-enriched
+  popups with flag + summary, Copy/Remove actions). Settlement pins are
+  tiered dots (capital/city/town) + nearest-neighbour flat-km readout.
+  Territory popups badge "Territory".
+
+------------------------------------------------------------
+7. WHAT NOT TO DO
+------------------------------------------------------------
+- Never restyle the header wordmark (.urth-logo, Bell MT Bold).
+- Never present spherical-corrected figures as ground truth.
+- Never serve full-res (>~12MP) decodes to low-memory devices; never add
+  a base/overlay layer without a mobile variant or an explicit mobile
+  exclusion. Bump mobile ?v= counters when regenerating images.
+- Never strip unknown fields (e.g. `territory`) in the map-update
+  workflow or submit diff — carry them over in canonical key order.
+- No third-party map branding anywhere; own UI only: Urth Atlas.
