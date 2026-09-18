@@ -89,6 +89,22 @@ function PinsSection({
 
   return (
     <div className="space-y-2.5">
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+        <div className="text-[10px] font-bold tracking-widest uppercase text-amber-700 mb-1">
+          Map claims must be approved
+        </div>
+        <p className="text-[11px] leading-4 text-amber-900">
+          <span className="font-semibold">DO NOT USE THIS MAP FOR YOUR CLAIMS.{" "}</span>
+          <a
+            href="https://urthmaps.com/maps/export/urth.png"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-bold underline hover:text-amber-700"
+          >
+            CLICK HERE FOR THE MOST UP TO DATE POLITICAL MAP.
+          </a>
+        </p>
+      </div>
       {target && (
         <div className="rounded-lg bg-[#e6f4f1] border border-[#0e7490]/30 px-3 py-2">
           <div className="text-[11px] font-bold text-[#0e7490]">Placing: {target.name}</div>
@@ -336,7 +352,7 @@ function MapInfoBlock({ layer, mapSize, view, placesInfo, status }) {
   return (
     <div>
       <div className="urth-side-title text-[15px] font-bold text-[#111827]">Urth Atlas</div>
-      <div className="text-[12px] text-[#6b7280] mt-0.5">The East Pacific · urthmaps.com</div>
+      <div className="text-[12px] text-[#6b7280] mt-0.5">TEP Urth · urthmaps.com</div>
       <div className="mt-2.5 rounded-lg border border-[#e5e7eb] bg-[#f9fafb] px-2.5 py-1 divide-y divide-[#eef0f2]">
         <MapInfoRow label="Layer" value={active.label} />
         <MapInfoRow
