@@ -163,6 +163,9 @@ export default function MapView({
     // PROTOTYPE: single wrapping tile layer (repeats horizontally by
     // itself, clamped vertically by bounds) instead of 5 giant copies.
     if (TILES_PROTO && layerRef.current === "map") {
+      // NOTE: getTileUrl is assigned BEFORE addTo — GridLayer renders the
+      // initial viewport synchronously on add, and any tile created with
+      // the default template (negative-Y URLs) 404s and stays broken.
       const tl = L.tileLayer(
         `${import.meta.env.BASE_URL}tiles/political/{z}/{x}/{y}.jpg`,
         {
@@ -178,7 +181,7 @@ export default function MapView({
           className: "urth-base-tile",
           zIndex: 1,
         }
-      ).addTo(map);
+      );
       // CRS.Simple projects lat to NEGATIVE pixel Y, so Leaflet addresses
       // our rows as y=-30..0 (plus a y=0 sliver touching the top edge)
       // while make-tiles.mjs wrote top-down rows 0..29. Flip the index;
@@ -190,6 +193,7 @@ export default function MapView({
         if (fy < 0 || fy >= rows) return TRANSPARENT_PX;
         return `${import.meta.env.BASE_URL}tiles/political/${coords.z}/${coords.x}/${fy}.jpg`;
       };
+      tl.addTo(map);
       imagesRef.current.push(tl);
       applyOpacity();
       applySatGrade();
