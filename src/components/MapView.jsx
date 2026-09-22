@@ -184,7 +184,9 @@ export default function MapView({
       );
       // CRS.Simple projects lat to NEGATIVE pixel Y, so Leaflet addresses
       // our rows as y=-30..0 (plus a y=0 sliver touching the top edge)
-      // while make-tiles.mjs wrote top-down rows 0..29. Flip the index;
+      // while make-tiles.mjs wrote bottom-anchored rows y=0 at the bottom
+      // (TMS orientation — required because 7525 % 256 != 0, so a top-down
+      // grid would sit 101px off the tile grid). Flip the index;
       // out-of-range rows (edge sliver) get a transparent pixel so no
       // broken-tile icon ever shows.
       const rows = Math.ceil(H / 256);

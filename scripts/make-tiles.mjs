@@ -5,10 +5,16 @@
 //     [--size 256] [--quality 80] [--bg #7399b5] [--jobs 8]
 //
 // Scheme matches the atlas CRS.Simple setup exactly: at zoom z, tile
-// (x, y) shows source rect [x*S, (x+1)*S] x [y*S, (y+1)*S] with
+// (x, y) shows source rect [x*S, (x+1)*S] x [H-(y+1)*S, H-y*S] with
 // S = size / 2^z, scaled to a full tile. Same pixels the stretched
 // imageOverlay shows at the same zoom — so pins/measurements keep working.
-// XYZ orientation (y=0 at top), like Leaflet's default tileLayer.
+//
+// Rows are BOTTOM-anchored (TMS orientation, y=0 at the bottom), NOT
+// top-down: Leaflet's tile grid is anchored at layer origin (lat 0 = the
+// image BOTTOM edge), and 7525 is not a multiple of 256 (7525 = 29*256 +
+// 101). Top-anchored files would sit 101px off the tile grid — visible as
+// hard seams where rows meet. Columns stay left-anchored (x=0 at lng 0)
+// because that edge IS grid-aligned.
 //
 // NOTE on zoom range: in this pixel-space CRS, z0 IS native 1:1, and higher
 // zooms only magnify (Leaflet overzooms tiles automatically, pixel-identical
@@ -61,15 +67,20 @@ console.log(`${tasks.length} tiles, ${JOBS} workers`);
 
 async function makeTile({ z, x, y, S }) {
   const rx0 = Math.floor(x * S);
-  const ry0 = Math.floor(y * S);
   const rx1 = Math.min(Math.ceil((x + 1) * S), W);
-  const ry1 = Math.min(Math.ceil((y + 1) * S), H);
+  // Bottom-anchored row: y=0 is the bottom row (see header). srcTop can go
+  // negative for the topmost partial row — clamped below, and the content
+  // is pasted down so transparent padding lands on top (oy > 0).
+  const srcTop = H - (y + 1) * S;
+  const srcBottom = H - y * S;
+  const ry0 = Math.max(0, Math.floor(srcTop));
+  const ry1 = Math.min(H, Math.ceil(srcBottom));
   const rw = rx1 - rx0;
   const rh = ry1 - ry0;
   if (rw <= 0 || rh <= 0) return "empty";
   const k = SIZE / S;
   const ox = Math.round((rx0 - x * S) * k);
-  const oy = Math.round((ry0 - y * S) * k);
+  const oy = Math.round((ry0 - srcTop) * k);
   const dw = Math.max(1, Math.round(rw * k));
   const dh = Math.max(1, Math.round(rh * k));
   let tile = sharp(src, { limitInputPixels: false }).extract({
