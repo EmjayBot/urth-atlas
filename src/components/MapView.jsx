@@ -44,6 +44,11 @@ const TILES_PROTO =
 
 // ImageOverlay exposes the <img> via getElement(); TileLayer (GridLayer)
 // only has getContainer(). Null when the overlay has no DOM node yet.
+// 1px transparent GIF for tile rows that touch the map edge but hold no
+// pixels (avoids broken-tile icons on the boundary sliver).
+const TRANSPARENT_PX =
+  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+
 const overlayEl = (ov) => {
   if (!ov) return null;
   if (typeof ov.getElement === "function") return ov.getElement() ?? null;
@@ -174,6 +179,17 @@ export default function MapView({
           zIndex: 1,
         }
       ).addTo(map);
+      // CRS.Simple projects lat to NEGATIVE pixel Y, so Leaflet addresses
+      // our rows as y=-30..0 (plus a y=0 sliver touching the top edge)
+      // while make-tiles.mjs wrote top-down rows 0..29. Flip the index;
+      // out-of-range rows (edge sliver) get a transparent pixel so no
+      // broken-tile icon ever shows.
+      const rows = Math.ceil(H / 256);
+      tl.getTileUrl = (coords) => {
+        const fy = -coords.y - 1;
+        if (fy < 0 || fy >= rows) return TRANSPARENT_PX;
+        return `${import.meta.env.BASE_URL}tiles/political/${coords.z}/${coords.x}/${fy}.jpg`;
+      };
       imagesRef.current.push(tl);
       applyOpacity();
       applySatGrade();
