@@ -5,3 +5,6 @@ index.artifact.html
 .DS_Store
 .vscode/
 .idea/
+# Tile pyramids are build artifacts: generate with `npm run tiles:political`
+# (CI builds them at deploy time; never commit thousands of tiles).
+public/tiles/

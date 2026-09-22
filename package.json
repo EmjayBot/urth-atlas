@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "images:mobile": "node scripts/make-mobile-images.mjs"
+    "images:mobile": "node scripts/make-mobile-images.mjs",
+    "tiles:political": "node scripts/make-tiles.mjs public/blank-political.png public/tiles/political --max 0"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

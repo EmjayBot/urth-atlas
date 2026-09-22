@@ -35,6 +35,13 @@ const PICK_COLOR = "#0e7490";
 const WORLD_COPIES = IS_LOW_MEM ? 3 : 5;
 const HALF_COPIES = IS_LOW_MEM ? 1 : 2;
 
+// PROTOTYPE: ?tiles=1 swaps the stretched political base for a tile pyramid
+// (public/tiles/political, built by `npm run tiles:political`). Same pixels
+// at every zoom, loaded progressively instead of one 84MP decode.
+const TILES_PROTO =
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).get("tiles") === "1";
+
 // Zoom levels: -3 = "all the way out" (whole flat map fits the screen).
 // Beyond -3 is the easter egg: keep zooming and the repeating map reads as a
 // cylinder wrapping around.
@@ -170,13 +177,40 @@ export default function MapView({
       // via GPU-friendly CSS filters on the <img> elements only.
       const isSat = layerRef.current === "satellite";
       imagesRef.current.forEach((ov) => {
-        const el = ov.getElement();
+        const el =
+          typeof ov.getElement === "function"
+            ? ov.getElement()
+            : ov.getContainer && ov.getContainer();
         if (!el) return;
         el.classList.toggle("urth-sat-base", isSat);
       });
     };
 
     const installOverlays = (url) => {
+      // PROTOTYPE: single wrapping tile layer (repeats horizontally by
+      // itself, clamped vertically by bounds) instead of 5 giant copies.
+      if (TILES_PROTO && layerRef.current === "map") {
+        const tl = L.tileLayer(
+          `${import.meta.env.BASE_URL}tiles/political/{z}/{x}/{y}.jpg`,
+          {
+            tileSize: 256,
+            minZoom: -7,
+            maxZoom: 6,
+            minNativeZoom: 0,
+            maxNativeZoom: 0,
+            bounds: [
+              [0, 0],
+              [H, W],
+            ],
+            className: "urth-base-tile",
+            zIndex: 1,
+          }
+        ).addTo(map);
+        imagesRef.current.push(tl);
+        applyOpacity();
+        applySatGrade();
+        return;
+      }
       // 5 copies side-by-side so the map wraps horizontally and fills the
       // screen at extreme (cylinder) zoom. Vertical is clamped.
       for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
