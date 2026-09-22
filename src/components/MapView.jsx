@@ -42,6 +42,15 @@ const TILES_PROTO =
   typeof window !== "undefined" &&
   new URLSearchParams(window.location.search).get("tiles") === "1";
 
+// ImageOverlay exposes the <img> via getElement(); TileLayer (GridLayer)
+// only has getContainer(). Null when the overlay has no DOM node yet.
+const overlayEl = (ov) => {
+  if (!ov) return null;
+  if (typeof ov.getElement === "function") return ov.getElement() ?? null;
+  if (typeof ov.getContainer === "function") return ov.getContainer() ?? null;
+  return null;
+};
+
 // Zoom levels: -3 = "all the way out" (whole flat map fits the screen).
 // Beyond -3 is the easter egg: keep zooming and the repeating map reads as a
 // cylinder wrapping around.
@@ -134,6 +143,67 @@ export default function MapView({
     imagesRef.current.forEach((ov) => ov.setOpacity(effectiveBaseOpacity(opacity)));
   };
 
+  const applySatGrade = () => {
+    // Google-Earth vibe: gently lift satellite imagery (richer blues/greens)
+    // via GPU-friendly CSS filters on the <img> elements only.
+    const isSat = layerRef.current === "satellite";
+    imagesRef.current.forEach((ov) => {
+      const el = overlayEl(ov);
+      if (!el) return;
+      el.classList.toggle("urth-sat-base", isSat);
+    });
+  };
+
+  const installBaseOverlays = (map, url, W, H) => {
+    // PROTOTYPE: single wrapping tile layer (repeats horizontally by
+    // itself, clamped vertically by bounds) instead of 5 giant copies.
+    if (TILES_PROTO && layerRef.current === "map") {
+      const tl = L.tileLayer(
+        `${import.meta.env.BASE_URL}tiles/political/{z}/{x}/{y}.jpg`,
+        {
+          tileSize: 256,
+          minZoom: -7,
+          maxZoom: 6,
+          minNativeZoom: 0,
+          maxNativeZoom: 0,
+          bounds: [
+            [0, 0],
+            [H, W],
+          ],
+          className: "urth-base-tile",
+          zIndex: 1,
+        }
+      ).addTo(map);
+      imagesRef.current.push(tl);
+      applyOpacity();
+      applySatGrade();
+      return;
+    }
+    // 5 copies side-by-side so the map wraps horizontally and fills the
+    // screen at extreme (cylinder) zoom. Vertical is clamped.
+    for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
+      const ov = L.imageOverlay(
+        url,
+        [
+          [0, i * W],
+          [H, (i + 1) * W],
+        ],
+        { interactive: false, bubblingMouseEvents: false, className: "urth-base-tile", zIndex: 1 }
+      ).addTo(map);
+      const el = overlayEl(ov);
+      if (el) {
+        el.decoding = "async";
+        el.referrerPolicy = "no-referrer";
+        el.draggable = false;
+        // Hint the browser these are large static layers.
+        el.style.willChange = "transform";
+      }
+      imagesRef.current.push(ov);
+    }
+    applyOpacity();
+    applySatGrade();
+  };
+
   // ---- Map creation -------------------------------------------------------
   useEffect(() => {
     const container = containerRef.current;
@@ -172,69 +242,9 @@ export default function MapView({
     let H = 0;
     let W = 0;
 
-    const applySatGrade = () => {
-      // Google-Earth vibe: gently lift satellite imagery (richer blues/greens)
-      // via GPU-friendly CSS filters on the <img> elements only.
-      const isSat = layerRef.current === "satellite";
-      imagesRef.current.forEach((ov) => {
-        const el =
-          typeof ov.getElement === "function"
-            ? ov.getElement()
-            : ov.getContainer && ov.getContainer();
-        if (!el) return;
-        el.classList.toggle("urth-sat-base", isSat);
-      });
-    };
-
-    const installOverlays = (url) => {
-      // PROTOTYPE: single wrapping tile layer (repeats horizontally by
-      // itself, clamped vertically by bounds) instead of 5 giant copies.
-      if (TILES_PROTO && layerRef.current === "map") {
-        const tl = L.tileLayer(
-          `${import.meta.env.BASE_URL}tiles/political/{z}/{x}/{y}.jpg`,
-          {
-            tileSize: 256,
-            minZoom: -7,
-            maxZoom: 6,
-            minNativeZoom: 0,
-            maxNativeZoom: 0,
-            bounds: [
-              [0, 0],
-              [H, W],
-            ],
-            className: "urth-base-tile",
-            zIndex: 1,
-          }
-        ).addTo(map);
-        imagesRef.current.push(tl);
-        applyOpacity();
-        applySatGrade();
-        return;
-      }
-      // 5 copies side-by-side so the map wraps horizontally and fills the
-      // screen at extreme (cylinder) zoom. Vertical is clamped.
-      for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
-        const ov = L.imageOverlay(
-          url,
-          [
-            [0, i * W],
-            [H, (i + 1) * W],
-          ],
-          { interactive: false, bubblingMouseEvents: false, className: "urth-base-tile", zIndex: 1 }
-        ).addTo(map);
-        const el = ov.getElement();
-        if (el) {
-          el.decoding = "async";
-          el.referrerPolicy = "no-referrer";
-          el.draggable = false;
-          // Hint the browser these are large static layers.
-          el.style.willChange = "transform";
-        }
-        imagesRef.current.push(ov);
-      }
-      applyOpacity();
-      applySatGrade();
-    };
+    // (applySatGrade + installBaseOverlays live at component scope so the
+    // base-layer swap effect can reinstall overlays when the ?tiles=1
+    // prototype switches between tile and image overlay kinds.)
 
     const finishLoad = (url, w, h, okStatus) => {
       if (canceled) return;
@@ -249,9 +259,9 @@ export default function MapView({
       } else {
         map.setView([H / 2, W / 2], 0, { animate: false });
       }
-      installOverlays(url);
+      installBaseOverlays(map, url, W, H);
       setZoomLevel(map.getZoom());
-      setCylImg(imagesRef.current[0]?.getElement()?.src ?? url);
+      setCylImg(overlayEl(imagesRef.current[0])?.src ?? url);
       setStatus(okStatus);
       onMapReadyRef.current(map);
     };
@@ -499,11 +509,39 @@ export default function MapView({
       // Still refresh the satellite grade (toggled back to same layer).
       const isSat = layer === "satellite";
       imagesRef.current.forEach((ov) => {
-        const el = ov.getElement();
+        const el = overlayEl(ov);
         if (el) el.classList.toggle("urth-sat-base", isSat);
       });
       return;
     }
+    // PROTOTYPE: a TileLayer can't setUrl() to a plain image (and an
+    // ImageOverlay can't show tiles), so when the wanted overlay kind
+    // differs from what's mounted, drop the stale overlays — the fresh
+    // kind is (re)installed by the paths below.
+    if (TILES_PROTO) {
+      const wantTiles = layer === "map";
+      const hasTiles = imagesRef.current.some(
+        (ov) => typeof ov.getElement !== "function"
+      );
+      if (wantTiles !== hasTiles) {
+        imagesRef.current.forEach((ov) => map.removeLayer(ov));
+        imagesRef.current = [];
+      } else if (wantTiles && hasTiles) {
+        // Tiles already mounted for this layer — nothing to swap.
+        loadedLayerRef.current = layer;
+        applyOpacity();
+        setStatus("ok");
+        return;
+      }
+    }
+    const reinstallIfEmpty = (url) => {
+      // Kind switch emptied the overlay list — mount the right kind now.
+      if (TILES_PROTO && imagesRef.current.length === 0) {
+        installBaseOverlays(map, url, mapSize.W, mapSize.H);
+        return true;
+      }
+      return false;
+    };
     const def = resolveLayer(layer);
     let canceled = false;
     setStatus("loading");
@@ -511,7 +549,9 @@ export default function MapView({
       // Layer has no mobile-safe variant (e.g. remote full-res overlay id in
       // a shared link) — show the placeholder grid instead of decoding 84MP.
       const url = makeFallbackGrid(FALLBACK_W, FALLBACK_H);
-      imagesRef.current.forEach((ov) => ov.setUrl(url));
+      if (!reinstallIfEmpty(url)) {
+        imagesRef.current.forEach((ov) => ov.setUrl(url));
+      }
       loadedLayerRef.current = layer;
       applyOpacity();
       setStatus("blocked");
@@ -527,24 +567,28 @@ export default function MapView({
         if (W !== mapSize.W || H !== mapSize.H) {
           setMapSize({ W, H });
         }
-        imagesRef.current.forEach((ov) => ov.setUrl(url));
+        if (!reinstallIfEmpty(url)) {
+          imagesRef.current.forEach((ov) => ov.setUrl(url));
+        }
         loadedLayerRef.current = layer;
         applyOpacity();
         const isSat = layer === "satellite";
         // setUrl swaps the <img> src async — grade on next tick too.
         requestAnimationFrame(() => {
           imagesRef.current.forEach((ov) => {
-            const el = ov.getElement();
+            const el = overlayEl(ov);
             if (el) el.classList.toggle("urth-sat-base", isSat);
           });
         });
-        setCylImg(imagesRef.current[0]?.getElement()?.src ?? url);
+        setCylImg(overlayEl(imagesRef.current[0])?.src ?? url);
         setStatus("ok");
       })
       .catch(() => {
         if (canceled) return;
         const url = makeFallbackGrid(FALLBACK_W, FALLBACK_H);
-        imagesRef.current.forEach((ov) => ov.setUrl(url));
+        if (!reinstallIfEmpty(url)) {
+          imagesRef.current.forEach((ov) => ov.setUrl(url));
+        }
         loadedLayerRef.current = layer;
         applyOpacity();
         setStatus("blocked");
