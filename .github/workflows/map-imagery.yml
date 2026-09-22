@@ -55,7 +55,22 @@ jobs:
           npm ci
           npm install --no-save sharp
           node -e "
-            import('sharp').then(async ({default: sharp}) => {
+            Promise.all([import('sharp'), import('node:fs')]).then(async ([{default: sharp}, fs]) => {
+              // Ocean base under the political layer: the Political export
+              // leaves oceans transparent, which showed the blurry preview
+              // backdrop through. Composite over the Ocean master instead.
+              await sharp('public/ocean.png')
+                .composite([{ input: 'public/blank-political.png' }])
+                .png()
+                .toFile('public/blank-political.composited.png');
+              fs.renameSync('public/blank-political.composited.png', 'public/blank-political.png');
+              console.log('ocean base composited');
+              // Tiny blurred-preview backdrop (matches checked-in 640px size).
+              await sharp('public/blank-political.png')
+                .resize({ width: 640 })
+                .webp({ quality: 60, effort: 6 })
+                .toFile('public/preview-political.webp');
+              console.log('preview-political.webp rebuilt');
               // Full-res political webp (app primary; PNG is the fallback).
               await sharp('public/blank-political.png')
                 .webp({ quality: 90, effort: 6 })
@@ -71,6 +86,7 @@ jobs:
           git config user.email "map-imagery-bot@users.noreply.github.com"
           git add public/cities.png public/subnational.png \
             public/blank-political.png public/blank-political.webp \
+            public/preview-political.webp \
             public/national.png public/ocean.png \
             public/cities-mobile.webp public/subnational-mobile.webp \
             public/blank-political-mobile.webp
