@@ -168,6 +168,21 @@ export default function MapView({
     });
   };
 
+  // PROTOTYPE tile URL builder shared by the base + overlay tile layers.
+  // Levels are bottom-anchored (TMS orientation, y=0 at the bottom);
+  // S (source px per tile) follows the requested native level so every
+  // level nests on one grid. dir/ext pick the pyramid (political/jpg,
+  // cities+subnational/png with alpha).
+  const tileUrlFor = (dir, ext, W, H) => (coords) => {
+    const S = 256 / Math.pow(2, coords.z);
+    const cols = Math.ceil(W / S);
+    const rows = Math.ceil(H / S);
+    const wx = ((coords.x % cols) + cols) % cols;
+    const fy = -coords.y - 1;
+    if (fy < 0 || fy >= rows) return TRANSPARENT_PX;
+    return `${import.meta.env.BASE_URL}tiles/${dir}/${coords.z}/${wx}/${fy}.${ext}`;
+  };
+
   const installBaseOverlays = (map, url, W, H) => {
     // PROTOTYPE: one self-repeating tile layer (wraps horizontally via
     // WRAPPED_CRS, clamped vertically by bounds) instead of 5 giant copies.
@@ -195,24 +210,10 @@ export default function MapView({
           zIndex: 1,
         }
       );
-      // CRS.Simple projects lat to NEGATIVE pixel Y, so Leaflet addresses
-      // our rows as negative y (plus a y=0 sliver touching the top edge)
-      // while make-tiles.mjs wrote bottom-anchored rows y=0 at the bottom
-      // (TMS orientation — required because 7525 % 256 != 0, so a top-down
-      // grid would sit 101px off the tile grid). Flip the index.
-      // S (source px per tile) and the grid size follow the requested
-      // native level, so every level nests on the same bottom-anchored grid.
-      // Out-of-range rows (edge sliver) get a transparent pixel so no
-      // broken-tile icon ever shows.
-      tl.getTileUrl = (coords) => {
-        const S = 256 / Math.pow(2, coords.z);
-        const cols = Math.ceil(W / S);
-        const rows = Math.ceil(H / S);
-        const wx = ((coords.x % cols) + cols) % cols;
-        const fy = -coords.y - 1;
-        if (fy < 0 || fy >= rows) return TRANSPARENT_PX;
-        return `${import.meta.env.BASE_URL}tiles/political/${coords.z}/${wx}/${fy}.jpg`;
-      };
+      // Row addressing lives in the shared tileUrlFor helper (bottom-
+      // anchored TMS rows; see above). Assigned BEFORE addTo: GridLayer
+      // renders the initial viewport synchronously on add.
+      tl.getTileUrl = tileUrlFor("political", "jpg", W, H);
       tl.addTo(map);
       imagesRef.current.push(tl);
       applyOpacity();
@@ -925,13 +926,46 @@ export default function MapView({
         on: showCities,
         ref: citiesRef,
         url: IS_LOW_MEM ? MARKERS_CITIES_MOBILE_URL : MARKERS_CITIES_URL,
+        dir: "cities",
       },
       {
         on: showSubnational,
         ref: subnatRef,
         url: IS_LOW_MEM ? MARKERS_SUBNAT_MOBILE_URL : MARKERS_SUBNAT_URL,
+        dir: "subnational",
       },
     ];
+    // PROTOTYPE: transparent PNG tile pyramid instead of a stretched 84MP
+    // image overlay — same pixels, no giant decode (and phones, which
+    // disable the stretched overlays entirely, can show these cheaply).
+    // url: null keeps syncAllCoverage's image-copy sync away from the
+    // TileLayer; teardown via grp.remove() works unchanged.
+    const mountTiled = (job) => {
+      if (canceled || job.ref.current) return;
+      const { W, H } = mapSize;
+      const tl = L.tileLayer(
+        `${import.meta.env.BASE_URL}tiles/${job.dir}/{z}/{x}/{y}.png`,
+        {
+          tileSize: 256,
+          minZoom: -7,
+          maxZoom: 6,
+          minNativeZoom: -2,
+          maxNativeZoom: 0,
+          bounds: [
+            [0, -2 * W],
+            [H, 3 * W],
+          ],
+          opacity: 1,
+          interactive: false,
+          bubblingMouseEvents: false,
+          zIndex: 5,
+          className: "urth-markers-tile",
+        }
+      );
+      tl.getTileUrl = tileUrlFor(job.dir, "png", W, H);
+      tl.addTo(map);
+      job.ref.current = { grp: tl, url: null, tiled: true };
+    };
     const mount = (job, url) => {
       if (canceled || job.ref.current) return;
       const grp = L.layerGroup();
@@ -944,6 +978,10 @@ export default function MapView({
       if (canceled) return;
       jobs.forEach((job) => {
         if (!job.on || job.ref.current) return;
+        if (TILES_PROTO) {
+          mountTiled(job);
+          return;
+        }
         // Downscaled variants on phones (same 84MP-decode problem as base).
         loadLayer({ url: job.url, fallbackUrl: job.url })
           .then(({ url }) => mount(job, url))

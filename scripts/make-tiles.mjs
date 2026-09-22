@@ -3,6 +3,13 @@
 // Usage:
 //   node scripts/make-tiles.mjs <src.png> <outdir> [--min 0] [--max 0]
 //     [--size 256] [--quality 80] [--bg #7399b5] [--jobs 8]
+//     [--format jpeg|png|webp]
+//
+// --format jpeg (default) is for opaque base layers. Overlay layers with
+// transparency (cities, subnational) need --format png (pixel-perfect
+// labels) or --format webp (smaller, lossy): edge padding becomes
+// transparent instead of the --bg color, and skipped-tile detection uses
+// the alpha channel either way.
 //
 // Scheme matches the atlas CRS.Simple setup exactly: at zoom z, tile
 // (x, y) shows source rect [x*S, (x+1)*S] x [H-(y+1)*S, H-y*S] with
@@ -44,6 +51,13 @@ const SIZE = parseInt(arg("size", "256"), 10);
 const QUALITY = parseInt(arg("quality", "80"), 10);
 const BG = arg("bg", "#7399b5");
 const JOBS = parseInt(arg("jobs", "8"), 10);
+const FORMAT = arg("format", "jpeg");
+if (!["jpeg", "png", "webp"].includes(FORMAT)) {
+  console.error("--format must be jpeg, png, or webp");
+  process.exit(1);
+}
+const EXT = FORMAT === "jpeg" ? "jpg" : FORMAT;
+const HAS_ALPHA_OUT = FORMAT !== "jpeg";
 
 const meta = await sharp(src).metadata();
 const W = meta.width;
@@ -99,14 +113,21 @@ async function makeTile({ z, x, y, S }) {
   mkdirSync(dir, { recursive: true });
   const needCanvas = ox !== 0 || oy !== 0 || dw !== SIZE || dh !== SIZE;
   let img = tile.resize(dw, dh, { fit: "fill", kernel: "lanczos3" });
+  // Encode helper matching the output format (keeps alpha for png/webp).
+  const encode = (pipeline, q) =>
+    FORMAT === "png" ? pipeline.png() :
+    FORMAT === "webp" ? pipeline.webp({ quality: q }) :
+    pipeline.jpeg({ quality: q });
   if (needCanvas) {
     const canvas = sharp({
-      create: { width: SIZE, height: SIZE, channels: 3, background: BG },
+      create: HAS_ALPHA_OUT
+        ? { width: SIZE, height: SIZE, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } }
+        : { width: SIZE, height: SIZE, channels: 3, background: BG },
     });
-    const buf = await img.jpeg({ quality: 100 }).toBuffer();
+    const buf = await encode(img, 100).toBuffer();
     img = canvas.composite([{ input: buf, left: ox, top: oy }]);
   }
-  await img.jpeg({ quality: QUALITY }).toFile(join(dir, `${y}.jpg`));
+  await encode(img, QUALITY).toFile(join(dir, `${y}.${EXT}`));
   return "kept";
 }
 
