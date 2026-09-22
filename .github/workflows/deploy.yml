@@ -24,6 +24,12 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      # Tiled political base for the ?tiles=1 prototype: cut from the
+      # checked-in master into public/tiles/ (gitignored) so Vite copies
+      # it into dist. ~1300 JPEGs, ~1 min on the runner (same sharp
+      # pattern as map-imagery.yml).
+      - run: npm install --no-save sharp
+      - run: npm run tiles:political
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
