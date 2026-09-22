@@ -81,6 +81,8 @@ jobs:
           npm run images:mobile
 
       - name: Commit imagery
+        # Auto-bump ?v= cache-busters, but only for files that actually
+        # changed (satellite/timezones are managed by hand — leave theirs).
         run: |
           git config user.name "map-imagery-bot"
           git config user.email "map-imagery-bot@users.noreply.github.com"
@@ -90,7 +92,27 @@ jobs:
             public/national.png public/ocean.png \
             public/cities-mobile.webp public/subnational-mobile.webp \
             public/blank-political-mobile.webp
-          git diff --cached --quiet && echo "Imagery up to date." || {
+          if git diff --cached --quiet; then
+            echo "Imagery up to date."
+          else
+            changed=$(git diff --cached --name-only)
+            bump() {
+              case " $changed " in
+                *"public/$1"*)
+                  cur=$(grep -rho "$1?v=[0-9]*" src/lib src/components 2>/dev/null | head -1 | grep -o '[0-9]*$')
+                  if [ -n "$cur" ]; then
+                    sed -i "s|$1?v=$cur|$1?v=$((cur + 1))|g" src/lib/scale.js src/components/MapView.jsx
+                    echo "bumped $1 v$cur -> v$((cur + 1))"
+                  fi
+                  ;;
+              esac
+            }
+            for f in blank-political.webp blank-political.png blank-political-mobile.webp \
+                     preview-political.webp cities.png cities-mobile.webp \
+                     subnational.png subnational-mobile.webp; do
+              bump "$f"
+            done
+            git add src/lib/scale.js src/components/MapView.jsx
             git commit -m "auto: pull map imagery from urthmaps-test"
             git push
-          }
+          fi
