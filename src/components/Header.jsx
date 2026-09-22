@@ -1,6 +1,7 @@
 import { memo } from "react";
 import SearchBar from "./SearchBar";
-import { IconGlobe, IconMenu, IconTarget, IconRuler } from "./icons";
+import { GlobeHemisphereEast } from "@phosphor-icons/react";
+import { IconMenu, IconTarget, IconRuler } from "./icons";
 
 function Header({
   query,
@@ -23,7 +24,7 @@ function Header({
       </button>
 
       <div className="flex items-center gap-2 shrink-0">
-        <IconGlobe width={20} height={20} className="text-[#0e7490]" />
+        <GlobeHemisphereEast size={20} color="#6ea7a1" weight="duotone" />
         <span className="urth-logo hidden sm:inline" aria-label="Urth Atlas">
           Urth Atlas
         </span>
