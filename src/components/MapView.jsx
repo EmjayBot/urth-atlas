@@ -44,17 +44,26 @@ const TILES_PROTO =
 
 // ImageOverlay exposes the <img> via getElement(); TileLayer (GridLayer)
 // only has getContainer(). Null when the overlay has no DOM node yet.
-// 1px transparent GIF for tile rows that touch the map edge but hold no
-// pixels (avoids broken-tile icons on the boundary sliver).
-const TRANSPARENT_PX =
-  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-
 const overlayEl = (ov) => {
   if (!ov) return null;
   if (typeof ov.getElement === "function") return ov.getElement() ?? null;
   if (typeof ov.getContainer === "function") return ov.getContainer() ?? null;
   return null;
 };
+
+// 1px transparent GIF for tile rows that touch the map edge but hold no
+// pixels (avoids broken-tile icons on the boundary sliver).
+const TRANSPARENT_PX =
+  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+
+// PROTOTYPE CRS: plain Simple + longitude wrapping so tile copies repeat
+// horizontally (restores the app's infinite-horizontal promise in tiles
+// mode). Projection math is identical — only TileLayer copy-wrapping reads
+// wrapLng, so the default path is unaffected.
+const WRAPPED_CRS =
+  typeof window !== "undefined" && TILES_PROTO
+    ? L.extend({}, L.CRS.Simple, { wrapLng: [0, FULL_W] })
+    : null;
 
 // Zoom levels: -3 = "all the way out" (whole flat map fits the screen).
 // Beyond -3 is the easter egg: keep zooming and the repeating map reads as a
@@ -160,8 +169,10 @@ export default function MapView({
   };
 
   const installBaseOverlays = (map, url, W, H) => {
-    // PROTOTYPE: single wrapping tile layer (repeats horizontally by
-    // itself, clamped vertically by bounds) instead of 5 giant copies.
+    // PROTOTYPE: one self-repeating tile layer (wraps horizontally via
+    // WRAPPED_CRS, clamped vertically by bounds) instead of 5 giant copies.
+    // Pyramid levels -2..0 are pre-scaled overviews (level 0 = native 1:1);
+    // closer zooms overzoom level 0, pixel-identical to the overlay.
     if (TILES_PROTO && layerRef.current === "map") {
       // NOTE: getTileUrl is assigned BEFORE addTo — GridLayer renders the
       // initial viewport synchronously on add, and any tile created with
@@ -172,28 +183,35 @@ export default function MapView({
           tileSize: 256,
           minZoom: -7,
           maxZoom: 6,
-          minNativeZoom: 0,
+          minNativeZoom: -2,
           maxNativeZoom: 0,
+          // ±2 world copies horizontally (mirrors HALF_COPIES), hard clamp
+          // vertically. Wrapped copies share files via the x modulo below.
           bounds: [
-            [0, 0],
-            [H, W],
+            [0, -2 * W],
+            [H, 3 * W],
           ],
           className: "urth-base-tile",
           zIndex: 1,
         }
       );
       // CRS.Simple projects lat to NEGATIVE pixel Y, so Leaflet addresses
-      // our rows as y=-30..0 (plus a y=0 sliver touching the top edge)
+      // our rows as negative y (plus a y=0 sliver touching the top edge)
       // while make-tiles.mjs wrote bottom-anchored rows y=0 at the bottom
       // (TMS orientation — required because 7525 % 256 != 0, so a top-down
-      // grid would sit 101px off the tile grid). Flip the index;
-      // out-of-range rows (edge sliver) get a transparent pixel so no
+      // grid would sit 101px off the tile grid). Flip the index.
+      // S (source px per tile) and the grid size follow the requested
+      // native level, so every level nests on the same bottom-anchored grid.
+      // Out-of-range rows (edge sliver) get a transparent pixel so no
       // broken-tile icon ever shows.
-      const rows = Math.ceil(H / 256);
       tl.getTileUrl = (coords) => {
+        const S = 256 / Math.pow(2, coords.z);
+        const cols = Math.ceil(W / S);
+        const rows = Math.ceil(H / S);
+        const wx = ((coords.x % cols) + cols) % cols;
         const fy = -coords.y - 1;
         if (fy < 0 || fy >= rows) return TRANSPARENT_PX;
-        return `${import.meta.env.BASE_URL}tiles/political/${coords.z}/${coords.x}/${fy}.jpg`;
+        return `${import.meta.env.BASE_URL}tiles/political/${coords.z}/${wx}/${fy}.jpg`;
       };
       tl.addTo(map);
       imagesRef.current.push(tl);
@@ -232,7 +250,7 @@ export default function MapView({
     if (!container || mapRef.current) return;
 
     const map = L.map(container, {
-      crs: L.CRS.Simple,
+      crs: TILES_PROTO && WRAPPED_CRS ? WRAPPED_CRS : L.CRS.Simple,
       // Low-memory devices stop at the full-world view: no cylinder mode,
       // which would decode even more tiles while hidden behind the scene.
       minZoom: IS_LOW_MEM ? NORMAL_MIN_ZOOM : ABSOLUTE_MIN_ZOOM,
