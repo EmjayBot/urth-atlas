@@ -15,12 +15,12 @@ export const BASE_LAYERS = [
     id: "map",
     label: "Political",
     sub: "Blank political map",
-    url: `${import.meta.env.BASE_URL}blank-political.webp`,
-    fallbackUrl: `${import.meta.env.BASE_URL}blank-political.png?v=2`,
+    url: `${import.meta.env.BASE_URL}blank-political.webp?v=3`,
+    fallbackUrl: `${import.meta.env.BASE_URL}blank-political.png?v=3`,
     // 2048px variant for low-memory devices (see scripts/make-mobile-images.mjs).
     // fullW/fullH keep the app in full-res pixel coordinates — Leaflet
     // stretches the small image across the full bounds.
-    mobileUrl: `${import.meta.env.BASE_URL}blank-political-mobile.webp?v=2`,
+    mobileUrl: `${import.meta.env.BASE_URL}blank-political-mobile.webp?v=3`,
     chip: "bg-gradient-to-br from-sky-300 via-sky-600 to-cyan-800",
   },
   {

@@ -1242,7 +1242,7 @@ export default function MapView({
   // so there's never a grey void while the full-res tiles load or swap.
   const preview =
     `${import.meta.env.BASE_URL}` +
-    (layer === "satellite" ? "preview-satellite.webp" : "preview-political.webp");
+    (layer === "satellite" ? "preview-satellite.webp" : "preview-political.webp?v=3");
 
   return (
     <div className="absolute inset-0">
