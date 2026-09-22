@@ -25,7 +25,11 @@ export function parseUrl() {
 }
 
 export function writeUrl(state, { replace = true } = {}) {
-  const q = new URLSearchParams();
+  // Start from the live query string so unrecognized flags (e.g. ?tiles=1
+  // prototype, ?maintainer=1) survive rewrites; managed keys are deleted
+  // first so stale values never linger, then set from state below.
+  const q = new URLSearchParams(window.location.search);
+  for (const k of ["at", "z", "mode", "pts", "nations", "layer"]) q.delete(k);
   if (state.at) q.set("at", `${state.at[0].toFixed(1)},${state.at[1].toFixed(1)}`);
   if (state.z != null) q.set("z", String(state.z));
   if (state.mode) q.set("mode", state.mode);
