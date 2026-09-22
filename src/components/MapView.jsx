@@ -35,12 +35,12 @@ const PICK_COLOR = "#0e7490";
 const WORLD_COPIES = IS_LOW_MEM ? 3 : 5;
 const HALF_COPIES = IS_LOW_MEM ? 1 : 2;
 
-// PROTOTYPE: ?tiles=1 swaps the stretched political base for a tile pyramid
-// (public/tiles/political, built by `npm run tiles:political`). Same pixels
-// at every zoom, loaded progressively instead of one 84MP decode.
+// Graduated to default: the tiled base + overlays serve everyone (faster
+// loads, no giant decodes); ?tiles=0 opts back out to the legacy stretched
+// overlays. Bare ?tiles=1 links from the prototype era keep working.
 const TILES_PROTO =
-  typeof window !== "undefined" &&
-  new URLSearchParams(window.location.search).get("tiles") === "1";
+  typeof window === "undefined" ||
+  new URLSearchParams(window.location.search).get("tiles") !== "0";
 
 // ImageOverlay exposes the <img> via getElement(); TileLayer (GridLayer)
 // only has getContainer(). Null when the overlay has no DOM node yet.

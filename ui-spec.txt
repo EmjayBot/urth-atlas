@@ -132,3 +132,21 @@ marked hypothetical. [StatusBar] cursor readout + credits.
 - Never strip unknown fields (e.g. `territory`) in the map-update
   workflow or submit diff — carry them over in canonical key order.
 - No third-party map branding anywhere; own UI only: Urth Atlas.
+
+------------------------------------------------------------
+9. TILED BASE + OVERLAYS (default on; ?tiles=0 opts out)
+------------------------------------------------------------
+- The political base, cities, and subnational overlays serve as z/x/y tile
+  pyramids (public/tiles/<layer>/{z}/{x}/{y}.jpg|.png), levels -2..0 with
+  level 0 = native 1:1. Closer zooms overzoom level 0 (same as the old
+  stretched overlay); far zooms use pre-scaled overviews. Tiles wrap
+  horizontally (custom CRS with wrapLng [0, 11232]), clamp vertically.
+- Tile rows are BOTTOM-anchored (TMS, y=0 at bottom): 7525 % 256 != 0, so
+  top-down files sit 101px off Leaflet's grid (hard seams). Columns stay
+  left-anchored. CRS.Simple addresses rows as negative y — see tileUrlFor.
+- Tiles are build artifacts (gitignored): fresh clones MUST run
+  `npm run tiles:all` (needs sharp) or the base renders empty. CI builds
+  them in deploy.yml before `vite build`. Container backdrop is flat
+  ocean #7499b4 (no ghost preview) in tiles mode.
+- Header brand mark: Phosphor globe-hemisphere-east duotone #6ea7a1
+  (@phosphor-icons/react); the wordmark itself (.urth-logo) stays Bell MT.
