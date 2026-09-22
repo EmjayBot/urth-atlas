@@ -1405,9 +1405,15 @@ export default function MapView({
       <div
         ref={containerRef}
         className="absolute inset-0 urth-map-grab"
-        style={{
-          background: `#e5e3df url(${preview}) center / cover no-repeat`,
-        }}
+        style={
+          TILES_PROTO
+            ? // Prototype: flat ocean backdrop (#7499b4) — tiles pop in over
+              // it, and any gap reads as ocean instead of a ghost map.
+              { background: "#7499b4" }
+            : {
+                background: `#e5e3df url(${preview}) center / cover no-repeat`,
+              }
+        }
       />
       {status === "loading" && (
         <div className="absolute inset-0 z-[900] flex items-center justify-center pointer-events-none">
