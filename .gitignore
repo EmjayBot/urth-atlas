@@ -5,3 +5,5 @@ index.artifact.html
 .DS_Store
 .vscode/
 .idea/
+# Tile pyramids are build artifacts (`npm run tiles:*`), never committed.
+public/tiles/
