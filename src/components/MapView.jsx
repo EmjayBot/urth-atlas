@@ -173,14 +173,20 @@ export default function MapView({
   // S (source px per tile) follows the requested native level so every
   // level nests on one grid. dir/ext pick the pyramid (political/jpg,
   // cities+subnational/png with alpha).
+  // ?v= cache-buster: tile file URLs are otherwise stable across cutter
+  // rebuilds, so browsers/CDNs would keep serving stale grids forever.
+  // Bump TILES_V whenever the cutter scheme changes (1 = top-anchored
+  // legacy, 2 = bottom-anchored 256px, 3 = bottom-anchored 512px).
+  const TILES_V = 3;
+  const TILE_PX = 512;
   const tileUrlFor = (dir, ext, W, H) => (coords) => {
-    const S = 256 / Math.pow(2, coords.z);
+    const S = TILE_PX / Math.pow(2, coords.z);
     const cols = Math.ceil(W / S);
     const rows = Math.ceil(H / S);
     const wx = ((coords.x % cols) + cols) % cols;
     const fy = -coords.y - 1;
     if (fy < 0 || fy >= rows) return TRANSPARENT_PX;
-    return `${import.meta.env.BASE_URL}tiles/${dir}/${coords.z}/${wx}/${fy}.${ext}`;
+    return `${import.meta.env.BASE_URL}tiles/${dir}/${coords.z}/${wx}/${fy}.${ext}?v=${TILES_V}`;
   };
 
   const installBaseOverlays = (map, url, W, H) => {
@@ -195,7 +201,7 @@ export default function MapView({
       const tl = L.tileLayer(
         `${import.meta.env.BASE_URL}tiles/political/{z}/{x}/{y}.jpg`,
         {
-          tileSize: 256,
+          tileSize: TILE_PX,
           minZoom: -7,
           maxZoom: 6,
           minNativeZoom: -2,
@@ -946,7 +952,7 @@ export default function MapView({
       const tl = L.tileLayer(
         `${import.meta.env.BASE_URL}tiles/${job.dir}/{z}/{x}/{y}.png`,
         {
-          tileSize: 256,
+          tileSize: TILE_PX,
           minZoom: -7,
           maxZoom: 6,
           minNativeZoom: -2,

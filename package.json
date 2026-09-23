@@ -8,9 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "images:mobile": "node scripts/make-mobile-images.mjs",
-    "tiles:political": "node scripts/make-tiles.mjs public/blank-political.png public/tiles/political --min -2 --max 0 --quality 90",
-    "tiles:cities": "node scripts/make-tiles.mjs public/cities.png public/tiles/cities --min -2 --max 0 --format png",
-    "tiles:subnational": "node scripts/make-tiles.mjs public/subnational.png public/tiles/subnational --min -2 --max 0 --format png",
+    "tiles:political": "node scripts/make-tiles.mjs public/blank-political.png public/tiles/political --min -2 --max 0 --quality 90 --size 512",
+    "tiles:cities": "node scripts/make-tiles.mjs public/cities.png public/tiles/cities --min -2 --max 0 --format png --size 512",
+    "tiles:subnational": "node scripts/make-tiles.mjs public/subnational.png public/tiles/subnational --min -2 --max 0 --format png --size 512",
     "tiles:all": "npm run tiles:political && npm run tiles:cities && npm run tiles:subnational"
   },
   "dependencies": {
