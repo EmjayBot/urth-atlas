@@ -97,15 +97,28 @@ async function makeTile({ z, x, y, S }) {
   const oy = Math.round((ry0 - srcTop) * k);
   const dw = Math.max(1, Math.round(rw * k));
   const dh = Math.max(1, Math.round(rh * k));
+  // Last-column partial tile: its padding reuses wrapped content (see
+  // below), so the emptiness check must include the wrap strip.
+  const wrapW = rx1 >= W && rw < S ? S - rw : 0;
   let tile = sharp(src, { limitInputPixels: false }).extract({
     left: rx0, top: ry0, width: rw, height: rh,
   });
-  if (hasAlpha) {
-    const raw = await tile.clone().raw().toBuffer({ resolveWithObject: true });
-    let opaque = false;
+  const hasOpaque = async (pipeline) => {
+    const raw = await pipeline.clone().raw().toBuffer({ resolveWithObject: true });
     const ch = raw.info.channels;
     for (let i = ch - 1; i < raw.data.length; i += ch) {
-      if (raw.data[i] > 8) { opaque = true; break; }
+      if (raw.data[i] > 8) return true;
+    }
+    return false;
+  };
+  if (hasAlpha) {
+    let opaque = await hasOpaque(tile);
+    if (!opaque && wrapW > 0) {
+      opaque = await hasOpaque(
+        sharp(src, { limitInputPixels: false }).extract({
+          left: 0, top: ry0, width: wrapW, height: rh,
+        })
+      );
     }
     if (!opaque) return "skipped";
   }
@@ -118,14 +131,28 @@ async function makeTile({ z, x, y, S }) {
     FORMAT === "png" ? pipeline.png() :
     FORMAT === "webp" ? pipeline.webp({ quality: q }) :
     pipeline.jpeg({ quality: q });
+  // Last-column partial tile: pad with WRAPPED content from the source
+  // left edge, not flat color — land crosses the dateline, so flat padding
+  // would slice a notch through continents at every world join.
+  // (wrapW computed above alongside the emptiness check.)
   if (needCanvas) {
     const canvas = sharp({
       create: HAS_ALPHA_OUT
         ? { width: SIZE, height: SIZE, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } }
         : { width: SIZE, height: SIZE, channels: 3, background: BG },
     });
-    const buf = await encode(img, 100).toBuffer();
-    img = canvas.composite([{ input: buf, left: ox, top: oy }]);
+    const parts = [{ input: await encode(img, 100).toBuffer(), left: ox, top: oy }];
+    if (wrapW > 0) {
+      const wrapStrip = sharp(src, { limitInputPixels: false }).extract({
+        left: 0, top: ry0, width: wrapW, height: rh,
+      });
+      const wrapDw = Math.max(1, Math.round(wrapW * k));
+      parts.push({
+        input: await encode(wrapStrip.resize(wrapDw, dh, { fit: "fill", kernel: "lanczos3" }), 100).toBuffer(),
+        left: ox + dw, top: oy,
+      });
+    }
+    img = canvas.composite(parts);
   }
   await encode(img, QUALITY).toFile(join(dir, `${y}.${EXT}`));
   return "kept";
