@@ -83,8 +83,8 @@ async function makeTile({ z, x, y, S }) {
   const rx0 = Math.floor(x * S);
   const rx1 = Math.min(Math.ceil((x + 1) * S), W);
   // Bottom-anchored row: y=0 is the bottom row (see header). srcTop can go
-  // negative for the topmost partial row — clamped below, and the content
-  // is pasted down so transparent padding lands on top (oy > 0).
+  // negative for the topmost partial row — it is clamped and saved narrow
+  // (no padding; the ocean backdrop shows past the map edge).
   const srcTop = H - (y + 1) * S;
   const srcBottom = H - y * S;
   const ry0 = Math.max(0, Math.floor(srcTop));
@@ -97,9 +97,6 @@ async function makeTile({ z, x, y, S }) {
   const oy = Math.round((ry0 - srcTop) * k);
   const dw = Math.max(1, Math.round(rw * k));
   const dh = Math.max(1, Math.round(rh * k));
-  // Last-column partial tile: its padding reuses wrapped content (see
-  // below), so the emptiness check must include the wrap strip.
-  const wrapW = rx1 >= W && rw < S ? S - rw : 0;
   let tile = sharp(src, { limitInputPixels: false }).extract({
     left: rx0, top: ry0, width: rw, height: rh,
   });
@@ -111,48 +108,35 @@ async function makeTile({ z, x, y, S }) {
     }
     return false;
   };
-  if (hasAlpha) {
-    let opaque = await hasOpaque(tile);
-    if (!opaque && wrapW > 0) {
-      opaque = await hasOpaque(
-        sharp(src, { limitInputPixels: false }).extract({
-          left: 0, top: ry0, width: wrapW, height: rh,
-        })
-      );
-    }
-    if (!opaque) return "skipped";
-  }
+  if (hasAlpha && !(await hasOpaque(tile))) return "skipped";
   const dir = join(outdir, String(z), String(x));
   mkdirSync(dir, { recursive: true });
-  const needCanvas = ox !== 0 || oy !== 0 || dw !== SIZE || dh !== SIZE;
   let img = tile.resize(dw, dh, { fit: "fill", kernel: "lanczos3" });
   // Encode helper matching the output format (keeps alpha for png/webp).
   const encode = (pipeline, q) =>
     FORMAT === "png" ? pipeline.png() :
     FORMAT === "webp" ? pipeline.webp({ quality: q }) :
     pipeline.jpeg({ quality: q });
-  // Last-column partial tile: pad with WRAPPED content from the source
-  // left edge, not flat color — land crosses the dateline, so flat padding
-  // would slice a notch through continents at every world join.
-  // (wrapW computed above alongside the emptiness check.)
-  if (needCanvas) {
+  // Partial edge tiles: the dateline (right) column is saved at NATURAL
+  // size with NO padding, so the neighboring world copy shows through the
+  // rest of the slot — any padding there is wrong (flat color notches
+  // through dateline land; wrapped content double-draws against the copy
+  // that owns those pixels). The top partial row keeps ocean/transparent
+  // padding (oy > 0 path below): nothing exists past the map's top edge,
+  // so padding there can never double-draw. Only fractional-S levels
+  // (unused by our -2..0 pyramids) need positioning for other offsets.
+  if (ox !== 0 || oy !== 0) {
+    // Narrow canvas: only as wide as the content (ox == 0 for our integer
+    // grids), so a dateline-corner tile never paints flat color over the
+    // neighboring copy's pixels. Full height: the top pad is ocean/void.
+    const cw = ox === 0 ? dw : SIZE;
     const canvas = sharp({
       create: HAS_ALPHA_OUT
-        ? { width: SIZE, height: SIZE, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } }
-        : { width: SIZE, height: SIZE, channels: 3, background: BG },
+        ? { width: cw, height: SIZE, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } }
+        : { width: cw, height: SIZE, channels: 3, background: BG },
     });
-    const parts = [{ input: await encode(img, 100).toBuffer(), left: ox, top: oy }];
-    if (wrapW > 0) {
-      const wrapStrip = sharp(src, { limitInputPixels: false }).extract({
-        left: 0, top: ry0, width: wrapW, height: rh,
-      });
-      const wrapDw = Math.max(1, Math.round(wrapW * k));
-      parts.push({
-        input: await encode(wrapStrip.resize(wrapDw, dh, { fit: "fill", kernel: "lanczos3" }), 100).toBuffer(),
-        left: ox + dw, top: oy,
-      });
-    }
-    img = canvas.composite(parts);
+    const buf = await encode(img, 100).toBuffer();
+    img = canvas.composite([{ input: buf, left: ox, top: oy }]);
   }
   await encode(img, QUALITY).toFile(join(dir, `${y}.${EXT}`));
   return "kept";
