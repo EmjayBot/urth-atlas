@@ -148,5 +148,6 @@ marked hypothetical. [StatusBar] cursor readout + credits.
   `npm run tiles:all` (needs sharp) or the base renders empty. CI builds
   them in deploy.yml before `vite build`. Container backdrop is flat
   ocean #7499b4 (no ghost preview) in tiles mode.
-- Header brand mark: Phosphor globe-hemisphere-east duotone #6ea7a1
-  (@phosphor-icons/react); the wordmark itself (.urth-logo) stays Bell MT.
+- Header brand mark: Phosphor globe-hemisphere-east duotone in accent
+  teal #0e7490 (@phosphor-icons/react); the wordmark itself (.urth-logo)
+  stays Bell MT.

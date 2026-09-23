@@ -24,7 +24,7 @@ function Header({
       </button>
 
       <div className="flex items-center gap-2 shrink-0">
-        <GlobeHemisphereEast size={20} color="#6ea7a1" weight="duotone" />
+        <GlobeHemisphereEast size={20} color="#0e7490" weight="duotone" />
         <span className="urth-logo hidden sm:inline" aria-label="Urth Atlas">
           Urth Atlas
         </span>

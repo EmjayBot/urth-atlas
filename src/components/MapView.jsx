@@ -215,6 +215,11 @@ export default function MapView({
           ],
           className: "urth-base-tile",
           zIndex: 1,
+          // SAME pane as the legacy image overlays (not tilePane): keeps the
+          // stacking contract — TEP underlay (z0) < base (z1) < data (z2) —
+          // so the opacity easter egg can hide again. Clicks bubble to the
+          // map exactly like the overlay path (verified by measure test).
+          pane: "overlayPane",
         }
       );
       // Row addressing lives in the shared tileUrlFor helper (bottom-
