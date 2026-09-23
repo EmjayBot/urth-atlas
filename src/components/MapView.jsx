@@ -972,6 +972,10 @@ export default function MapView({
           bubblingMouseEvents: false,
           zIndex: 5,
           className: "urth-markers-tile",
+          // SAME pane as the tiled base (not tilePane): pane order dominates
+          // zIndex, so leaving these in tilePane would bury them under the
+          // opaque base. Matches the legacy stacking (base z1 < markers z5).
+          pane: "overlayPane",
         }
       );
       tl.getTileUrl = tileUrlFor(job.dir, "png", W, H);
