@@ -605,7 +605,7 @@ export default function Sidebar({
           label="Community markers"
           checked={showPlaceMarkers}
           onChange={setShowPlaceMarkers}
-          sub="Dots for placed markers"
+          sub="Dots for placed markers (needs Cities)"
         />
         <OverlayCheck
           label="Nation markers"

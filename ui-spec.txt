@@ -62,7 +62,9 @@ marked hypothetical. [StatusBar] cursor readout + credits.
   carry ?v=2 cache-busting — bump on regeneration.
 - Disabled/hidden on phones: satellite, remote full-res overlays
   (topo/climate/currents/hydro/blank), TEPmap underlay, idle pre-warming.
-  Cities + subnational default OFF on phones (each stretched overlay forces an extra resample pass that softens the base).
+  Cities + subnational default OFF on phones in legacy mode (?tiles=0);
+  in tiles mode they default ON everywhere — sparse tile pyramids cost
+  phones almost nothing, so the resample-softening problem is gone.
   Desktop behavior is unaffected by all of the above.
 
 ------------------------------------------------------------

@@ -11,6 +11,7 @@ import { parseUrl, writeUrl, shareLink } from "./lib/url";
 import { mergePlaces } from "./lib/places";
 import { num } from "./lib/format";
 import { IS_LOW_MEM } from "./lib/device";
+import { TILES_ON } from "./lib/tiles";
 import { DATA_OVERLAYS } from "./lib/scale";
 
 const initial = parseUrl();
@@ -94,12 +95,15 @@ export default function App() {
   const [showGrid, setShowGrid] = useState(true);
   const [showPixelGrid, setShowPixelGrid] = useState(false);
   const [showCoords, setShowCoords] = useState(false);
-  // City & subnational rasters default off on phones: each stretched
-  // overlay forces an extra resample pass that visibly softens the base map.
-  const [showCities, setShowCities] = useState(!IS_LOW_MEM);
-  const [showSubnational, setShowSubnational] = useState(!IS_LOW_MEM);
-  // Community place dots are cheap vectors — on everywhere by default,
-  // independently togglable so city pins can be hidden without losing rasters.
+  // City & subnational layers default off on phones ONLY in legacy mode
+  // (?tiles=0): each stretched overlay forces an extra resample pass that
+  // visibly softens the base map. Tiled overlays cost phones almost nothing
+  // (sparse small tiles, no giant decodes), so they default on for everyone.
+  const [showCities, setShowCities] = useState(TILES_ON || !IS_LOW_MEM);
+  const [showSubnational, setShowSubnational] = useState(TILES_ON || !IS_LOW_MEM);
+  // Community place dots are cheap vectors — on everywhere by default.
+  // Settlement dots (capitals/cities/towns) additionally need the Cities
+  // layer; nation labels are independent (see MapView place-dots effect).
   const [showPlaceMarkers, setShowPlaceMarkers] = useState(true);
   const [showNations, setShowNations] = useState(initial.nations ?? true);
   const [sidebarOpen, setSidebarOpen] = useState(true);

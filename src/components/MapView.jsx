@@ -25,6 +25,7 @@ import {
 } from "../lib/wiki";
 import CylinderView from "./CylinderView";
 import { IS_LOW_MEM } from "../lib/device";
+import { TILES_ON } from "../lib/tiles";
 
 const PICK_COLOR = "#0e7490";
 // Stability: 5 world copies (i in -2..2) is enough to fill ultra-wide screens
@@ -34,13 +35,6 @@ const PICK_COLOR = "#0e7490";
 // mobile Safari jetsams the tab long before 5 copies finish decoding.
 const WORLD_COPIES = IS_LOW_MEM ? 3 : 5;
 const HALF_COPIES = IS_LOW_MEM ? 1 : 2;
-
-// Graduated to default: the tiled base + overlays serve everyone (faster
-// loads, no giant decodes); ?tiles=0 opts back out to the legacy stretched
-// overlays. Bare ?tiles=1 links from the prototype era keep working.
-const TILES_PROTO =
-  typeof window === "undefined" ||
-  new URLSearchParams(window.location.search).get("tiles") !== "0";
 
 // ImageOverlay exposes the <img> via getElement(); TileLayer (GridLayer)
 // only has getContainer(). Null when the overlay has no DOM node yet.
@@ -61,7 +55,7 @@ const TRANSPARENT_PX =
 // mode). Projection math is identical — only TileLayer copy-wrapping reads
 // wrapLng, so the default path is unaffected.
 const WRAPPED_CRS =
-  typeof window !== "undefined" && TILES_PROTO
+  typeof window !== "undefined" && TILES_ON
     ? L.extend({}, L.CRS.Simple, { wrapLng: [0, FULL_W] })
     : null;
 
@@ -195,7 +189,7 @@ export default function MapView({
     // WRAPPED_CRS, clamped vertically by bounds) instead of 5 giant copies.
     // Pyramid levels -2..0 are pre-scaled overviews (level 0 = native 1:1);
     // closer zooms overzoom level 0, pixel-identical to the overlay.
-    if (TILES_PROTO && layerRef.current === "map") {
+    if (TILES_ON && layerRef.current === "map") {
       // NOTE: getTileUrl is assigned BEFORE addTo — GridLayer renders the
       // initial viewport synchronously on add, and any tile created with
       // the default template (negative-Y URLs) 404s and stays broken.
@@ -263,7 +257,7 @@ export default function MapView({
     if (!container || mapRef.current) return;
 
     const map = L.map(container, {
-      crs: TILES_PROTO && WRAPPED_CRS ? WRAPPED_CRS : L.CRS.Simple,
+      crs: TILES_ON && WRAPPED_CRS ? WRAPPED_CRS : L.CRS.Simple,
       // Low-memory devices stop at the full-world view: no cylinder mode,
       // which would decode even more tiles while hidden behind the scene.
       minZoom: IS_LOW_MEM ? NORMAL_MIN_ZOOM : ABSOLUTE_MIN_ZOOM,
@@ -571,7 +565,7 @@ export default function MapView({
     // ImageOverlay can't show tiles), so when the wanted overlay kind
     // differs from what's mounted, drop the stale overlays — the fresh
     // kind is (re)installed by the paths below.
-    if (TILES_PROTO) {
+    if (TILES_ON) {
       const wantTiles = layer === "map";
       const hasTiles = imagesRef.current.some(
         (ov) => typeof ov.getElement !== "function"
@@ -589,7 +583,7 @@ export default function MapView({
     }
     const reinstallIfEmpty = (url) => {
       // Kind switch emptied the overlay list — mount the right kind now.
-      if (TILES_PROTO && imagesRef.current.length === 0) {
+      if (TILES_ON && imagesRef.current.length === 0) {
         installBaseOverlays(map, url, mapSize.W, mapSize.H);
         return true;
       }
@@ -994,7 +988,7 @@ export default function MapView({
       if (canceled) return;
       jobs.forEach((job) => {
         if (!job.on || job.ref.current) return;
-        if (TILES_PROTO) {
+        if (TILES_ON) {
           mountTiled(job);
           return;
         }
@@ -1289,7 +1283,9 @@ export default function MapView({
   useEffect(() => {
     const map = mapRef.current;
     // Community place dots have their own toggle, independent of the
-    // raster marker overlays.
+    // raster marker overlays — but settlement dots (capitals, cities,
+    // towns) belong to the Cities layer: unchecking Cities hides them too.
+    // Nation labels live on their own layer and are unaffected.
     if (!map || !mapSize?.W || !showPlaceMarkers) return;
     const grp = L.layerGroup();
     const { W, H } = mapSize;
@@ -1310,6 +1306,7 @@ export default function MapView({
     const keys = [];
     placesRef.current.forEach((p) => {
       if (p.kind === "nation" || p.x == null || p.y == null) return;
+      if (!showCities) return; // settlement dots need the Cities layer
       const latlng = [p.y, p.x];
       placeLatLngRef.current[p.name] = latlng;
       const popup = buildPlacePopup(p, W, H, nearestOf(p));
@@ -1332,7 +1329,7 @@ export default function MapView({
       forgetKeys(keys);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showPlaceMarkers, mapSize, places]);
+  }, [showPlaceMarkers, showCities, mapSize, places]);
 
   // Nation-text visibility follows zoom via CSS (no layer rebuild).
   useEffect(() => {
@@ -1422,7 +1419,7 @@ export default function MapView({
         ref={containerRef}
         className="absolute inset-0 urth-map-grab"
         style={
-          TILES_PROTO
+          TILES_ON
             ? // Prototype: flat ocean backdrop (#7499b4) — tiles pop in over
               // it, and any gap reads as ocean instead of a ghost map.
               { background: "#7499b4" }
