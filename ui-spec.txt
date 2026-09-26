@@ -76,9 +76,12 @@ marked hypothetical. [StatusBar] cursor readout + credits.
 ------------------------------------------------------------
 5. MEASUREMENTS (finalize/lock model)
 ------------------------------------------------------------
-- Tools: Measure (auto-completes on 2nd click), Path, Area. Units
-  metric/imperial/both. Rubber-band hover preview; finalized shapes lock
-  (clicks ignored, preview freezes solid).
+- Map graphics (PICK_COLOR) are magenta #c026d3 — chosen for max hue
+  separation from all six nation fills (green 298931, gold d9ab21, red
+  b93f31, blue 425692, purple 766185, gray 7f7f7f): 67°+ from everything
+  except the muted low-saturation purple. Dots (.atlas-meas-dot) and
+  number labels (.atlas-pt-label) match. Buttons, result cards, and all
+  other chrome stay brand green #1a6f34.
 - Numbered point dots are draggable L.markers (divIcon .atlas-meas-dot —
   circleMarkers can't drag); dragend rewrites that vertex (wrapped/
   clamped) and the result recomputes live. The map click Leaflet fires

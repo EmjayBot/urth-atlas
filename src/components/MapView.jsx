@@ -27,7 +27,7 @@ import CylinderView from "./CylinderView";
 import { IS_LOW_MEM } from "../lib/device";
 import { TILES_ON } from "../lib/tiles";
 
-const PICK_COLOR = "#1a6f34";
+const PICK_COLOR = "#c026d3";
 // Stability: 5 world copies (i in -2..2) is enough to fill ultra-wide screens
 // at max zoom-out. The old 21 copies of 11232x7525 images (~7GB decoded)
 // caused major jank / OOMs. Overlays reuse the same window.
