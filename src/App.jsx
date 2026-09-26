@@ -495,6 +495,12 @@ export default function App() {
       const t = e.target;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
       const k = e.key.toLowerCase();
+      if (viewOnly) {
+        // Bare embed: no measurement tools, only zoom shortcuts.
+        if (k === "+" || k === "=") mapRef.current?.zoomIn();
+        else if (k === "-") mapRef.current?.zoomOut();
+        return;
+      }
       if (k === "m") selectTool("measure");
       else if (k === "a") selectTool("area");
       else if (k === "p") selectTool("path");
@@ -517,21 +523,24 @@ export default function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [target, ctx, locked, points.length]);
+  }, [target, ctx, locked, points.length, viewOnly]);
 
   return (
     <div className="w-full h-[100dvh] flex flex-col bg-[#e5e3df] text-zinc-800 font-sans overflow-hidden">
-      <Header
-        query={query}
-        setQuery={setQuery}
-        onPlace={onPlace}
-        places={places}
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-        onLocate={recenter}
-        onMeasure={() => selectTool("measure")}
-      />
+      {!viewOnly && (
+        <Header
+          query={query}
+          setQuery={setQuery}
+          onPlace={onPlace}
+          places={places}
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          onLocate={recenter}
+          onMeasure={() => selectTool("measure")}
+        />
+      )}
       <div className="flex-1 flex min-h-0 relative">
+        {!viewOnly && (
         <Sidebar
           open={sidebarOpen}
           setOpen={setSidebarOpen}
@@ -594,6 +603,7 @@ export default function App() {
           maintainer={maintainer}
           viewOnly={viewOnly}
         />
+        )}
 
         <div className="flex-1 relative min-w-0 bg-[#e5e3df] overflow-hidden">
           <MapView
@@ -640,6 +650,7 @@ export default function App() {
             onPopupAction={onPopupAction}
             viewOnly={viewOnly}
           />
+          {!viewOnly && (
           <MapControls
             mode={mode}
             setMode={selectTool}
@@ -653,7 +664,9 @@ export default function App() {
             onReset={recenter}
             onClear={clearAll}
           />
+          )}
           <Toast toast={toast} />
+          {!viewOnly && (
           <ContextMenu
             pos={ctx?.pos}
             pt={ctx?.pt ?? { x: 0, y: 0 }}
@@ -663,10 +676,11 @@ export default function App() {
             onPin={onCtxPin}
             viewOnly={viewOnly}
           />
+          )}
         </div>
       </div>
 
-      <StatusBar status={status} cursor={cursor} />
+      {!viewOnly && <StatusBar status={status} cursor={cursor} />}
     </div>
   );
 }

@@ -137,8 +137,13 @@ marked hypothetical. [StatusBar] cursor readout + credits.
   clearLocal all early-return), plus the UI that reaches them: the Markers
   and Map Updates sidebar sections are hidden, the context menu drops "Add
   marker", and place popups drop "Remove" (Copy stays).
-- Kept: pan/zoom, search, layer/overlay controls, wiki popups, and the
-  measurement tools + saved results. Maintainer mode is forced off.
+- Maintainer mode is forced off. The bare presentation below removes all
+  remaining chrome.
+- Bare presentation: the whole app chrome is hidden — Header, Sidebar,
+  StatusBar, MapControls, and ContextMenu are not rendered, and the
+  m/a/p/Enter measurement shortcuts are disabled. What remains is the map,
+  marker/wiki popups, "Copy location", and pan/zoom (+/- keys). Intended for
+  a clean forum iframe.
 - Intended for iframe posts (e.g. Discourse, whose allowed_iframes setting
   must list the site origin). GitHub Pages sends no X-Frame-Options, so no
   host-side header work is needed.
