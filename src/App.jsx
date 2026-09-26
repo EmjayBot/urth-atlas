@@ -309,12 +309,19 @@ export default function App() {
 
   const recenter = () => {
     if (!mapRef.current || !mapSize) return;
-    const dest = preferred ?? { x: mapSize.W / 2, y: mapSize.H / 2 };
-    mapRef.current.setView([dest.y, dest.x], Math.max(mapRef.current.getZoom(), 1), {
-      animate: true,
-    });
-    setHomeDraft({ x: dest.x, y: dest.y });
-    showToast(preferred ? "Showing preferred location" : "Map center — click the pin to save it");
+    if (preferred) {
+      mapRef.current.setView([preferred.y, preferred.x], Math.max(mapRef.current.getZoom(), 1), {
+        animate: true,
+      });
+      setHomeDraft({ x: preferred.x, y: preferred.y });
+      showToast("Showing preferred location");
+      return;
+    }
+    // Nothing saved: stay where you are and drop the pin at the current
+    // view center so there's something to click-to-save.
+    const c = view ?? { x: mapSize.W / 2, y: mapSize.H / 2 };
+    setHomeDraft({ x: c.x, y: c.y });
+    showToast("Marker dropped — click the pin to save it");
   };
 
   const persistHome = (pt) => {

@@ -22,8 +22,9 @@ served at the domain root — base "/").
 ------------------------------------------------------------
 [Header - 56px] Menu toggle + globe + "Urth Atlas" wordmark | centered
 search ("Search Urth Atlas") | locate + measure buttons. Locate flies to
-the saved preferred location (IndexedDB urth-atlas-prefs) or the map
-center, and drops a home pin — clicking the pin offers Save this spot /
+the saved preferred location (IndexedDB urth-atlas-prefs) when one exists;
+with nothing saved it stays put and drops the home pin at the current view
+center. Either way a pin is dropped — clicking it offers Save this spot /
 Clear (popup acts save-home / clear-home; hidden in viewOnly embeds).
 [Claim notice] Lives in the Markers section (amber box, like the measurement
 disclaimer): claims must be approved, don't use this map for claims, link
