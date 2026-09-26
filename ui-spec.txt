@@ -11,8 +11,8 @@ served at the domain root — base "/").
 - Colors: Primary #0e7490 (teal-blue), Hover #0c5a70, Light #e6f4f1,
   Border #d1d5db / #e5e7eb, Text #111827 primary / #6b7280 secondary,
   Map bg #e5e3df. Radius 6px. Shadows subtle.
-- Fonts: header wordmark Bell MT Bold 22px teal (class .urth-logo —
-  NEVER restyle: it is the brand). Sidebar section titles MS Reference
+- Fonts: header wordmark Bell MT Bold 22px #6ea7a1 to match the globe
+  icon (class .urth-logo — NEVER restyle: it is the brand). Sidebar section titles MS Reference
   Sans Serif; sidebar body Franklin Gothic Bold (scoped to `aside` only).
   Mono readouts JetBrains Mono. Nation map markers Bell MT Bold 13px;
   territory markers Bell MT Bold Italic 12px slate-gray #475569.
