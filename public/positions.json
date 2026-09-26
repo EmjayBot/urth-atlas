@@ -58,5 +58,47 @@
     "href": "/wiki/Bingol",
     "x": 7756,
     "y": 5101
+  },
+  "Vekaiyu": {
+    "kind": "nation",
+    "href": "/wiki/Vekaiyu",
+    "x": 8406,
+    "y": 5926
+  },
+  "Allegheny": {
+    "kind": "nation",
+    "href": "/wiki/Allegheny",
+    "x": 8285,
+    "y": 5693
+  },
+  "Jiduan": {
+    "kind": "nation",
+    "href": "/wiki/Jiduan",
+    "x": 8553,
+    "y": 5325
+  },
+  "Liehuo": {
+    "kind": "nation",
+    "href": "/wiki/Lièhuǒ",
+    "x": 8822,
+    "y": 5194
+  },
+  "Beirais": {
+    "kind": "nation",
+    "href": "/wiki/Beirais",
+    "x": 8900,
+    "y": 5260
+  },
+  "Wahannon": {
+    "kind": "nation",
+    "href": "/wiki/Wahannon",
+    "x": 9422,
+    "y": 5738
+  },
+  "Fortuna": {
+    "kind": "nation",
+    "href": "/wiki/Fortuna",
+    "x": 9408,
+    "y": 4759
   }
 }
