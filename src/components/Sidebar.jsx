@@ -453,6 +453,7 @@ export default function Sidebar({
   onSubmit,
   onClear,
   maintainer = false,
+  viewOnly = false,
   setOpen,
 }) {
   if (!open) return null;
@@ -666,23 +667,25 @@ export default function Sidebar({
         </div>
       </Section>
 
-      <Section title="Markers">
-        <PinsSection
-          target={target}
-          setTarget={setTarget}
-          local={local}
-          shared={shared}
-          removed={removed}
-          onUndoRemove={onUndoRemove}
-          sharedStatus={sharedStatus}
-          sharedCount={sharedCount}
-          onCreate={onCreate}
-          onRemove={onRemove}
-          onSubmit={onSubmit}
-          onClear={onClear}
-        />
-      </Section>
-      {maintainer && (
+      {!viewOnly && (
+        <Section title="Markers">
+          <PinsSection
+            target={target}
+            setTarget={setTarget}
+            local={local}
+            shared={shared}
+            removed={removed}
+            onUndoRemove={onUndoRemove}
+            sharedStatus={sharedStatus}
+            sharedCount={sharedCount}
+            onCreate={onCreate}
+            onRemove={onRemove}
+            onSubmit={onSubmit}
+            onClear={onClear}
+          />
+        </Section>
+      )}
+      {!viewOnly && maintainer && (
         <Section title="Map Updates">
           <MapUpdatePanel />
         </Section>

@@ -50,6 +50,16 @@ const overlayEl = (ov) => {
 const TRANSPARENT_PX =
   "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
+// Escape untrusted place data (names come from community positions.json via
+// the issue auto-merge flow) before interpolating into Leaflet HTML strings.
+const escapeHtml = (s) =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 // PROTOTYPE CRS: plain Simple + longitude wrapping so tile copies repeat
 // horizontally (restores the app's infinite-horizontal promise in tiles
 // mode). Projection math is identical — only TileLayer copy-wrapping reads
@@ -109,6 +119,7 @@ export default function MapView({
   showPlaceMarkers,
   onContextMenu,
   onPopupAction,
+  viewOnly = false,
 }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
@@ -1213,22 +1224,22 @@ export default function MapView({
     const lngStr = `${Math.abs(lng).toFixed(1)}°${lng >= 0 ? "E" : "W"}`;
     const hemi = lat >= 0 ? "Northern hemisphere" : "Southern hemisphere";
     const href = p.href ? fullWikiUrl(p.href) : null;
-    const esc = (s) =>
-      String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
     const wikiTitle = wikiTitleFor(p);
     return (
-      `<div class="atlas-popup" data-wiki="${esc(wikiTitle)}"><div class="atlas-popup-head">` +
-      `<span class="atlas-popup-title">${p.name}</span>` +
-      `<span class="atlas-popup-kind atlas-popup-kind-${kind}">${kindLabel}</span></div>` +
+      `<div class="atlas-popup" data-wiki="${escapeHtml(wikiTitle)}"><div class="atlas-popup-head">` +
+      `<span class="atlas-popup-title">${escapeHtml(p.name)}</span>` +
+      `<span class="atlas-popup-kind atlas-popup-kind-${escapeHtml(kind)}">${escapeHtml(kindLabel)}</span></div>` +
       `<div class="atlas-popup-coords">${latStr}, ${lngStr} · ${hemi}</div>` +
-      `<div class="atlas-popup-coords">X ${p.x.toFixed(0)} · Y ${p.y.toFixed(0)}${nearest ? ` · Nearest: ${nearest}` : ""}</div>` +
+      `<div class="atlas-popup-coords">X ${p.x.toFixed(0)} · Y ${p.y.toFixed(0)}${nearest ? ` · Nearest: ${escapeHtml(nearest)}` : ""}</div>` +
       `<div class="atlas-popup-wiki" hidden></div>` +
       `<div class="atlas-popup-actions">` +
-      `<button class="atlas-popup-btn" data-act="copy" data-name="${esc(p.name)}" data-x="${p.x}" data-y="${p.y}" data-lat="${lat}" data-lng="${lng}">Copy location</button>` +
-      `<button class="atlas-popup-btn atlas-popup-btn-danger" data-act="remove" data-name="${esc(p.name)}" data-x="${p.x}" data-y="${p.y}" title="Remove this marker">Remove</button>` +
+      `<button class="atlas-popup-btn" data-act="copy" data-name="${escapeHtml(p.name)}" data-x="${p.x}" data-y="${p.y}" data-lat="${lat}" data-lng="${lng}">Copy location</button>` +
+      (viewOnly
+        ? ""
+        : `<button class="atlas-popup-btn atlas-popup-btn-danger" data-act="remove" data-name="${escapeHtml(p.name)}" data-x="${p.x}" data-y="${p.y}" title="Remove this marker">Remove</button>`) +
       `</div>` +
       (href
-        ? `<a class="atlas-popup-link" href="${href}" target="_blank" rel="noopener noreferrer">Learn more on TEPwiki <span aria-hidden="true">↗</span></a>`
+        ? `<a class="atlas-popup-link" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">Learn more on TEPwiki <span aria-hidden="true">↗</span></a>`
         : `<div class="atlas-popup-missing">No TEPwiki page linked yet</div>`)
     );
   };
@@ -1254,7 +1265,7 @@ export default function MapView({
       for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
         const icon = L.divIcon({
           className: "urth-nation-text",
-          html: `<span class="urth-nation-text-name${isTerr ? " terr" : ""}">${p.name}</span>`,
+          html: `<span class="urth-nation-text-name${isTerr ? " terr" : ""}">${escapeHtml(p.name)}</span>`,
           iconSize: null,
         });
         const mk = L.marker([p.y, p.x + i * W], { icon, riseOnHover: true }).addTo(grp);

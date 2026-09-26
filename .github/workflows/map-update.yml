@@ -1,8 +1,12 @@
 name: Auto-apply map updates
 
 on:
+  # Applying is gated on approval: nothing happens when the issue is opened.
+  # A maintainer reviews it and adds the "approved" label to trigger the run.
+  # Only users with triage/write access can label issues, so this is a real
+  # gate. Remove + re-add the label to retry after a failure.
   issues:
-    types: [opened, reopened]
+    types: [labeled]
 
 permissions:
   contents: write
@@ -10,8 +14,8 @@ permissions:
 
 jobs:
   apply:
-    # Only process issues created by the "Submit to map" flow (title prefix).
-    if: startsWith(github.event.issue.title, 'Map update:')
+    # Only process maintainer-approved community map updates.
+    if: startsWith(github.event.issue.title, 'Map update:') && github.event.label.name == 'approved'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -120,11 +124,15 @@ jobs:
 
       - name: Commit and push
         if: steps.merge.outputs.file_changed == 'true'
+        env:
+          # Passed via env (not inline ${{ }}) so issue-controlled names are
+          # never re-parsed as shell syntax by the runner.
+          APPLIED: ${{ steps.merge.outputs.applied }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add public/positions.json
-          git commit -m "Apply map update: ${{ steps.merge.outputs.applied }}"
+          git commit -m "Apply map update: $APPLIED"
           git push
 
       - name: Comment and close issue

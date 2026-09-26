@@ -3,7 +3,7 @@ import { KM_PER_PX, MI_PER_KM } from "../lib/scale";
 import { num } from "../lib/format";
 import { IconCursor, IconRuler, IconPin } from "./icons";
 
-export default function ContextMenu({ pos, pt, onClose, onWhat, onMeasure, onPin }) {
+export default function ContextMenu({ pos, pt, onClose, onWhat, onMeasure, onPin, viewOnly = false }) {
   const ref = useRef(null);
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
@@ -99,13 +99,15 @@ export default function ContextMenu({ pos, pt, onClose, onWhat, onMeasure, onPin
             <IconRuler width={14} height={14} className="text-zinc-400 shrink-0" />
             <span className="text-[12px] text-[#111827] font-medium">Measure distance</span>
           </button>
-          <button
-            onClick={() => setAdding(true)}
-            className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[#f3f4f6] text-left transition-colors"
-          >
-            <IconPin width={14} height={14} className="text-zinc-400 shrink-0" />
-            <span className="text-[12px] text-[#111827] font-medium">Add marker</span>
-          </button>
+          {!viewOnly && (
+            <button
+              onClick={() => setAdding(true)}
+              className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[#f3f4f6] text-left transition-colors"
+            >
+              <IconPin width={14} height={14} className="text-zinc-400 shrink-0" />
+              <span className="text-[12px] text-[#111827] font-medium">Add marker</span>
+            </button>
+          )}
         </>
       )}
     </div>
