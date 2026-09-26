@@ -2,7 +2,8 @@ URTH ATLAS - CURRENT UI SPEC (continuation doc)
 ===============================================
 Describes the UI as built. Future work continues from here — do not
 regress the items below. Stack: Vite + React 18 + Leaflet + Tailwind,
-deployed to GitHub Pages on push to main (base /urth-atlas/).
+deployed to GitHub Pages on push to main (custom domain atlas.urthmaps.com,
+served at the domain root — base "/").
 
 ------------------------------------------------------------
 1. DESIGN TOKENS
