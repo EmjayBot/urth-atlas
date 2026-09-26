@@ -1,6 +1,6 @@
 # Urth Atlas
 
-An interactive map of Urth, a worldbuilding and roleplaying of TEP.
+An interactive map of Urth, a worldbuilding and roleplaying world of TEP.
 
 Browse the political map and satellite-esque imagery. Measure distances, paths,
 and areas in true flat-world kilometers and miles plus spherical estimates. Explore community-submitted
