@@ -282,6 +282,36 @@ body {
 }
 
 /* Nation marker tooltips */
+/* Measurement point dots (draggable L.markers — circleMarkers can't drag) */
+.atlas-meas-dot {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #1a6f34;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  cursor: grab;
+}
+.atlas-meas-dot:active {
+  cursor: grabbing;
+}
+/* Preferred-location ("home") pin dropped by the locate button */
+.atlas-home-pin {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #1a6f34;
+  color: #fff;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+}
 .atlas-tooltip {
   background: #18181b;
   color: #fafafa;

@@ -11,6 +11,7 @@ import { parseUrl, writeUrl, shareLink } from "./lib/url";
 import { mergePlaces } from "./lib/places";
 import { num } from "./lib/format";
 import { IS_LOW_MEM } from "./lib/device";
+import { loadPreferred, savePreferred, clearPreferred } from "./lib/prefs";
 import { TILES_ON } from "./lib/tiles";
 import { DATA_OVERLAYS } from "./lib/scale";
 import { EMBEDDED } from "./lib/embed";
@@ -125,6 +126,20 @@ export default function App() {
   // Community removal marks: shared names hidden locally until submitted.
   const [removed, setRemoved] = useState(loadRemoved);
   const [target, setTarget] = useState(null);
+  // Preferred location (persisted in IndexedDB): the locate button flies
+  // here when set, otherwise to the map center. homeDraft is the transient
+  // marker dropped by the locate button so there's always something to
+  // click-to-save, even before anything is stored.
+  const [preferred, setPreferred] = useState(null);
+  const [homeDraft, setHomeDraft] = useState(null);
+
+  useEffect(() => {
+    loadPreferred().then((p) => {
+      if (p && Number.isFinite(+p.x) && Number.isFinite(+p.y)) {
+        setPreferred({ x: +p.x, y: +p.y });
+      }
+    });
+  }, []);
 
   const mapRef = useRef(null);
   const toastTimer = useRef(0);
@@ -293,9 +308,28 @@ export default function App() {
   };
 
   const recenter = () => {
-    if (mapRef.current && mapSize) {
-      mapRef.current.setView([mapSize.H / 2, mapSize.W / 2], 0);
-    }
+    if (!mapRef.current || !mapSize) return;
+    const dest = preferred ?? { x: mapSize.W / 2, y: mapSize.H / 2 };
+    mapRef.current.setView([dest.y, dest.x], Math.max(mapRef.current.getZoom(), 1), {
+      animate: true,
+    });
+    setHomeDraft({ x: dest.x, y: dest.y });
+    showToast(preferred ? "Showing preferred location" : "Map center — click the pin to save it");
+  };
+
+  const persistHome = (pt) => {
+    const clean = { x: +pt.x, y: +pt.y };
+    setPreferred(clean);
+    setHomeDraft(null);
+    savePreferred(clean).catch(() => {});
+    showToast("Preferred location saved");
+  };
+
+  const clearHome = () => {
+    setPreferred(null);
+    setHomeDraft(null);
+    clearPreferred();
+    showToast("Preferred location cleared");
   };
 
   const onSaveResult = () => {
@@ -470,6 +504,14 @@ export default function App() {
       onCopy(`${p.name} — X ${(+p.x).toFixed(0)}, Y ${(+p.y).toFixed(0)} (${lat}, ${lng})`);
     } else if (act === "remove") {
       removePlace(p.name);
+    } else if (act === "save-home") {
+      if (viewOnly) return;
+      persistHome({ x: +p.x, y: +p.y });
+      mapRef.current?.closePopup();
+    } else if (act === "clear-home") {
+      if (viewOnly) return;
+      clearHome();
+      mapRef.current?.closePopup();
     }
   };
 
@@ -649,6 +691,8 @@ export default function App() {
             }
             onPopupAction={onPopupAction}
             viewOnly={viewOnly}
+            home={homeDraft ?? preferred}
+            homeIsSaved={!homeDraft && !!preferred}
           />
           {!viewOnly && (
           <MapControls

@@ -120,6 +120,8 @@ export default function MapView({
   onContextMenu,
   onPopupAction,
   viewOnly = false,
+  home = null,
+  homeIsSaved = false,
 }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
@@ -145,6 +147,10 @@ export default function MapView({
   const onMapReadyRef = useRefLatest(onMapReady);
   const onContextMenuRef = useRefLatest(onContextMenu);
   const onPopupActionRef = useRefLatest(onPopupAction);
+  const setPointsRef = useRefLatest(setPoints);
+  // Timestamp of the last measurement-point dragend: the map click that
+  // Leaflet fires right after a drag must not add a new point.
+  const measDragRef = useRef(0);
 
   const initialViewRef = useRef(initialView);
   useEffect(() => {
@@ -393,6 +399,9 @@ export default function MapView({
       }
       const m = modeRef.current;
       if (!m || m === "none") return;
+      // A dragend on a measurement point fires a map click right after —
+      // ignore it so dragging never adds a point.
+      if (Date.now() - measDragRef.current < 350) return;
       // Finalized measurements ignore clicks until Resume/Clear (or Esc).
       if (lockedRef.current) return;
       const pts = pointsRef.current;
@@ -1112,22 +1121,38 @@ export default function MapView({
   }, [focus, mapSize]);
 
   // ---- Measurement layer ---------------------------------------------------
+  // Split in two so hovering never rebuilds the dots: the shape effect
+  // below only reruns on real data changes (dragging a dot must not have
+  // its DOM node ripped out mid-drag by a hover update).
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapSize?.W) return;
     const grp = L.layerGroup();
     const pts = points;
-    // Finalized shapes stop tracking the cursor and render solid.
-    const hv = locked ? null : hover;
 
     pts.forEach((p, i) => {
-      const mk = L.circleMarker([p.y, p.x], {
-        radius: 5,
-        color: "#ffffff",
-        weight: 2,
-        fillColor: PICK_COLOR,
-        fillOpacity: 1,
+      // Numbered dots are draggable: grab one to reposition it (the result
+      // recomputes live). Draggable L.markers need a divIcon — circleMarkers
+      // can't be dragged in Leaflet.
+      const mk = L.marker([p.y, p.x], {
+        icon: L.divIcon({
+          className: "",
+          html: `<span class="atlas-meas-dot"></span>`,
+          iconSize: [14, 14],
+          iconAnchor: [7, 7],
+        }),
+        draggable: true,
+        riseOnHover: true,
       }).addTo(grp);
+      mk.on("dragend", () => {
+        measDragRef.current = Date.now();
+        const ll = mk.getLatLng();
+        const W = mapSize.W;
+        const H = mapSize.H;
+        const nx = wrapX(ll.lng, W);
+        const ny = wrapY(ll.lat, H);
+        setPointsRef.current((prev) => prev.map((q, j) => (j === i ? { x: nx, y: ny } : q)));
+      });
       if (pts.length > 1) {
         mk.bindTooltip(String(i + 1), {
           permanent: true,
@@ -1138,59 +1163,84 @@ export default function MapView({
       }
     });
 
-    if (mode === "measure") {
-      if (pts.length === 2) {
-        L.polyline(
-          [
-            [pts[0].y, pts[0].x],
-            [pts[1].y, pts[1].x],
-          ],
-          { color: PICK_COLOR, weight: 3, dashArray: "8 6", opacity: 0.9 }
-        ).addTo(grp);
-      } else if (pts.length === 1 && hv) {
-        L.polyline(
-          [
-            [pts[0].y, pts[0].x],
-            [hv.y, hv.x],
-          ],
-          { color: PICK_COLOR, weight: 2, dashArray: "4 5", opacity: 0.55 }
-        ).addTo(grp);
-      }
+    if (mode === "measure" && pts.length === 2) {
+      L.polyline(
+        [
+          [pts[0].y, pts[0].x],
+          [pts[1].y, pts[1].x],
+        ],
+        { color: PICK_COLOR, weight: 3, dashArray: "8 6", opacity: 0.9 }
+      ).addTo(grp);
     }
 
-    if (mode === "path") {
-      if (pts.length >= 2) {
-        L.polyline(
-          pts.map((p) => [p.y, p.x]),
-          { color: PICK_COLOR, weight: 3, opacity: 0.9 }
-        ).addTo(grp);
-      }
-      if (pts.length >= 1 && hv) {
-        L.polyline(
-          [
-            [pts[pts.length - 1].y, pts[pts.length - 1].x],
-            [hv.y, hv.x],
-          ],
-          { color: PICK_COLOR, weight: 2, dashArray: "4 5", opacity: 0.55 }
-        ).addTo(grp);
-      }
+    if (mode === "path" && pts.length >= 2) {
+      L.polyline(
+        pts.map((p) => [p.y, p.x]),
+        { color: PICK_COLOR, weight: 3, opacity: 0.9 }
+      ).addTo(grp);
     }
 
-    if (mode === "area") {
-      const draw = [...pts];
-      if (draw.length >= 2 && hv) draw.push(hv);
-      if (draw.length >= 2) {
-        L.polygon(
-          draw.map((p) => [p.y, p.x]),
-          {
-            color: PICK_COLOR,
-            weight: 2,
-            fillColor: PICK_COLOR,
-            fillOpacity: 0.16,
-            dashArray: hv ? "6 6" : undefined,
-          }
-        ).addTo(grp);
-      }
+    if (mode === "area" && pts.length >= 2) {
+      L.polygon(
+        pts.map((p) => [p.y, p.x]),
+        {
+          color: PICK_COLOR,
+          weight: 2,
+          fillColor: PICK_COLOR,
+          fillOpacity: 0.16,
+        }
+      ).addTo(grp);
+    }
+
+    grp.addTo(map);
+    return () => {
+      grp.remove();
+    };
+  }, [points, mode, locked, mapSize]);
+
+  // ---- Measurement rubber-band preview -------------------------------------
+  // Hover-only layer: cheap to rebuild every mousemove, never touches dots.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapSize?.W) return;
+    // Finalized shapes stop tracking the cursor and render solid.
+    const hv = locked ? null : hover;
+    if (!hv) return;
+    const grp = L.layerGroup();
+    const pts = points;
+
+    if (mode === "measure" && pts.length === 1) {
+      L.polyline(
+        [
+          [pts[0].y, pts[0].x],
+          [hv.y, hv.x],
+        ],
+        { color: PICK_COLOR, weight: 2, dashArray: "4 5", opacity: 0.55 }
+      ).addTo(grp);
+    }
+
+    if (mode === "path" && pts.length >= 1) {
+      L.polyline(
+        [
+          [pts[pts.length - 1].y, pts[pts.length - 1].x],
+          [hv.y, hv.x],
+        ],
+        { color: PICK_COLOR, weight: 2, dashArray: "4 5", opacity: 0.55 }
+      ).addTo(grp);
+    }
+
+    if (mode === "area" && pts.length >= 2) {
+      const draw = [...pts, hv];
+      L.polygon(
+        draw.map((p) => [p.y, p.x]),
+        {
+          color: PICK_COLOR,
+          weight: 2,
+          fillColor: PICK_COLOR,
+          fillOpacity: 0.16,
+          dashArray: "6 6",
+        }
+      ).addTo(grp);
     }
 
     grp.addTo(map);
@@ -1198,6 +1248,52 @@ export default function MapView({
       grp.remove();
     };
   }, [points, hover, mode, locked, mapSize]);
+
+  // ---- Preferred-location ("home") marker ----------------------------------
+  // Dropped by the locate button; clicking it offers to save the spot to
+  // IndexedDB (or clear the saved one). Single world copy is enough.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapSize?.W || !home) return;
+    const { W, H } = mapSize;
+    const lat = latFromPixel(home.y, H);
+    const lng = lngFromX(home.x, W);
+    const latStr = `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? "N" : "S"}`;
+    const lngStr = `${Math.abs(lng).toFixed(1)}°${lng >= 0 ? "E" : "W"}`;
+    const popup =
+      `<div class="atlas-popup"><div class="atlas-popup-head">` +
+      `<span class="atlas-popup-title">${homeIsSaved ? "Preferred location" : "Location marker"}</span>` +
+      `<span class="atlas-popup-kind atlas-popup-kind-nation">Home</span></div>` +
+      `<div class="atlas-popup-coords">${latStr}, ${lngStr}</div>` +
+      `<div class="atlas-popup-coords">X ${home.x.toFixed(0)} · Y ${home.y.toFixed(0)}</div>` +
+      (homeIsSaved
+        ? ""
+        : `<div class="atlas-popup-missing">Not saved yet — save it to return here later.</div>`) +
+      (viewOnly
+        ? ""
+        : `<div class="atlas-popup-actions">` +
+          `<button class="atlas-popup-btn atlas-popup-btn-primary" data-act="save-home" data-x="${home.x}" data-y="${home.y}">Save this spot</button>` +
+          (homeIsSaved
+            ? `<button class="atlas-popup-btn atlas-popup-btn-danger" data-act="clear-home" title="Forget the saved location">Clear</button>`
+            : "") +
+          `</div>`) +
+      `</div>`;
+    const mk = L.marker([home.y, home.x], {
+      icon: L.divIcon({
+        className: "",
+        html: `<span class="atlas-home-pin">⌂</span>`,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13],
+      }),
+      riseOnHover: true,
+    });
+    mk.bindPopup(popup);
+    mk.on("click", (e) => L.DomEvent.stopPropagation(e));
+    mk.addTo(map);
+    return () => {
+      map.removeLayer(mk);
+    };
+  }, [home, homeIsSaved, mapSize, viewOnly]);
 
   // ---- Places layer ---------------------------------------------------------
   // Nations (text labels) and settlements (tiered dots) are separate Leaflet

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BASE_MAPS, DATA_OVERLAYS, getLayer, KM_PER_PX, MI_PER_PX, KM2_PER_PX2 } from "../lib/scale";
 import { searchPlaces } from "../lib/places";
 import { latFromPixel, lngFromX } from "../lib/geo";
@@ -25,8 +25,12 @@ const KINDS = [
   { id: "town", label: "Town" },
 ];
 
-function Section({ title, children, defaultOpen = true }) {
+function Section({ title, children, defaultOpen = true, openSignal = null }) {
   const [open, setOpen] = useState(defaultOpen);
+  // External nudge (e.g. a tool was selected) — force the section open.
+  useEffect(() => {
+    if (openSignal) setOpen(true);
+  }, [openSignal]);
   return (
     <section className="border-b border-[#e5e7eb]">
       <button
@@ -456,6 +460,24 @@ export default function Sidebar({
   viewOnly = false,
   setOpen,
 }) {
+  // Selecting a measurement tool jumps the sidebar straight to the
+  // Measurements section (opens the sidebar + section, scrolls it into
+  // view) so there's no manual scrolling while trying to measure.
+  const measWrapRef = useRef(null);
+  const prevModeRef = useRef(mode);
+  const isMeasTool = mode === "measure" || mode === "path" || mode === "area";
+  useEffect(() => {
+    const was = prevModeRef.current;
+    const wasMeas = was === "measure" || was === "path" || was === "area";
+    if (isMeasTool && !wasMeas) {
+      setOpen?.(true);
+      requestAnimationFrame(() => {
+        measWrapRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+    prevModeRef.current = mode;
+  }, [mode, isMeasTool, setOpen]);
+
   if (!open) return null;
 
   return (
@@ -616,7 +638,8 @@ export default function Sidebar({
         />
       </Section>
 
-      <Section title="Measurements">
+      <div ref={measWrapRef} className="scroll-mt-2">
+      <Section title="Measurements" openSignal={isMeasTool ? mode : null}>
         <MeasurementPanel
           mode={mode}
           setMode={setMode}
@@ -666,6 +689,7 @@ export default function Sidebar({
           1 px = {KM_PER_PX.toFixed(3)} km ({MI_PER_PX.toFixed(3)} mi)
         </div>
       </Section>
+      </div>
 
       {!viewOnly && (
         <Section title="Markers">

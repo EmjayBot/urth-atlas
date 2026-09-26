@@ -21,7 +21,10 @@ served at the domain root — base "/").
 2. LAYOUT
 ------------------------------------------------------------
 [Header - 56px] Menu toggle + globe + "Urth Atlas" wordmark | centered
-search ("Search Urth Atlas") | locate + measure buttons.
+search ("Search Urth Atlas") | locate + measure buttons. Locate flies to
+the saved preferred location (IndexedDB urth-atlas-prefs) or the map
+center, and drops a home pin — clicking the pin offers Save this spot /
+Clear (popup acts save-home / clear-home; hidden in viewOnly embeds).
 [Claim notice] Lives in the Markers section (amber box, like the measurement
 disclaimer): claims must be approved, don't use this map for claims, link
 to the current political export (https://urthmaps.com/maps/export/urth.png).
@@ -31,7 +34,9 @@ markers/scale dashboard) | Base Layer (radio + opacity, dead zone 100-50
 solid, fades 50-0 revealing the TEPmap underlay on desktop) | Thematic
 Layers (stackable data overlays + overlay opacity) | Overlays (scale bar,
 grid, pixel grid, coordinates, cities, subnational, nation markers) |
-Measurements (tool picker, units, cursor readout, results) | Markers
+Measurements (tool picker, units, cursor readout, results — single
+"Measurements" heading lives on the Section; the panel itself has no
+duplicate title) | Markers
 (claim notice, add form, lists, submit).
 [Map] Fills remaining space. Bottom-right zoom/recenter, bottom-left
 layer pill (desktop), mobile tool/units bars on small screens.
@@ -74,6 +79,18 @@ marked hypothetical. [StatusBar] cursor readout + credits.
 - Tools: Measure (auto-completes on 2nd click), Path, Area. Units
   metric/imperial/both. Rubber-band hover preview; finalized shapes lock
   (clicks ignored, preview freezes solid).
+- Numbered point dots are draggable L.markers (divIcon .atlas-meas-dot —
+  circleMarkers can't drag); dragend rewrites that vertex (wrapped/
+  clamped) and the result recomputes live. The map click Leaflet fires
+  right after a drag is swallowed via a 350ms timestamp guard so dragging
+  never adds a point.
+- The measurement layer is split: a shapes effect (dots + finished lines,
+  deps exclude hover) and a rubber-band preview effect (hover only).
+  Hover mousemove must NEVER rebuild the dots or mid-drag DOM nodes get
+  ripped out and dragging silently breaks.
+- Selecting any measurement tool auto-scrolls the sidebar to the
+  Measurements section (opens sidebar + section via openSignal, smooth
+  scrollIntoView on first entry into a tool — not on every mode change).
 - Finish via Finish button, double-click (pops the duplicate vertex
   Leaflet fires), or Enter. Clicking the active tool toggles it off.
   Esc removes the last point (exits when empty/finished). Undo/Clear

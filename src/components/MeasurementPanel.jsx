@@ -12,9 +12,9 @@ import {
 } from "./icons";
 
 const TOOLS = [
-  { id: "measure", label: "Measure", icon: IconRuler, hint: "Click 2 points — it finishes itself. Click the active tool again (or Esc) to exit." },
-  { id: "area", label: "Area", icon: IconArea, hint: "Click vertices, then Finish, double-click, or Enter. Esc removes the last point." },
-  { id: "path", label: "Path", icon: IconPath, hint: "Click waypoints, then Finish, double-click, or Enter. Esc removes the last point." },
+  { id: "measure", label: "Measure", icon: IconRuler, hint: "Click 2 points — it finishes itself. Drag a point to adjust it. Click the active tool again (or Esc) to exit." },
+  { id: "area", label: "Area", icon: IconArea, hint: "Click vertices, then Finish, double-click, or Enter. Drag a vertex to adjust it. Esc removes the last point." },
+  { id: "path", label: "Path", icon: IconPath, hint: "Click waypoints, then Finish, double-click, or Enter. Drag a waypoint to adjust it. Esc removes the last point." },
 ];
 
 function ActionButton({ onClick, icon: Icon, label }) {
@@ -285,10 +285,7 @@ export default function MeasurementPanel({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-2.5">
-        <h3 className="text-[12px] font-bold tracking-[0.14em] text-[#6b7280] uppercase">
-          Measurements
-        </h3>
+      <div className="flex items-center justify-end mb-2.5">
         <div className="flex items-center gap-1.5">
           {finishable && (
             <button
