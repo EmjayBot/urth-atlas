@@ -1,20 +1,17 @@
-# Pull map imagery masters from the urthmaps-test source repo.
+# Pull map imagery masters from the urth-imagery pipeline repo.
 #
-# Manual trigger only (for now): Actions > map-imagery > Run workflow.
-# Downloads atlas/*.png from urthmaps-test@main into public/, rebuilds the
+# Downloads atlas/*.png from urth-imagery@main into public/, rebuilds the
 # derived webps (full-res political + mobile variants), and commits anything
-# that changed. The Pages deploy picks it up automatically.
+# that changed. Triggered by urth-imagery after each sync, or manually via
+# Actions > map-imagery > Run workflow. The Pages deploy picks it up.
 #
-# Later: add a schedule (e.g. nightly) or a repository_dispatch receiver
-# so it follows the source repo hands-free.
-#
-# Source of truth lives in https://github.com/EmjayBot/urthmaps-test
-# (XCF -> PNG export happens there via its xcf-sync workflow).
+# Imagery source of truth: https://github.com/urth-rp/urth-imagery
+# (XCF -> PNG export from urth-rp/urthmaps via its xcf-sync workflow).
 
 name: map-imagery
 on:
   workflow_dispatch:              # manual "Run workflow" button
-  repository_dispatch:            # fired by urthmaps-test after each sync
+  repository_dispatch:            # fired by urth-imagery after each sync
     types: [imagery-update]
 
 permissions:
@@ -29,7 +26,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
-      SRC: https://raw.githubusercontent.com/EmjayBot/urthmaps-test/main/atlas
+      SRC: https://raw.githubusercontent.com/urth-rp/urth-imagery/main/atlas
     steps:
       # PAT push (not GITHUB_TOKEN): pushes made by GITHUB_TOKEN never
       # trigger other workflows, which would silently skip the Pages
@@ -113,6 +110,6 @@ jobs:
               bump "$f"
             done
             git add src/lib/scale.js src/components/MapView.jsx
-            git commit -m "auto: pull map imagery from urthmaps-test"
+            git commit -m "auto: pull map imagery from urth-rp/urth-imagery"
             git push
           fi

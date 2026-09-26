@@ -91,8 +91,9 @@ marked hypothetical. [StatusBar] cursor readout + credits.
 - Add & place flow: form (name, kind buttons, optional wiki page,
   Territory checkbox for nations) saves the marker, then click the map to
   position it; Esc cancels. Submit opens a GitHub issue (needs a GitHub
-  account) — auto-merged by map-update.yml, which preserves `territory`
-  and carries it over when patches omit it.
+  account) — a maintainer adds the `approved` label to run
+  map-update.yml and merge it, which preserves `territory` and carries it
+  over when patches omit it.
 - Nation markers are Bell MT text labels with halo (clickable, wiki-enriched
   popups with flag + summary, Copy/Remove actions). Settlement markers are
   tiered dots (capital/city/town) + nearest-neighbour flat-km readout.
@@ -118,13 +119,31 @@ marked hypothetical. [StatusBar] cursor readout + credits.
   read+write, Pull requests read+write, this repo only; or classic
   `repo` scope). Token lives in tab memory only, sent solely to
   api.github.com. Repo coordinates in src/lib/github.js
-  (REPO_OWNER/REPO_NAME) — update on turnover.
+  (REPO_OWNER/REPO_NAME, currently urth-rp/urth-atlas) — update on turnover.
 - Submit creates branch map-update/<slot>-<date>, commits both files,
   and opens a PR: nothing goes live until merged. Merging deploys via
   the normal Pages workflow.
 
 ------------------------------------------------------------
-8. WHAT NOT TO DO
+8. EMBED / VIEW-ONLY MODE
+------------------------------------------------------------
+- Auto-enabled when the atlas is framed by another page (window.self !==
+  window.top) or when ?embed=1 is present (src/lib/embed.js). The flag is
+  read once at load; the share-link writer leaves unknown params alone, so
+  ?embed=1 survives pan/zoom rewrites.
+- In this mode every community/local edit path is disabled at the source
+  (createPlace, positionPlace, removePlace, onCtxPin, submitChanges,
+  clearLocal all early-return), plus the UI that reaches them: the Markers
+  and Map Updates sidebar sections are hidden, the context menu drops "Add
+  marker", and place popups drop "Remove" (Copy stays).
+- Kept: pan/zoom, search, layer/overlay controls, wiki popups, and the
+  measurement tools + saved results. Maintainer mode is forced off.
+- Intended for iframe posts (e.g. Discourse, whose allowed_iframes setting
+  must list the site origin). GitHub Pages sends no X-Frame-Options, so no
+  host-side header work is needed.
+
+------------------------------------------------------------
+9. WHAT NOT TO DO
 ------------------------------------------------------------
 - Never restyle the header wordmark (.urth-logo, Bell MT Bold).
 - Never present spherical-corrected figures as ground truth.
@@ -136,7 +155,7 @@ marked hypothetical. [StatusBar] cursor readout + credits.
 - No third-party map branding anywhere; own UI only: Urth Atlas.
 
 ------------------------------------------------------------
-9. TILED BASE + OVERLAYS (default on; ?tiles=0 opts out)
+10. TILED BASE + OVERLAYS (default on; ?tiles=0 opts out)
 ------------------------------------------------------------
 - The political base, cities, and subnational overlays serve as z/x/y tile
   pyramids (public/tiles/<layer>/{z}/{x}/{y}.jpg|.png), levels -2..0 with

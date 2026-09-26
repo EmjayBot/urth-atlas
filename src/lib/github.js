@@ -8,7 +8,7 @@
 // never written to storage and is sent solely to api.github.com.
 
 // Update these on turnover (fork moves, renames).
-export const REPO_OWNER = "EmjayBot";
+export const REPO_OWNER = "urth-rp";
 export const REPO_NAME = "urth-atlas";
 export const BASE_BRANCH = "main";
 

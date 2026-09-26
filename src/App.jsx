@@ -13,6 +13,7 @@ import { num } from "./lib/format";
 import { IS_LOW_MEM } from "./lib/device";
 import { TILES_ON } from "./lib/tiles";
 import { DATA_OVERLAYS } from "./lib/scale";
+import { EMBEDDED } from "./lib/embed";
 
 const initial = parseUrl();
 const LOCAL_KEY = "urth-atlas.places.local.v2";
@@ -113,7 +114,9 @@ export default function App() {
   const [focus, setFocus] = useState(null);
   const [view, setView] = useState(null);
   const [toast, setToast] = useState(null);
-  const [maintainer] = useState(loadMaintainer);
+  const [maintainer] = useState(() => (EMBEDDED ? false : loadMaintainer()));
+  // Embedded (iframe or ?embed=1): view-only — no community/local edits.
+  const viewOnly = EMBEDDED;
 
   // Shared community places (public/positions.json) + local edits.
   const [shared, setShared] = useState({});
@@ -319,6 +322,7 @@ export default function App() {
 
   // ---- Place creation / positioning --------------------------------------
   const createPlace = ({ name, kind, href, territory }) => {
+    if (viewOnly) return;
     const clean = name.trim();
     if (!clean) return;
     setLocal((l) => ({
@@ -341,7 +345,7 @@ export default function App() {
   };
 
   const positionPlace = (x, y) => {
-    if (!target) return;
+    if (viewOnly || !target) return;
     setLocal((l) => {
       const prev = l[target.name] || {};
       return { ...l, [target.name]: { ...prev, x: +x.toFixed(1), y: +y.toFixed(1) } };
@@ -353,6 +357,7 @@ export default function App() {
   // Local-only pins vanish immediately; shared markers become removal marks
   // (hidden locally, submitted to the community map as null tombstones).
   const removePlace = (name) => {
+    if (viewOnly) return;
     let wasLocal = false;
     setLocal((l) => {
       if (!l[name]) return l;
@@ -379,10 +384,12 @@ export default function App() {
     showToast(`Kept ${name}`);
   };
 
-  // Build a PR-ready diff of local changes vs shared, open a GitHub issue.
-  // The map-update workflow auto-merges these into positions.json on deploy
-  // (additions/edits as objects, removals as null tombstones).
+  // Build a diff of local changes vs shared, open a GitHub issue. A
+  // maintainer reviews it and adds the "approved" label, which triggers the
+  // map-update workflow to merge it into positions.json (additions/edits as
+  // objects, removals as null tombstones).
   const submitChanges = () => {
+    if (viewOnly) return;
     const diff = {};
     for (const [name, v] of Object.entries(local)) {
       diff[name] = { kind: v.kind, href: v.href, x: v.x, y: v.y };
@@ -403,17 +410,18 @@ export default function App() {
     const body =
       "Community map update from Urth Atlas:\n\n```json\n" +
       JSON.stringify(diff, null, 2) +
-      "\n```\n\nThis issue is auto-merged into positions.json by the map-update workflow.";
+      "\n```\n\nA maintainer will review this and add the `approved` label to merge it into positions.json.";
     const url =
-      "https://github.com/EmjayBot/urth-atlas/issues/new?title=" +
+      "https://github.com/urth-rp/urth-atlas/issues/new?title=" +
       encodeURIComponent("Map update: " + Object.keys(diff).slice(0, 5).join(", ")) +
       "&body=" +
       encodeURIComponent(body);
     window.open(url, "_blank", "noopener");
-    showToast("Opened issue — auto-merges on publish");
+    showToast("Opened issue — awaiting maintainer approval");
   };
 
   const clearLocal = () => {
+    if (viewOnly) return;
     setLocal({});
     setRemoved({});
     setTarget(null);
@@ -466,7 +474,7 @@ export default function App() {
   };
 
   const onCtxPin = (name) => {
-    if (!ctx || !name) return;
+    if (viewOnly || !ctx || !name) return;
     const pt = ctx.pt;
     setLocal((l) => ({
       ...l,
@@ -584,6 +592,7 @@ export default function App() {
           onSubmit={submitChanges}
           onClear={clearLocal}
           maintainer={maintainer}
+          viewOnly={viewOnly}
         />
 
         <div className="flex-1 relative min-w-0 bg-[#e5e3df] overflow-hidden">
@@ -629,6 +638,7 @@ export default function App() {
               })
             }
             onPopupAction={onPopupAction}
+            viewOnly={viewOnly}
           />
           <MapControls
             mode={mode}
@@ -651,6 +661,7 @@ export default function App() {
             onWhat={onCtxWhat}
             onMeasure={onCtxMeasure}
             onPin={onCtxPin}
+            viewOnly={viewOnly}
           />
         </div>
       </div>
