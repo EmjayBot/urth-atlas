@@ -27,7 +27,7 @@ import CylinderView from "./CylinderView";
 import { IS_LOW_MEM } from "../lib/device";
 import { TILES_ON } from "../lib/tiles";
 
-const PICK_COLOR = "#0e7490";
+const PICK_COLOR = "#1a6f34";
 // Stability: 5 world copies (i in -2..2) is enough to fill ultra-wide screens
 // at max zoom-out. The old 21 copies of 11232x7525 images (~7GB decoded)
 // caused major jank / OOMs. Overlays reuse the same window.
@@ -721,7 +721,7 @@ export default function MapView({
     }
     if (showPixelGrid) {
       for (let i = -HALF_COPIES; i <= HALF_COPIES; i++) {
-        gridForCopy(256, "#0e7490", 1, i * W).forEach((l) => grp.addLayer(l));
+        gridForCopy(256, "#1a6f34", 1, i * W).forEach((l) => grp.addLayer(l));
       }
     }
 
@@ -1442,7 +1442,7 @@ export default function MapView({
       {status === "loading" && (
         <div className="absolute inset-0 z-[900] flex items-center justify-center pointer-events-none">
           <div className="bg-white/95 rounded-lg shadow-xl border border-[#e5e7eb] px-6 py-4 text-center">
-            <div className="w-7 h-7 border-[3px] border-[#0e7490] border-t-transparent rounded-full animate-spin mx-auto mb-2.5" />
+            <div className="w-7 h-7 border-[3px] border-[#1a6f34] border-t-transparent rounded-full animate-spin mx-auto mb-2.5" />
             <div className="text-[12px] font-semibold tracking-wide uppercase text-zinc-600">
               Loading {activeLayer.label}
             </div>
@@ -1483,7 +1483,7 @@ export default function MapView({
             }}
           />
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[700] pointer-events-none select-none">
-            <div className="bg-[#0e7490]/90 text-white text-[11px] font-semibold tracking-wide uppercase px-3 py-1.5 rounded-full shadow-lg backdrop-blur">
+            <div className="bg-[#1a6f34]/90 text-white text-[11px] font-semibold tracking-wide uppercase px-3 py-1.5 rounded-full shadow-lg backdrop-blur">
               ◍ Cylinder mode — drag to rotate
             </div>
           </div>

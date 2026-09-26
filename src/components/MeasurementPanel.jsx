@@ -31,7 +31,7 @@ function ActionButton({ onClick, icon: Icon, label }) {
 
 function ResultCard({ children }) {
   return (
-    <div className="rounded-xl border border-[#0e7490]/20 bg-[#f0f9fa] p-3.5">
+    <div className="rounded-xl border border-[#1a6f34]/20 bg-[#eef6ef] p-3.5">
       {children}
     </div>
   );
@@ -46,7 +46,7 @@ function Row({ label, value, bold, accent, big }) {
       <span
         className={
           big
-            ? "text-[16px] font-extrabold leading-5 text-[#0e7490]"
+            ? "text-[16px] font-extrabold leading-5 text-[#1a6f34]"
             : accent
               ? "font-bold text-zinc-900"
               : "font-semibold text-zinc-700"
@@ -59,7 +59,7 @@ function Row({ label, value, bold, accent, big }) {
 }
 
 function Divider() {
-  return <div className="h-px bg-[#0e7490]/15 my-2" />;
+  return <div className="h-px bg-[#1a6f34]/15 my-2" />;
 }
 
 function BetaDisclaimer() {
@@ -107,7 +107,7 @@ function CopyShare({ onCopy, onShare, text, shareState }) {
 function DistanceCard({ d, units, onCopy, onShare }) {
   return (
     <ResultCard>
-      <div className="text-[11px] font-bold tracking-widest uppercase text-[#0e7490] mb-2 flex items-center justify-between">
+      <div className="text-[11px] font-bold tracking-widest uppercase text-[#1a6f34] mb-2 flex items-center justify-between">
         <span>Distance Result</span>
         <span className="text-zinc-400 normal-case tracking-normal font-semibold">
           {d.pix.toFixed(1)} px
@@ -158,7 +158,7 @@ function DistanceCard({ d, units, onCopy, onShare }) {
 function PathCard({ r, count, units, onCopy, onShare }) {
   return (
     <ResultCard>
-      <div className="text-[11px] font-bold tracking-widest uppercase text-[#0e7490] mb-2 flex items-center justify-between">
+      <div className="text-[11px] font-bold tracking-widest uppercase text-[#1a6f34] mb-2 flex items-center justify-between">
         <span>Path — {count} pts</span>
         <span className="text-zinc-400 normal-case tracking-normal font-semibold">
           {r.totalPix.toFixed(1)} px
@@ -202,7 +202,7 @@ function PathCard({ r, count, units, onCopy, onShare }) {
 function AreaCard({ a, count, units, onCopy, onShare }) {
   return (
     <ResultCard>
-      <div className="text-[11px] font-bold tracking-widest uppercase text-[#0e7490] mb-2 flex items-center justify-between">
+      <div className="text-[11px] font-bold tracking-widest uppercase text-[#1a6f34] mb-2 flex items-center justify-between">
         <span>Area — {count} vertices</span>
         <span className="text-zinc-400 normal-case tracking-normal font-semibold">
           {a.areaPx.toFixed(1)} px²
@@ -218,7 +218,7 @@ function AreaCard({ a, count, units, onCopy, onShare }) {
           <Row label="Flat area" value={`${num(a.areaMi2, 2)} mi²`} bold accent />
         )}
         {units === "both" && (
-          <div className="text-[12px] font-bold text-center bg-white border rounded-lg py-1.5 my-1 text-[#0e7490]">
+          <div className="text-[12px] font-bold text-center bg-white border rounded-lg py-1.5 my-1 text-[#1a6f34]">
             {intNum(a.areaKm2)} km² / {intNum(a.areaMi2)} mi²
           </div>
         )}
@@ -294,7 +294,7 @@ export default function MeasurementPanel({
             <button
               onClick={onLock}
               title="Finish (Enter or double-click)"
-              className="h-8 px-3 rounded-full bg-[#0e7490] text-white text-[12px] font-semibold hover:bg-[#0c5a70] transition-colors"
+              className="h-8 px-3 rounded-full bg-[#1a6f34] text-white text-[12px] font-semibold hover:bg-[#145729] transition-colors"
             >
               Finish
             </button>
@@ -324,7 +324,7 @@ export default function MeasurementPanel({
               <button
                 key={id}
                 onClick={() => setMode(id)}
-                className={`h-9 rounded-full text-[12px] font-semibold border transition-all flex items-center justify-center gap-1.5 ${active ? "bg-[#0e7490] text-white border-[#0e7490] shadow-sm" : "bg-white text-zinc-700 border-zinc-200 hover:border-zinc-300"}`}
+                className={`h-9 rounded-full text-[12px] font-semibold border transition-all flex items-center justify-center gap-1.5 ${active ? "bg-[#1a6f34] text-white border-[#1a6f34] shadow-sm" : "bg-white text-zinc-700 border-zinc-200 hover:border-zinc-300"}`}
               >
                 <Icon width={14} height={14} />
                 {label}

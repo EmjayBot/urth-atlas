@@ -56,7 +56,7 @@ export default function ContextMenu({ pos, pt, onClose, onWhat, onMeasure, onPin
             }}
             placeholder="Marker name"
             spellCheck={false}
-            className="w-full h-8 px-2.5 rounded-md bg-[#f9fafb] border border-[#e5e7eb] focus:bg-white focus:border-[#0e7490] outline-none text-[13px] placeholder:text-zinc-400"
+            className="w-full h-8 px-2.5 rounded-md bg-[#f9fafb] border border-[#e5e7eb] focus:bg-white focus:border-[#1a6f34] outline-none text-[13px] placeholder:text-zinc-400"
           />
           <div className="flex gap-1.5">
             <button
@@ -67,7 +67,7 @@ export default function ContextMenu({ pos, pt, onClose, onWhat, onMeasure, onPin
                 onClose();
               }}
               disabled={!name.trim()}
-              className="flex-1 h-8 rounded-md bg-[#0e7490] text-white text-[12px] font-semibold disabled:opacity-40 hover:bg-[#0c5a70] transition-colors"
+              className="flex-1 h-8 rounded-md bg-[#1a6f34] text-white text-[12px] font-semibold disabled:opacity-40 hover:bg-[#145729] transition-colors"
             >
               Place
             </button>

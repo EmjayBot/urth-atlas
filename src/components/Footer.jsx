@@ -7,12 +7,12 @@ function Footer({ status }) {
       <div className="flex items-center gap-2">
         <span
           className={`w-2 h-2 rounded-full ${
-            status === "blocked" ? "bg-amber-500" : "bg-[#0e7490]"
+            status === "blocked" ? "bg-amber-500" : "bg-[#1a6f34]"
           } ${status === "loading" ? "animate-pulse" : ""}`}
         />
         <span className="font-bold tracking-wide uppercase text-zinc-700">Scale:</span>
       </div>
-      <span className="text-zinc-900 font-semibold bg-[#f0f9fa] border border-[#0e7490]/20 px-2.5 py-0.5 rounded-full">
+      <span className="text-zinc-900 font-semibold bg-[#eef6ef] border border-[#1a6f34]/20 px-2.5 py-0.5 rounded-full">
         1 pixel = {KM_PER_PX.toFixed(3)} km ({MI_PER_PX.toFixed(3)} mi) • 1 px² ={" "}
         {KM2_PER_PX2.toFixed(2)} km² ({MI2_PER_PX2.toFixed(3)} mi²)
       </span>
@@ -29,7 +29,7 @@ function Footer({ status }) {
           <kbd className="px-1 py-0.5 rounded bg-zinc-100 border border-zinc-200">+</kbd>/
           <kbd className="px-1 py-0.5 rounded bg-zinc-100 border border-zinc-200">−</kbd> zoom
         </span>
-        <span className="px-2 py-0.5 rounded-full bg-[#f0f9fa] border border-[#0e7490]/20 text-[#0e7490] font-semibold text-[10px] tracking-wide uppercase">
+        <span className="px-2 py-0.5 rounded-full bg-[#eef6ef] border border-[#1a6f34]/20 text-[#1a6f34] font-semibold text-[10px] tracking-wide uppercase">
           km + mi • Accurate • Linked to TEPwiki
         </span>
       </div>

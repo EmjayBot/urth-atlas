@@ -8,7 +8,7 @@ served at the domain root — base "/").
 ------------------------------------------------------------
 1. DESIGN TOKENS
 ------------------------------------------------------------
-- Colors: Primary #0e7490 (teal-blue), Hover #0c5a70, Light #e6f4f1,
+- Colors: Primary #1a6f34 (brand green), Hover #145729, Light #e8f3ea,
   Border #d1d5db / #e5e7eb, Text #111827 primary / #6b7280 secondary,
   Map bg #e5e3df. Radius 6px. Shadows subtle.
 - Fonts: header wordmark Bell MT Bold 22px #6ea7a1 to match the globe

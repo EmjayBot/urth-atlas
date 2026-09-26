@@ -250,7 +250,7 @@ body {
   color: #475569;
 }
 .urth-nation-text:hover .urth-nation-text-name {
-  color: #0e7490;
+  color: #1a6f34;
   text-decoration: underline;
 }
 
@@ -274,7 +274,7 @@ body {
   background: transparent;
   border: none;
   box-shadow: none;
-  color: #0e7490;
+  color: #1a6f34;
   font-family: var(--font-mono);
   font-weight: 700;
   font-size: 11px;
@@ -338,8 +338,8 @@ body {
   border-radius: 999px;
 }
 .atlas-popup-kind-nation {
-  background: #e6f4f1;
-  color: #0e7490;
+  background: #e8f3ea;
+  color: #1a6f34;
 }
 .atlas-popup-kind-city {
   background: #fef3c7;
@@ -412,7 +412,7 @@ body {
   margin-top: 10px;
   padding: 8px 16px;
   border-radius: 8px;
-  background-color: #0b556b;
+  background-color: #1a6f34;
   font-size: 13px;
   font-weight: 700;
   line-height: 1.2;
@@ -422,7 +422,7 @@ body {
 }
 .atlas-popup .atlas-popup-link:hover,
 .atlas-popup .atlas-popup-link:active {
-  background-color: #083f4f;
+  background-color: #145729;
   color: #ffffff;
   text-decoration: none;
 }
@@ -452,12 +452,12 @@ body {
   background: #f3f4f6;
 }
 .atlas-popup-btn-primary {
-  border-color: #0b556b;
-  background-color: #0b556b;
+  border-color: #1a6f34;
+  background-color: #1a6f34;
   color: #ffffff;
 }
 .atlas-popup-btn-primary:hover {
-  background-color: #083f4f;
+  background-color: #145729;
 }
 .atlas-popup-btn-danger {
   flex: 0 0 auto;

@@ -65,7 +65,7 @@ export default function MapControls({
                 onClick={() => setLayer(v.id)}
                 className={`h-7 px-3.5 rounded text-[12px] font-semibold uppercase tracking-wide transition-all ${
                   layer === v.id
-                    ? "bg-[#0e7490] text-white"
+                    ? "bg-[#1a6f34] text-white"
                     : "text-zinc-600 hover:text-zinc-900"
                 }`}
               >
@@ -84,7 +84,7 @@ export default function MapControls({
             onClick={() => setMode(t.id)}
             className={`flex-1 h-9 rounded-md text-[12px] font-semibold border shadow-sm ${
               mode === t.id
-                ? "bg-[#0e7490] text-white border-[#0e7490]"
+                ? "bg-[#1a6f34] text-white border-[#1a6f34]"
                 : "bg-white text-zinc-700 border-zinc-200"
             }`}
           >

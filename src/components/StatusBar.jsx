@@ -35,7 +35,7 @@ function StatusBar({ status, cursor }) {
           target="_blank"
           rel="noopener noreferrer"
           title="Interactive maps powered by Leaflet"
-          className="text-zinc-500 hover:text-[#0e7490] transition-colors"
+          className="text-zinc-500 hover:text-[#1a6f34] transition-colors"
         >
           Leaflet
         </a>
@@ -44,7 +44,7 @@ function StatusBar({ status, cursor }) {
           target="_blank"
           rel="noopener noreferrer"
           title="Map imagery: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International"
-          className="text-zinc-500 hover:text-[#0e7490] transition-colors"
+          className="text-zinc-500 hover:text-[#1a6f34] transition-colors"
         >
           CC BY-NC-SA 4.0
         </a>
@@ -53,7 +53,7 @@ function StatusBar({ status, cursor }) {
           target="_blank"
           rel="noopener noreferrer"
           title="Source maps at UrthMaps.com"
-          className="text-zinc-500 hover:text-[#0e7490] transition-colors"
+          className="text-zinc-500 hover:text-[#1a6f34] transition-colors"
         >
           UrthMaps.com
         </a>

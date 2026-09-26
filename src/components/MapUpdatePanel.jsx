@@ -204,10 +204,10 @@ export default function MapUpdatePanel() {
                 setSlotId(s.id);
                 resetFile();
               }}
-              className="w-4 h-4 mt-0.5 accent-[#0e7490] cursor-pointer"
+              className="w-4 h-4 mt-0.5 accent-[#1a6f34] cursor-pointer"
             />
             <span className="flex flex-col leading-tight">
-              <span className="text-[13px] text-[#111827] group-hover:text-[#0e7490] transition-colors">
+              <span className="text-[13px] text-[#111827] group-hover:text-[#1a6f34] transition-colors">
                 {s.label}
               </span>
               <span className="text-[11px] text-[#6b7280] font-mono">{s.path} · {s.need}</span>
@@ -258,7 +258,7 @@ export default function MapUpdatePanel() {
             placeholder="GitHub token (contents + PR write)"
             autoComplete="off"
             spellCheck={false}
-            className="w-full h-9 px-3 rounded-md bg-[#f9fafb] border border-[#e5e7eb] focus:bg-white focus:border-[#0e7490] outline-none text-[13px] font-mono placeholder:font-sans placeholder:text-zinc-400"
+            className="w-full h-9 px-3 rounded-md bg-[#f9fafb] border border-[#e5e7eb] focus:bg-white focus:border-[#1a6f34] outline-none text-[13px] font-mono placeholder:font-sans placeholder:text-zinc-400"
           />
           <div className="text-[11px] leading-4 text-[#6b7280]">
             Create one at github.com → Settings → Developer settings → Personal
@@ -268,7 +268,7 @@ export default function MapUpdatePanel() {
           <button
             onClick={onSubmit}
             disabled={!canSubmit}
-            className="w-full h-9 rounded-md bg-[#0e7490] text-white text-[12px] font-semibold disabled:opacity-40 hover:bg-[#0c5a70] transition-colors"
+            className="w-full h-9 rounded-md bg-[#1a6f34] text-white text-[12px] font-semibold disabled:opacity-40 hover:bg-[#145729] transition-colors"
           >
             {busy || "Open pull request"}
           </button>

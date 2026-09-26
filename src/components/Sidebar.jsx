@@ -109,8 +109,8 @@ function PinsSection({
         </p>
       </div>
       {target && (
-        <div className="rounded-lg bg-[#e6f4f1] border border-[#0e7490]/30 px-3 py-2">
-          <div className="text-[11px] font-bold text-[#0e7490]">Placing: {target.name}</div>
+        <div className="rounded-lg bg-[#e8f3ea] border border-[#1a6f34]/30 px-3 py-2">
+          <div className="text-[11px] font-bold text-[#1a6f34]">Placing: {target.name}</div>
           <div className="text-[11px] text-[#111827] mt-0.5">
             Click on the map where this {target.kind} actually is.
             <kbd className="ml-1 px-1 py-0.5 rounded bg-white border border-zinc-200">Esc</kbd>{" "}
@@ -128,7 +128,7 @@ function PinsSection({
           onChange={(e) => setName(e.target.value)}
           placeholder="Name (e.g. Asilica)"
           spellCheck={false}
-          className="w-full h-9 px-3 rounded-md bg-[#f9fafb] border border-[#e5e7eb] focus:bg-white focus:border-[#0e7490] outline-none text-[13px] placeholder:text-zinc-400"
+          className="w-full h-9 px-3 rounded-md bg-[#f9fafb] border border-[#e5e7eb] focus:bg-white focus:border-[#1a6f34] outline-none text-[13px] placeholder:text-zinc-400"
         />
         <div className="flex gap-1 rounded-md bg-[#f9fafb] p-1 border border-[#e5e7eb]">
           {KINDS.map((k) => (
@@ -150,7 +150,7 @@ function PinsSection({
           onChange={(e) => setHref(e.target.value)}
           placeholder="TEPwiki page (optional, e.g. Asilica)"
           spellCheck={false}
-          className="w-full h-9 px-3 rounded-md bg-[#f9fafb] border border-[#e5e7eb] focus:bg-white focus:border-[#0e7490] outline-none text-[13px] placeholder:text-zinc-400"
+          className="w-full h-9 px-3 rounded-md bg-[#f9fafb] border border-[#e5e7eb] focus:bg-white focus:border-[#1a6f34] outline-none text-[13px] placeholder:text-zinc-400"
         />
         {kind === "nation" && (
           <label className="flex items-center gap-2.5 py-1 select-none cursor-pointer">
@@ -158,7 +158,7 @@ function PinsSection({
               type="checkbox"
               checked={territory}
               onChange={(e) => setTerritory(e.target.checked)}
-              className="w-4 h-4 rounded accent-[#0e7490] cursor-pointer"
+              className="w-4 h-4 rounded accent-[#1a6f34] cursor-pointer"
             />
             <span className="text-[13px] text-[#111827]">
               Territory <span className="text-[11px] text-[#6b7280]">— subnational marker style</span>
@@ -180,7 +180,7 @@ function PinsSection({
             }
           }}
           disabled={!name.trim()}
-          className="w-full h-8 rounded-md bg-[#0e7490] text-white text-[12px] font-semibold flex items-center justify-center gap-1.5 disabled:opacity-40 hover:bg-[#0c5a70] transition-colors"
+          className="w-full h-8 rounded-md bg-[#1a6f34] text-white text-[12px] font-semibold flex items-center justify-center gap-1.5 disabled:opacity-40 hover:bg-[#145729] transition-colors"
         >
           <IconPin width={13} height={13} /> Add & place
         </button>
@@ -196,7 +196,7 @@ function PinsSection({
             onChange={(e) => setQ(e.target.value)}
             placeholder="Reposition a placed marker…"
             spellCheck={false}
-            className="w-full h-9 px-3 rounded-md bg-[#f9fafb] border border-[#e5e7eb] focus:bg-white focus:border-[#0e7490] outline-none text-[13px] placeholder:text-zinc-400"
+            className="w-full h-9 px-3 rounded-md bg-[#f9fafb] border border-[#e5e7eb] focus:bg-white focus:border-[#1a6f34] outline-none text-[13px] placeholder:text-zinc-400"
           />
           {q.trim() && (
             <div className="rounded-md border border-[#e5e7eb] overflow-hidden">
@@ -207,10 +207,10 @@ function PinsSection({
                 <button
                   key={p.name}
                   onClick={() => pick(p.name)}
-                  className="w-full flex items-center gap-2 px-3 py-2 hover:bg-[#e6f4f1] text-left transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-2 hover:bg-[#e8f3ea] text-left transition-colors"
                 >
                   <span
-                    className={`w-2 h-2 rounded-full shrink-0 ${p.kind === "city" ? "bg-amber-500" : "bg-[#0e7490]"}`}
+                    className={`w-2 h-2 rounded-full shrink-0 ${p.kind === "city" ? "bg-amber-500" : "bg-[#1a6f34]"}`}
                   />
                   <span className="text-[13px] font-medium text-zinc-800 truncate">{p.name}</span>
                 </button>
@@ -224,7 +224,7 @@ function PinsSection({
                 className="flex items-center gap-2 px-2.5 py-1.5 border-b border-[#e5e7eb] last:border-0"
               >
                 <span
-                  className={`w-2 h-2 rounded-full shrink-0 ${p.kind === "city" ? "bg-amber-500" : "bg-[#0e7490]"}`}
+                  className={`w-2 h-2 rounded-full shrink-0 ${p.kind === "city" ? "bg-amber-500" : "bg-[#1a6f34]"}`}
                 />
                 <span className="text-[12px] text-zinc-700 truncate flex-1">{p.name}</span>
                 {p.x != null ? (
@@ -302,7 +302,7 @@ function PinsSection({
         <div className="text-[12px] text-[#6b7280]">
           No markers yet — add one above.
           {sharedStatus === "ok" && (
-            <span className="block mt-0.5 text-[11px] text-[#0e7490]">
+            <span className="block mt-0.5 text-[11px] text-[#1a6f34]">
               {sharedCount} community places shared with you.
             </span>
           )}
@@ -324,10 +324,10 @@ function OverlayCheck({ label, checked, onChange, sub }) {
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="w-4 h-4 rounded accent-[#0e7490] cursor-pointer"
+        className="w-4 h-4 rounded accent-[#1a6f34] cursor-pointer"
       />
       <span className="flex flex-col leading-tight">
-        <span className="text-[13px] text-[#111827] group-hover:text-[#0e7490] transition-colors">
+        <span className="text-[13px] text-[#111827] group-hover:text-[#1a6f34] transition-colors">
           {label}
         </span>
         {sub && <span className="text-[11px] text-[#6b7280]">{sub}</span>}
@@ -487,10 +487,10 @@ export default function Sidebar({
                 name="base-layer"
                 checked={layer === l.id}
                 onChange={() => setLayer(l.id)}
-                className="w-4 h-4 accent-[#0e7490] cursor-pointer"
+                className="w-4 h-4 accent-[#1a6f34] cursor-pointer"
               />
               <span className="flex flex-col leading-tight">
-                <span className="text-[13px] text-[#111827] group-hover:text-[#0e7490] transition-colors flex items-center gap-1.5">
+                <span className="text-[13px] text-[#111827] group-hover:text-[#1a6f34] transition-colors flex items-center gap-1.5">
                   {l.label}
                   {l.stale && (
                     <span
@@ -519,7 +519,7 @@ export default function Sidebar({
               max={100}
               value={opacity}
               onChange={(e) => setOpacity(Number(e.target.value))}
-              className="w-full accent-[#0e7490] cursor-pointer"
+              className="w-full accent-[#1a6f34] cursor-pointer"
             />
           </div>
         </div>
@@ -538,10 +538,10 @@ export default function Sidebar({
                   type="checkbox"
                   checked={on}
                   onChange={() => onToggleOverlay(l.id)}
-                  className="w-4 h-4 rounded accent-[#0e7490] cursor-pointer"
+                  className="w-4 h-4 rounded accent-[#1a6f34] cursor-pointer"
                 />
                 <span className="flex flex-col leading-tight">
-                  <span className="text-[13px] text-[#111827] group-hover:text-[#0e7490] transition-colors flex items-center gap-1.5">
+                  <span className="text-[13px] text-[#111827] group-hover:text-[#1a6f34] transition-colors flex items-center gap-1.5">
                     {l.label}
                     {l.stale && (
                       <span
@@ -570,7 +570,7 @@ export default function Sidebar({
             value={overlayOpacity}
             onChange={(e) => setOverlayOpacity(Number(e.target.value))}
             disabled={dataOverlays.length === 0}
-            className="w-full accent-[#0e7490] cursor-pointer disabled:opacity-40"
+            className="w-full accent-[#1a6f34] cursor-pointer disabled:opacity-40"
           />
           {IS_LOW_MEM && (
             <div className="mt-1.5 text-[11px] text-[#6b7280]">
@@ -636,7 +636,7 @@ export default function Sidebar({
         {result && (
           <button
             onClick={onSaveResult}
-            className="mt-2 w-full h-8 rounded-md bg-[#0e7490] text-white text-[12px] font-semibold hover:bg-[#0c5a70] transition-colors"
+            className="mt-2 w-full h-8 rounded-md bg-[#1a6f34] text-white text-[12px] font-semibold hover:bg-[#145729] transition-colors"
           >
             Save measurement
           </button>

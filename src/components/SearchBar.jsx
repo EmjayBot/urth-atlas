@@ -53,12 +53,12 @@ export default function SearchBar({ query, setQuery, onPlace, places }) {
           onFocus={() => setOpen(true)}
           placeholder="Search Urth Atlas"
           spellCheck={false}
-          className="w-full h-[38px] pl-9 pr-10 rounded-md bg-white border border-[#d1d5db] text-[14px] text-[#111827] placeholder:text-zinc-400 outline-none transition-all focus:border-[#0e7490] focus:shadow-[0_0_0_3px_#e6f4f1]"
+          className="w-full h-[38px] pl-9 pr-10 rounded-md bg-white border border-[#d1d5db] text-[14px] text-[#111827] placeholder:text-zinc-400 outline-none transition-all focus:border-[#1a6f34] focus:shadow-[0_0_0_3px_#e8f3ea]"
         />
         <button
           type="submit"
           title="Search"
-          className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-md flex items-center justify-center text-zinc-400 hover:bg-[#f3f4f6] hover:text-[#0e7490] transition-colors"
+          className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-md flex items-center justify-center text-zinc-400 hover:bg-[#f3f4f6] hover:text-[#1a6f34] transition-colors"
         >
           <IconArrow width={15} height={15} />
         </button>
@@ -81,10 +81,10 @@ export default function SearchBar({ query, setQuery, onPlace, places }) {
                   onPlace(p);
                   setOpen(false);
                 }}
-                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-[#e6f4f1] text-left transition-colors"
+                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-[#e8f3ea] text-left transition-colors"
               >
                 <span
-                  className={`w-2 h-2 rounded-full shrink-0 ${isCity ? "bg-amber-500" : "bg-[#0e7490]"}`}
+                  className={`w-2 h-2 rounded-full shrink-0 ${isCity ? "bg-amber-500" : "bg-[#1a6f34]"}`}
                 />
                 <span className="text-[13px] font-medium text-zinc-800 truncate">
                   {p.name}
